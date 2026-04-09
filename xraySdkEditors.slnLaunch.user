@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "Новый профиль",
+    "Projects": [
+      {
+        "Path": "Editors\\LevelEditor\\LevelEditor.vcxproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
