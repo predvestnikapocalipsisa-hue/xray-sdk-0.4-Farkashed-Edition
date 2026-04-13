@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include <windows.h>
+#include <commdlg.h>
 
 const float BLINK_TIME = 300.f;
 
@@ -311,6 +313,48 @@ void CSceneObject::OnClickClearSurface(ButtonValue *, bool &, bool &)
     Scene->UndoSave();
     ClearSurface();
 }
+
+void CSceneObject::OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, bool& bSafe)
+{
+    OPENFILENAMEA ofn;
+    char szFile[260] = { 0 };
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "Textures (*.dds;*.tga)\0*.dds;*.tga\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if (GetOpenFileNameA(&ofn))
+    {
+        string_path relative_path = "";
+        const char* textures_root = strstr(szFile, "textures\\");
+
+        if (textures_root)
+        {
+            strcpy(relative_path, textures_root + 9);
+            char* dot = strrchr(relative_path, '.');
+            if (dot) *dot = '\0';
+
+            CSurface* surf = m_Surfaces[B->tag];
+            surf->m_Texture = relative_path;
+
+            OnChangeShader(nullptr);
+
+            bDataModified = true;
+            Msg("~ [Scene Explorer] Texture set to: %s", relative_path);
+        }
+        else
+        {
+            ELog.DlgMsg(mtError, "Файл должен быть внутри gamedata\\textures!");
+        }
+    }
+    bSafe = true;
+}
+
 void CSceneObject::FillProp(LPCSTR pref, PropItemVec &items)
 {
     static shared_str occ_name = "materials\\occ";
@@ -329,8 +373,11 @@ void CSceneObject::FillProp(LPCSTR pref, PropItemVec &items)
                 if ((*s_it)->m_GameMtlName != occ_name)
                 {
                     PropValue *V;
-                    V = PHelper().CreateChoose(items, PrepareKey(Pref2.c_str(), "Texture"), &(*s_it)->m_Texture, smTexture);
-                    V->OnChangeEvent.bind(this, &CSceneObject::OnChangeShader);
+
+                    ButtonValue* B_Tex = PHelper().CreateButton(items, PrepareKey(Pref2.c_str(), "Texture"), (*s_it)->m_Texture, ButtonValue::flFirstOnly);
+                    B_Tex->OnBtnClickEvent.bind(this, &CSceneObject::OnTextureExplorerClick);
+                    B_Tex->tag = std::distance(s_lst.begin(), s_it); 
+
                     V = PHelper().CreateChoose(items, PrepareKey(Pref2.c_str(), "Shader"), &(*s_it)->m_ShaderName, smEShader);
                     V->OnChangeEvent.bind(this, &CSceneObject::OnChangeShader);
                     V = PHelper().CreateChoose(items, PrepareKey(Pref2.c_str(), "Compile"), &(*s_it)->m_ShaderXRLCName, smCShader);

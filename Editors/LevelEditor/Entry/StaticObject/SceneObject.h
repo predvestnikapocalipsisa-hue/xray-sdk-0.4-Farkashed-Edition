@@ -9,6 +9,7 @@ class CSceneObject : public CCustomObject
 	void OnChangeSurface(PropValue *sender);
 	bool AfterEditGameMtl(PropValue *sender, shared_str &str);
 	void OnClickClearSurface(ButtonValue *, bool &, bool &);
+	void OnTextureExplorerClick(ButtonValue* sender, bool& bDataModified, bool& bSafe);
 
 public:
 	SurfaceVec m_Surfaces;

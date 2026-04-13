@@ -7,6 +7,7 @@
 #include "..\..\xrRender\Private\ParticleEffect.h"
 #include "..\XrEcore\Editor\ParticleEffectActions.h"
 #include "ui_particletools.h"
+#include <commdlg.h>
 
 BOOL PS::CPEDef::Equal(const CPEDef *pe)
 {
@@ -283,6 +284,55 @@ bool PS::CPEDef::NameOnAfterEdit(PropValue *sender, shared_str &edit_val)
     return true;
 }
 
+void PS::CPEDef::OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, bool& bSafe)
+{
+    OPENFILENAMEA ofn;       // Используем 'A' версию структуры (ANSI)
+    char szFile[260] = { 0 };
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "Textures (*.dds;*.tga)\0*.dds;*.tga\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if (GetOpenFileNameA(&ofn)) // Используем 'A' версию функции
+    {
+        string_path relative_path = "";
+        // Объявляем textures_root как const char*
+        const char* textures_root = strstr(szFile, "textures\\");
+
+        if (textures_root)
+        {
+            // Копируем, пропуская слово "textures\" (9 символов)
+            strcpy(relative_path, textures_root + 9);
+
+            // Убираем расширение (.dds или .tga)
+            char* dot = strrchr(relative_path, '.');
+            if (dot) *dot = '\0';
+
+            m_TextureName = relative_path;
+
+            // Обновляем шейдер и UI
+            OnShaderChange(nullptr);
+
+            bDataModified = true;
+            ExecCommand(COMMAND_UPDATE_PROPERTIES);
+            Msg("~ [PE Explorer] Texture set to: %s", m_TextureName.c_str());
+        }
+        else
+        {
+            ELog.DlgMsg(mtError, "Ошибка: Текстура должна быть внутри gamedata\\textures!");
+        }
+    }
+    bSafe = true;
+}
+
 void PS::CPEDef::FillProp(LPCSTR pref, ::PropItemVec &items, ::ListItem *owner)
 {
     ButtonValue *B;
@@ -306,8 +356,10 @@ void PS::CPEDef::FillProp(LPCSTR pref, ::PropItemVec &items, ::ListItem *owner)
     P->OnChangeEvent.bind(this, &PS::CPEDef::OnFlagChange);
     if (m_Flags.is(dfSprite))
     {
-        P = PHelper().CreateChoose(items, PrepareKey(pref, "Sprite\\Texture"), &m_TextureName, smTexture, 0, 0, 2);
-        P->OnChangeEvent.bind(this, &PS::CPEDef::OnShaderChange);
+        PHelper().CreateCaption(items, PrepareKey(pref, "Sprite\\Texture Name"), m_TextureName); // Просто отображение текущего имени
+        B = PHelper().CreateButton(items, PrepareKey(pref, "Sprite\\Texture Select"), "Open Explorer", ButtonValue::flFirstOnly);
+        B->OnBtnClickEvent.bind(this, &PS::CPEDef::OnTextureExplorerClick);
+
         P = PHelper().CreateChoose(items, PrepareKey(pref, "Sprite\\Shader"), &m_ShaderName, smEShader);
         P->OnChangeEvent.bind(this, &PS::CPEDef::OnShaderChange);
         // frame

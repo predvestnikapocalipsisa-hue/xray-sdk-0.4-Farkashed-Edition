@@ -127,6 +127,7 @@ namespace PS
 		void CollisionFrictionOnDraw(PropValue *sender, xr_string &draw_val);
 		bool CollisionCutoffOnAfterEdit(PropValue *sender, float &edit_val);
 		void CollisionCutoffOnBeforeEdit(PropValue *sender, float &edit_val);
+		void OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, bool& bSafe);
 		void CollisionCutoffOnDraw(PropValue *sender, xr_string &draw_val);
 		void OnActionEditClick(ButtonValue *sender, bool &bDataModified, bool &bSafe);
 		void OnFrameResize(PropValue *sender);
