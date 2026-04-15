@@ -496,6 +496,10 @@ void CSpawnPoint::SSpawnData::Render(bool bSelected, const Fmatrix& parent, int 
             ::Render->model_Render(v->visual, M, priority, strictB2F, 1.f);
         }
     }
+
+    // FIX: Reset world transform after rendering spawn data to prevent
+    // corrupted xform leaking into terrain and other scene objects
+    RCache.set_xform_world(Fidentity);
 }
 
 void CSpawnPoint::SSpawnData::OnFrame()
@@ -877,8 +881,9 @@ void CSpawnPoint::Render(int priority, bool strictB2F)
     // render attached object
     if (m_AttachedObject)
         m_AttachedObject->Render(priority, strictB2F);
-    if (m_SpawnData.Valid())
-        m_SpawnData.Render(Selected(), FTransformRP, priority, strictB2F);
+
+    RCache.set_xform_world(Fidentity);
+
     // render spawn point
     if (1 == priority)
     {
@@ -924,6 +929,9 @@ void CSpawnPoint::Render(int priority, bool strictB2F)
                     THROW2("CSpawnPoint:: Unknown Type");
                 }
             }
+
+            // FIX: Reset xform_world after icon/entity drawing
+            RCache.set_xform_world(Fidentity);
         }
         else
         {
@@ -978,6 +986,11 @@ void CSpawnPoint::Render(int priority, bool strictB2F)
         if (v)
             v->Render(FTransformRP, priority, strictB2F);
     }
+
+    // FIX: Final guaranteed reset of xform_world at end of Render()
+    // so no matter what path was taken, the global state is clean.
+    RCache.set_xform_world(Fidentity);
+
     FTransformRP = SaveTransform;
 }
 
