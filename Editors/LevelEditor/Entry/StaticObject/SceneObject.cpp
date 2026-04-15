@@ -319,6 +319,9 @@ void CSceneObject::OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, b
     OPENFILENAMEA ofn;
     char szFile[260] = { 0 };
 
+    string_path initial_dir;
+    FS.update_path(initial_dir, "$game_textures$", ""); 
+
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
@@ -326,6 +329,8 @@ void CSceneObject::OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, b
     ofn.nMaxFile = sizeof(szFile);
     ofn.lpstrFilter = "Textures (*.dds;*.tga)\0*.dds;*.tga\0All Files (*.*)\0*.*\0";
     ofn.nFilterIndex = 1;
+    ofn.lpstrInitialDir = initial_dir;
+
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
     if (GetOpenFileNameA(&ofn))

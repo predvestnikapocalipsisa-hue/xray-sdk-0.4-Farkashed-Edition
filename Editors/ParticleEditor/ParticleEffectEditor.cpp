@@ -286,8 +286,11 @@ bool PS::CPEDef::NameOnAfterEdit(PropValue *sender, shared_str &edit_val)
 
 void PS::CPEDef::OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, bool& bSafe)
 {
-    OPENFILENAMEA ofn;       // Используем 'A' версию структуры (ANSI)
+    OPENFILENAMEA ofn;       
     char szFile[260] = { 0 };
+
+    string_path initial_dir;
+    FS.update_path(initial_dir, "$game_textures$", ""); 
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
@@ -304,15 +307,15 @@ void PS::CPEDef::OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, boo
     if (GetOpenFileNameA(&ofn)) // Используем 'A' версию функции
     {
         string_path relative_path = "";
-        // Объявляем textures_root как const char*
+
         const char* textures_root = strstr(szFile, "textures\\");
 
         if (textures_root)
         {
-            // Копируем, пропуская слово "textures\" (9 символов)
+
             strcpy(relative_path, textures_root + 9);
 
-            // Убираем расширение (.dds или .tga)
+
             char* dot = strrchr(relative_path, '.');
             if (dot) *dot = '\0';
 

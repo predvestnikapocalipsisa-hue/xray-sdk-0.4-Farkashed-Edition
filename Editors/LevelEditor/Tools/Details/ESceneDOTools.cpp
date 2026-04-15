@@ -636,18 +636,23 @@ void EDetailManager::OnBaseTextureCuttonClick(ButtonValue* B, bool& bModif, bool
     OPENFILENAME ofn;
     char szFile[260];
 
+    string_path initial_dir;
+    FS.update_path(initial_dir, "$game_textures$", "");
+
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = szFile;
     ofn.lpstrFile[0] = '\0';
     ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = "Targa files (*.dds)\0*.dds\0All Files (*.*)\0*.*\0";
+    ofn.lpstrFilter = "Textures (*.dds;*.tga)\0*.dds;*.tga\0All Files (*.*)\0*.*\0";
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+    ofn.lpstrInitialDir = initial_dir;
+
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
     if (GetOpenFileName(&ofn))
     {
