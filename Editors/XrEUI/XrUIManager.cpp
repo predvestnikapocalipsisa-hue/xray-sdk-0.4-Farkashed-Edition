@@ -4,6 +4,33 @@
 
 #define USE_OLD_STYLE 1
 
+
+static const char* GetClipboardTextFn_Custom(void* user_data) {
+    static std::string clipboard_str;
+    if (!OpenClipboard(NULL)) return NULL;
+    HANDLE hData = GetClipboardData(CF_TEXT);
+    if (hData != NULL) {
+        char* pszText = (char*)GlobalLock(hData);
+        if (pszText) clipboard_str = pszText;
+        GlobalUnlock(hData);
+    }
+    CloseClipboard();
+    return clipboard_str.c_str();
+}
+
+static void SetClipboardTextFn_Custom(void* user_data, const char* text) {
+    if (!OpenClipboard(NULL)) return;
+    const size_t len = strlen(text) + 1;
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
+    if (hMem) {
+        memcpy(GlobalLock(hMem), text, len);
+        GlobalUnlock(hMem);
+        EmptyClipboard();
+        SetClipboardData(CF_TEXT, hMem);
+    }
+    CloseClipboard();
+}
+
 XrUIManager::XrUIManager()
 {
 }
@@ -110,6 +137,10 @@ void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* in
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
+
+    io.GetClipboardTextFn = GetClipboardTextFn_Custom;
+    io.SetClipboardTextFn = SetClipboardTextFn_Custom;
+
     xr_strcpy(m_name_ini, ini_path);
     io.IniFilename = m_name_ini;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
