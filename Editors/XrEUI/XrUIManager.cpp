@@ -282,6 +282,7 @@ void XrUIManager::Draw()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
     // ImGui::DockSpaceOverViewport();
+
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + UIToolBarSize));
@@ -327,6 +328,7 @@ void XrUIManager::Draw()
         }
     }
 }
+
 static bool ImGui_ImplWin32_UpdateMouseCursor()
 {
     ImGuiIO& io = ImGui::GetIO();

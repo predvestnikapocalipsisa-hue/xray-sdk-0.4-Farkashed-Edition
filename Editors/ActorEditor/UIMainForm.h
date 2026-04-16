@@ -12,6 +12,11 @@ public:
 
 	IC UIRenderForm *GetRenderForm() { return m_Render; }
 
+	static bool  s_showSplash;
+	static void* g_splash_tex;
+
+
+
 private:
 	UITopBarForm *m_TopBar;
 	UIRenderForm *m_Render;

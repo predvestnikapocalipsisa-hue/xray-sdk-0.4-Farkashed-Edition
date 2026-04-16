@@ -9,6 +9,9 @@ public:
 	IC UILeftBarForm *GetLeftBarForm() { return m_LeftBar; }
 	IC UITopBarForm *GetTopBarForm() { return m_TopBar; }
 
+	static bool  s_showSplash;
+	static void* g_splash_tex;
+
 private:
 	UITopBarForm *m_TopBar;
 	UIRenderForm *m_Render;
