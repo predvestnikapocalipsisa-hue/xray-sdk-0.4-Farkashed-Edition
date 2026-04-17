@@ -675,3 +675,13 @@ bool EScene::GetSubstObjectName(const xr_string &_from, xr_string &_to) const
 
     return (It != It_e);
 }
+
+extern "C" __declspec(dllexport) const char* GetCurrentLevelName() {
+    if (!Scene) return "";
+
+    if (Scene->m_LevelOp.m_FNLevelPath.size() > 0) {
+        return Scene->m_LevelOp.m_FNLevelPath.c_str();
+    }
+
+    return "Новая сцена";
+}

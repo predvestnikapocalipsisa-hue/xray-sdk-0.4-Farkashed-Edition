@@ -881,6 +881,8 @@ void CSpawnPoint::Render(int priority, bool strictB2F)
     // render attached object
     if (m_AttachedObject)
         m_AttachedObject->Render(priority, strictB2F);
+    if (m_SpawnData.Valid())
+        m_SpawnData.Render(Selected(), FTransformRP, priority, strictB2F);
 
     RCache.set_xform_world(Fidentity);
 

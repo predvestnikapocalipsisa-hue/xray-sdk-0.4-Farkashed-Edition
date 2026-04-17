@@ -89,6 +89,12 @@
     <ClInclude Include="imgui_user.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="discord_register.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="discord_rpc.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="imgui.natvis" />
