@@ -1,5 +1,6 @@
 
 <img width="2560" height="1024" alt="farkashed edition(1)" src="https://github.com/user-attachments/assets/e45371f3-89db-45da-9c04-e5c70adf59e8" />
+
 ### X-Ray SDK 0.4 Farkashed Edition
 
 Модифицированная версия X-Ray SDK 0.4, которая расширяет возможности, делает инструментарий более удобным и исправляет баги. Проект базируется на TSMP SDK (который в свою очередь основан на X-Ray SDK 0.8 by Red Panda).
