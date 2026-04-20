@@ -162,15 +162,15 @@ void UIObjectTool::Draw()
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Object List"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
-        ImGui::BeginChild("Object List");
+        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());;
         ImGui::Separator();
         m_ObjectList->Draw();
         ImGui::Separator();
-        ImGui::EndChild();
         ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
         ImGui::TreePop();
     }
+
+    ImGui::Dummy(ImVec2(0, 300));
 }
 
 void UIObjectTool::RefreshList()
