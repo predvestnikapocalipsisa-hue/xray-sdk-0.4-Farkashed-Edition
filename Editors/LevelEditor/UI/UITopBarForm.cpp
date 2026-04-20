@@ -21,7 +21,7 @@ UITopBarForm::~UITopBarForm()
 
 void UITopBarForm::Draw()
 {
-	ImGuiViewport *viewport = ImGui::GetMainViewport();
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + UI->GetMenuBarHeight()));
 	ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, UIToolBarSize));
 	ImGui::SetNextWindowViewport(viewport->ID);
@@ -139,7 +139,7 @@ void UITopBarForm::RefreshBar()
 			m_bZX = true;
 			break;
 		default:
-			THROW;
+			Msg("! [TopBar] Unknown State: Action[%d] Axis[%d]", Tools->GetAction(), Tools->GetAxis());
 		}
 	}
 	// settings
