@@ -307,3 +307,65 @@ void UITopBarForm::ClickViewX()
 	EDevice.m_Camera.ViewReset();
 	UI->RedrawScene();
 }
+
+void UITopBarForm::ClickGenTHM()
+{
+	ObjectList sel;
+	if (!Scene->GetQueryObjects(sel, OBJCLASS_SCENEOBJECT, 1, 1, -1) || sel.empty())
+	{
+		ELog.Msg(mtInformation, "GenTHM: No objects selected!");
+		return;
+	}
+
+	CSceneObject* obj = dynamic_cast<CSceneObject*>(sel.front());
+	if (!obj || obj->m_Surfaces.empty()) return;
+
+	string_path srcTHM, dstTHM;
+	FS.update_path(srcTHM, "$game_textures$", "ed\\template_terrain.thm");
+
+	if (!FS.exist(srcTHM))
+	{
+		ELog.DlgMsg(mtError, "Template not found: textures\\ed\\template_terrain.thm");
+		return;
+	}
+
+	int created_count = 0;
+
+	for (CSurface* surf : obj->m_Surfaces)
+	{
+		shared_str texName = surf->m_Texture;
+
+		if (texName.size() && (strstr(texName.c_str(), "terrain\\") || strstr(texName.c_str(), "terrain/")))
+		{
+			strconcat(sizeof(dstTHM), dstTHM, texName.c_str(), ".thm");
+			FS.update_path(dstTHM, "$game_textures$", dstTHM);
+
+			if (FS.exist(dstTHM))
+			{
+				ELog.Msg(mtInformation, "GenTHM: Skip '%s' (already exists)", texName.c_str());
+				continue;
+			}
+
+			IReader* R = FS.r_open(srcTHM);
+			if (R)
+			{
+				IWriter* W = FS.w_open(dstTHM);
+				if (W)
+				{
+					W->w(R->pointer(), R->length());
+					FS.w_close(W);
+					ELog.Msg(mtInformation, "GenTHM: Created for terrain texture: '%s'", texName.c_str());
+					created_count++;
+				}
+				FS.r_close(R);
+			}
+		}
+	}
+
+	if (created_count == 0)
+	{
+		ELog.Msg(mtError, "GenTHM: No 'terrain\\' textures found on selected object!");
+	}
+
+	m_timeGenTHM = EDevice.dwTimeGlobal;
+}
