@@ -69,7 +69,7 @@ void UIMainForm::Draw()
             ImGui::Image((ImTextureID)g_splash_tex, imgSize);
         }
 
-        if (ImGui::GetTime() > 10.0f)
+        if (ImGui::GetTime() > 7.0f)
             s_showSplash = false;
 
         ImGui::End();
