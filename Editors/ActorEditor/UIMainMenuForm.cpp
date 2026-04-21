@@ -174,13 +174,13 @@ void UIMainMenuForm::Draw()
                     if (ImGui::MenuItem("100%", "", &selected[2]))
                     {
                         selected[1] = selected[0] = selected[3] = false;
-                        UI->SetRenderQuality(1.f);
+                        UI->SetRenderQuality(2.f);
                         UI->RedrawScene();
                     }
                     if (ImGui::MenuItem("200%", "", &selected[3]))
                     {
                         selected[1] = selected[2] = selected[0] = false;
-                        UI->SetRenderQuality(2.f);
+                        UI->SetRenderQuality(3.f);
                         UI->RedrawScene();
                     }
                     ImGui::EndMenu();
