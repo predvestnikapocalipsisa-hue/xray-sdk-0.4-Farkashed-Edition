@@ -216,8 +216,6 @@ bool CToolCustom::MouseEnd(TShiftState Shift)
     case etaAdd:
         break;
     case etaMove:
-        if (EPrefs->tools_show_move_axis)
-            m_Axis = etAxisUndefined;
         break;
     case etaRotate:
         break;

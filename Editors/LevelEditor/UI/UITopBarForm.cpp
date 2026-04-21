@@ -219,35 +219,31 @@ void UITopBarForm::ClickScale()
 }
 void UITopBarForm::ClickX()
 {
-	ExecCommand(COMMAND_CHANGE_AXIS, etAxisX);
-	m_bX = true;
-	m_bY = false;
-	m_bZ = false;
-	m_bZX = false;
+	// Если X уже выбран, то при повторном клике сбрасываем в Undefined
+	ETAxis newAxis = (Tools->GetAxis() == etAxisX) ? etAxisUndefined : etAxisX;
+	ExecCommand(COMMAND_CHANGE_AXIS, newAxis);
+	RefreshBar(); // Обновляем состояние кнопок (подсветку)
 }
+
 void UITopBarForm::ClickY()
 {
-	ExecCommand(COMMAND_CHANGE_AXIS, etAxisY);
-	m_bX = false;
-	m_bY = true;
-	m_bZ = false;
-	m_bZX = false;
+	ETAxis newAxis = (Tools->GetAxis() == etAxisY) ? etAxisUndefined : etAxisY;
+	ExecCommand(COMMAND_CHANGE_AXIS, newAxis);
+	RefreshBar();
 }
+
 void UITopBarForm::ClickZ()
 {
-	ExecCommand(COMMAND_CHANGE_AXIS, etAxisZ);
-	m_bX = false;
-	m_bY = false;
-	m_bZ = true;
-	m_bZX = false;
+	ETAxis newAxis = (Tools->GetAxis() == etAxisZ) ? etAxisUndefined : etAxisZ;
+	ExecCommand(COMMAND_CHANGE_AXIS, newAxis);
+	RefreshBar();
 }
+
 void UITopBarForm::ClickZX()
 {
-	ExecCommand(COMMAND_CHANGE_AXIS, etAxisZX);
-	m_bX = false;
-	m_bY = false;
-	m_bZ = false;
-	m_bZX = true;
+	ETAxis newAxis = (Tools->GetAxis() == etAxisZX) ? etAxisUndefined : etAxisZX;
+	ExecCommand(COMMAND_CHANGE_AXIS, newAxis);
+	RefreshBar();
 }
 
 void UITopBarForm::ClickCsLocal() { ExecCommand(COMMAND_SET_SETTINGS, etfCSParent, m_bCsLocal); }
