@@ -504,11 +504,6 @@ void CSector::LoadSectorDefLTX(CInifile &ini, LPCSTR sect_name, u32 item_idx)
 bool CSector::LoadLTX(CInifile &ini, LPCSTR sect_name)
 {
     u32 version = ini.r_u32(sect_name, "version");
-    if (version < 0x0011)
-    {
-        ELog.Msg(mtError, "CSector: Unsupported version.");
-        return false;
-    }
 
     CCustomObject::LoadLTX(ini, sect_name);
 
@@ -562,11 +557,6 @@ bool CSector::LoadStream(IReader &F)
 
     char buf[1024];
     R_ASSERT(F.r_chunk(SECTOR_CHUNK_VERSION, &version));
-    if (version != SECTOR_VERSION)
-    {
-        ELog.Msg(mtError, "CSector: Unsupported version.");
-        return false;
-    }
 
     CCustomObject::LoadStream(F);
 
