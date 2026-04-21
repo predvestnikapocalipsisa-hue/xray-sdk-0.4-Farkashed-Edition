@@ -164,7 +164,11 @@ void UIObjectTool::Draw()
     {
         ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());;
         ImGui::Separator();
-        m_ObjectList->Draw();
+        if (ImGui::BeginChild("ObjectListRegion", ImVec2(0, 400), true))
+        {
+            m_ObjectList->Draw();
+            ImGui::EndChild();
+        }
         ImGui::Separator();
         ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
         ImGui::TreePop();
