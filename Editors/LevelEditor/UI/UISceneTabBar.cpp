@@ -85,7 +85,7 @@ void UISceneTabBar::SwitchToTab(int idx)
             return;   
 
         if (!s_tabs[s_activeIdx].filePath.empty())
-            ExecCommand(COMMAND_SAVE, s_tabs[s_activeIdx].filePath);
+            ExecCommand(COMMAND_SAVE);
     }
 
     const xr_string& path = s_tabs[idx].filePath;
