@@ -157,6 +157,7 @@
     <ClCompile Include="UI\UILeftBarForm.cpp" />
     <ClCompile Include="UI\UIMainForm.cpp" />
     <ClCompile Include="UI\UIMainMenuForm.cpp" />
+    <ClCompile Include="UI\UISceneTabBar.cpp" />
     <ClCompile Include="UI\UILPropertiesFrom.cpp" />
     <ClCompile Include="UI\UIObjectList.cpp" />
     <ClCompile Include="UI\UIPropertiesModal.cpp" />
@@ -248,6 +249,7 @@
     <ClInclude Include="UI\UILeftBarForm.h" />
     <ClInclude Include="UI\UIMainForm.h" />
     <ClInclude Include="UI\UIMainMenuForm.h" />
+    <ClInclude Include="UI\UISceneTabBar.h" />
     <ClInclude Include="UI\UILPropertiesFrom.h" />
     <ClInclude Include="UI\UIObjectList.h" />
     <ClInclude Include="UI\UIPropertiesModal.h" />

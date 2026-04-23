@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../LevelEditor/color_editor.h"
+#include "UISceneTabBar.h"
 
 UIMainMenuForm::UIMainMenuForm()
 {
@@ -21,18 +22,49 @@ void UIMainMenuForm::Draw()
             if (ImGui::MenuItem("Clear", ""))
             {
                 ExecCommand(COMMAND_CLEAR);
+                UISceneTabBar::OnSceneLoaded("", "Untitled");
             }
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem("Open...", ""))
             {
+                xr_string prev = LTools->m_LastFileName.c_str();
                 ExecCommand(COMMAND_LOAD);
+                xr_string next = LTools->m_LastFileName.c_str();
+                if (next != prev && !next.empty())
+                    UISceneTabBar::OnSceneLoaded(next.c_str(), nullptr);
             }
+
+            if (ImGui::MenuItem("Open in New Tab...", ""))
+            {
+                if (Scene->IfModified())
+                {
+                    xr_string prev = LTools->m_LastFileName.c_str();
+                    if (!prev.empty())
+                        ExecCommand(COMMAND_SAVE, prev);
+
+                    xr_string temp;
+                    if (EFS.GetOpenName(EDevice.m_hWnd, _maps_, temp))
+                    {
+                        ExecCommand(COMMAND_LOAD, temp);
+                        UISceneTabBar::OnSceneLoaded(temp.c_str(), nullptr);
+                    }
+                }
+            }
+
             if (ImGui::MenuItem("Save", ""))
             {
-                ExecCommand(COMMAND_SAVE, xr_string(LTools->m_LastFileName.c_str()));
+                xr_string path = LTools->m_LastFileName.c_str();
+                ExecCommand(COMMAND_SAVE, path);
+                UISceneTabBar::OnSceneSaved(path.c_str());
             }
             if (ImGui::MenuItem("Save As ...", ""))
             {
                 ExecCommand(COMMAND_SAVE, 0, 1);
+                xr_string next = LTools->m_LastFileName.c_str();
+                if (!next.empty())
+                    UISceneTabBar::OnSceneSaved(next.c_str());
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Open Selection...", ""))
@@ -50,7 +82,9 @@ void UIMainMenuForm::Draw()
                 {
                     if (ImGui::MenuItem(str.c_str(), ""))
                     {
+                        xr_string prev = LTools->m_LastFileName.c_str();
                         ExecCommand(COMMAND_LOAD, str);
+                        UISceneTabBar::OnSceneLoaded(str.c_str(), nullptr);
                     }
                 }
                 ImGui::EndMenu();
