@@ -139,6 +139,7 @@
     <ClCompile Include="Tools\WayPoint\ESceneWayControls.cpp" />
     <ClCompile Include="Tools\WayPoint\ESceneWayTools.cpp" />
     <ClCompile Include="Tools\WayPoint\ESceneWayToolsIO.cpp" />
+    <ClCompile Include="UIContentBrowser.cpp" />
     <ClCompile Include="UI\Tools\UIAIMapTool.cpp" />
     <ClCompile Include="UI\Tools\UIDOTool.cpp" />
     <ClCompile Include="UI\Tools\UIFogVolTool.cpp" />
@@ -230,6 +231,8 @@
     <ClInclude Include="Tools\Wallmark\ESceneWallmarkTools.h" />
     <ClInclude Include="Tools\WayPoint\ESceneWayControls.h" />
     <ClInclude Include="Tools\WayPoint\ESceneWayTools.h" />
+    <ClInclude Include="UIContentBrowser.h" />
+    <ClInclude Include="Uitiletoolhelper.h" />
     <ClInclude Include="UI\Tools\UIAIMapTool.h" />
     <ClInclude Include="UI\Tools\UIDOTool.h" />
     <ClInclude Include="UI\Tools\UIFogVolTool.h" />

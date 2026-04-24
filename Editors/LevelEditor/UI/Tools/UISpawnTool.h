@@ -11,6 +11,16 @@ public:
 	IC void SetAttachObject(bool AttachObject) { m_AttachObject = AttachObject; }
 	IC bool IsAttachObject() const { return m_AttachObject; }
 
+	void SelectRef(const char* caption)
+	{
+		// SelectItem найдёт item по caption (Key), вызовет OnItemFocused,
+		// который сам поставит m_Current = (LPCSTR)item->m_Object
+		m_SpawnList->SelectItem(caption);
+		ExecCommand(COMMAND_RENDER_FOCUS);
+	}
+
+
+
 private:
 	void RefreshList();
 	void OnItemFocused(ListItem *item);

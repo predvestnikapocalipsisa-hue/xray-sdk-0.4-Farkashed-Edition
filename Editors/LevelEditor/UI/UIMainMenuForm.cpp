@@ -1,15 +1,20 @@
 #include "stdafx.h"
 #include "../LevelEditor/color_editor.h"
 #include "UISceneTabBar.h"
+#include "UIContentBrowser.h" 
 
 UIMainMenuForm::UIMainMenuForm()
 {
     Colors::LoadSettings();
     Colors::UpdateImGuiStyle();
+
+    // Инициализируем наш браузер
+    m_ContentBrowser = xr_new<UIContentBrowser>();
 }
 
 UIMainMenuForm::~UIMainMenuForm()
 {
+    xr_delete(m_ContentBrowser); // Чистим память
 }
 
 void UIMainMenuForm::Draw()
@@ -451,6 +456,16 @@ void UIMainMenuForm::Draw()
                         Colors::Disable();
                 }
             }
+
+            {
+                bool bVisible = m_ContentBrowser->IsVisible();
+                if (ImGui::MenuItem("Content Browser", "", &bVisible))
+                {
+                    if (bVisible) m_ContentBrowser->Show();
+                    else m_ContentBrowser->Hide();
+                }
+            }
+
             {
                 bool selected = !MainForm->GetPropertiesFrom()->IsClosed();
                 if (ImGui::MenuItem("Properties", "", &selected))
@@ -474,4 +489,7 @@ void UIMainMenuForm::Draw()
         }
         ImGui::EndMainMenuBar();
     }
+
+    if (m_ContentBrowser)
+        m_ContentBrowser->Draw();
 }

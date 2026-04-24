@@ -525,6 +525,10 @@
     <ClCompile Include="Tools\WayPoint\ESceneWayToolsIO.cpp">
       <Filter>Tools\WayPoint</Filter>
     </ClCompile>
+    <ClCompile Include="UI\UISceneTabBar.cpp" />
+    <ClCompile Include="UIContentBrowser.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\UIMainMenuForm.h">
@@ -796,6 +800,13 @@
     </ClInclude>
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="color_editor.h" />
+    <ClInclude Include="UI\UISceneTabBar.h" />
+    <ClInclude Include="UIContentBrowser.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Uitiletoolhelper.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\IconLE.ico">

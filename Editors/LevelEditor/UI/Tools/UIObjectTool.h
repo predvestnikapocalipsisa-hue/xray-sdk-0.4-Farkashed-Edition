@@ -11,6 +11,13 @@ public:
 	virtual void OnDrawUI();
 	ESceneObjectTool *ParentTools;
 
+	void SelectRef(const char* name)
+	{
+		m_ObjectList->SelectItem(name);
+		ExecCommand(COMMAND_RENDER_FOCUS);
+	}
+
+
 private:
 	void OnItemFocused(ListItem *item);
 	void SelByRefObject(bool flag);

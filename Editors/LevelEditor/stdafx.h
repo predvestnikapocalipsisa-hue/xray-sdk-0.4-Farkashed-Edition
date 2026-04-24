@@ -74,8 +74,8 @@
 
 #include "Tools/ESceneClassList.h"
 
-#include "UI_LevelMain.h"
-#include "UI_LevelTools.h"
+#include "../LevelEditor/Kernel/UI_LevelMain.h"
+#include "../LevelEditor/Kernel/UI_LevelTools.h"
 
 #include "Utils/Cursor3D.h"
 #include "Utils/portalutils.h"
