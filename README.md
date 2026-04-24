@@ -7,13 +7,14 @@
 
 Модифицированная версия X-Ray SDK 0.4, которая расширяет возможности, делает инструментарий более удобным и исправляет баги. Проект базируется на TSMP SDK (который в свою очередь основан на X-Ray SDK 0.8 by Red Panda).
 
-![LevelEditor_I3iPwRGk4g](https://github.com/user-attachments/assets/eb3a7089-5516-4bd6-b322-d3c6e0c843a2)
+<img width="2557" height="1406" alt="LevelEditor_1zw5z5dyAD" src="https://github.com/user-attachments/assets/6097b041-f792-49e0-9937-b5db8301184e" />
 
-![LevelEditor_dCC1f9pfeg](https://github.com/user-attachments/assets/56cf8898-bad9-4b92-8b06-484c1816222a)
+<img width="2557" height="1406" alt="LevelEditor_tkbmwR3HCx" src="https://github.com/user-attachments/assets/de13464b-b557-45b5-9557-3c0d3749244b" />
 
-![LevelEditor_LK5WIE5tmL](https://github.com/user-attachments/assets/5bbb5cda-00a8-4aa1-b2d2-3774df089aa4)
+<img width="2557" height="1406" alt="LevelEditor_TUlTlJD2ib" src="https://github.com/user-attachments/assets/0b902155-4de4-4ab3-8948-c0cfbdaae5e8" />
 
-![LevelEditor_DQv2gfmvfd](https://github.com/user-attachments/assets/cab658d0-8ff2-4e3f-bde1-1c63e15e99df)
+<img width="2557" height="1406" alt="LevelEditor_RR5P7aK3q8" src="https://github.com/user-attachments/assets/60671696-eda5-4772-b29a-269b8e86397c" />
+
 
 
 
@@ -72,6 +73,10 @@
     Поддержка Discord Rich Precence.
 
     Добавлено Splash окно.
+
+    Добавлен Content Browser.
+
+    Добавлен Drag & Drop для level editor.
 
 ### [ВИКИ ПРОЕКТА](https://github.com/predvestnikapocalipsisa-hue/xray-sdk-0.4-Farkashed-Edition/wiki) 
 
