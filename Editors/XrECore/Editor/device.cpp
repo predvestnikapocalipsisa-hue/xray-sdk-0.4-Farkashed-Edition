@@ -7,6 +7,7 @@
 #include "render.h"
 #include "GameMtlLib.h"
 #include "ResourceManager.h"
+#include "../ActorEditor/UI_ActorMain.h"
 #pragma package(smart_init)
 
 CEditorRenderDevice EDevice;
@@ -460,6 +461,8 @@ void CEditorRenderDevice::CreateWindow()
 	::RegisterClassEx(&m_WC);
 	m_hWnd = ::CreateWindowA(m_WC.lpszClassName, UI->EditorDesc(), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, m_WC.hInstance, NULL);
 
+	DragAcceptFiles(m_hWnd, TRUE);
+
 	::UpdateWindow(m_hWnd);
 }
 void CEditorRenderDevice::DestryWindow()
@@ -471,6 +474,26 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
+	case WM_DROPFILES:
+	{
+		HDROP hDrop = (HDROP)wParam;
+		char filePath[MAX_PATH];
+
+		if (DragQueryFileA(hDrop, 0, filePath, MAX_PATH))
+		{
+			std::string path = filePath;
+			if (path.find(".level") != std::string::npos)
+			{
+				if (xr_strcmp(UI->EditorName(), "level") == 0)
+				{
+					ExecCommand(COMMAND_LOAD, CCommandVar(filePath));
+				}
+			}
+		}
+
+		DragFinish(hDrop);
+		return 0;
+	}
 	case WM_ACTIVATE:
 	{
 		u16 fActive = LOWORD(wParam);
