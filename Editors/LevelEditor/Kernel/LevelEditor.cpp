@@ -25,7 +25,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     UI->Push(MainForm, false);
 
     u32 last_autosave_time = 0;
-    u32 autosave_interval = 60000;
+    u32 autosave_interval = 600000;
 
     __try
     {

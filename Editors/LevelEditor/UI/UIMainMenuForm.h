@@ -1,16 +1,16 @@
-#pragma once
+    #pragma once
 
-class UIContentBrowser; // Форвард-декларация
+    class UIContentBrowser; // Форвард-декларация
 
-class UIMainMenuForm : public XrUI
-{
-private:
-    UIContentBrowser* m_ContentBrowser; // Добавляем переменную
+    class UIMainMenuForm : public XrUI
+    {
+    private:
+        UIContentBrowser* m_ContentBrowser; // Добавляем переменную
 
-public:
-    UIMainMenuForm();
-    virtual ~UIMainMenuForm();
-    virtual void Draw();
+    public:
+        UIMainMenuForm();
+        virtual ~UIMainMenuForm();
+        virtual void Draw();
 
-    UIContentBrowser* GetContentBrowser() { return m_ContentBrowser; }
-};
+        UIContentBrowser* GetContentBrowser() { return m_ContentBrowser; }
+    };
