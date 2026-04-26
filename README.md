@@ -76,6 +76,8 @@
 
     Добавлен Content Browser.
 
+    Цвет shape теперь снова зеленый.
+
     Добавлен Drag & Drop для level editor.
 
 ### [ВИКИ ПРОЕКТА](https://github.com/predvestnikapocalipsisa-hue/xray-sdk-0.4-Farkashed-Edition/wiki) 
