@@ -15,6 +15,24 @@ public:
 	typedef const T &const_reference;
 	typedef T value_type;
 
+	ObjectList* GetListForClass(ObjClassID clsid) {
+		ESceneCustomOTool* ot = GetOTool(clsid);
+		return ot ? &ot->GetObjects() : nullptr;
+	}
+
+	CCustomObject* GetSelectedObject() {
+		for (auto it = FirstTool(); it != LastTool(); ++it) {
+			ESceneCustomOTool* ot = dynamic_cast<ESceneCustomOTool*>(it->second);
+			if (ot) {
+				ObjectList& lst = ot->GetObjects();
+				for (auto* obj : lst) {
+					if (obj->Selected()) return obj;
+				}
+			}
+		}
+		return nullptr;
+	}
+
 public:
 	template <class _Other>
 	struct rebind

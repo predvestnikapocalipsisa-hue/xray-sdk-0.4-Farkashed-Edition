@@ -69,12 +69,36 @@ void UIObjectList::Draw()
 
 void UIObjectList::Update()
 {
-    if (Form)
+    if (!Form || !Scene) return;
+
+    CCustomObject* current = nullptr;
+
+    for (SceneToolsMapPairIt it = Scene->FirstTool(); it != Scene->LastTool(); ++it)
     {
+        ESceneCustomOTool* ot = dynamic_cast<ESceneCustomOTool*>(it->second);
+
+        if (ot) {
+            ObjectList& lst = ot->GetObjects();
+            for (CCustomObject* obj : lst) {
+                if (obj->Selected()) {
+                    current = obj;
+                    break;
+                }
+            }
+        }
+        if (current) break;
+    }
+
+    if (current && Form->m_PrevSelected != current)
+    {
+        Form->m_SelectedObject = current;
+        Form->m_PrevSelected = current;
+        Form->m_ScrollToSelected = true;
+    }
+
         if (!Form->IsClosed()) Form->Draw();
         else xr_delete(Form);
     }
-}
 
 void UIObjectList::Show()
 {
@@ -151,6 +175,12 @@ void UIObjectList::DrawObject(CCustomObject *obj, const char *name)
 
     ImGui::TreeNodeEx(display_name, Flags);
 
+    if (m_ScrollToSelected && m_SelectedObject == obj)
+    {
+        ImGui::SetScrollHereY(0.5f); 
+        m_ScrollToSelected = false;  
+    }
+
     if (ImGui::IsItemClicked())
     {
         ImGuiIO& io = ImGui::GetIO();
@@ -191,6 +221,8 @@ void UIObjectList::DrawObject(CCustomObject *obj, const char *name)
             obj->Select(true);
             m_AnchorObject = obj;
         }
+
+        m_PrevSelected = obj;
 
         m_SelectedObject = obj;
     }

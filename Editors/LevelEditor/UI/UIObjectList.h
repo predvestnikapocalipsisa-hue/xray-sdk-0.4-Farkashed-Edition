@@ -17,6 +17,9 @@ public:
 private:
     static UIObjectList* Form;
 
+    CCustomObject* m_PrevSelected = nullptr;
+    bool m_ScrollToSelected = false;
+
 private:
     void DrawObjects();
     void DrawObject(CCustomObject* obj, const char* name);

@@ -100,7 +100,6 @@ void UISceneTabBar::SwitchToTab(int idx)
 
     s_activeIdx = idx;
 }
-
 bool UISceneTabBar::CloseTab(int idx)
 {
     if (idx < 0 || idx >= (int)s_tabs.size())
@@ -111,7 +110,7 @@ bool UISceneTabBar::CloseTab(int idx)
     if (isActive)
     {
         if (!Scene->IfModified())
-            return false;  
+            return false;
     }
 
     s_tabs.erase(s_tabs.begin() + idx);
@@ -123,14 +122,22 @@ bool UISceneTabBar::CloseTab(int idx)
         return true;
     }
 
+    // Вычисляем новый активный индекс
+    int newActive = s_activeIdx;
+    if (idx < s_activeIdx)
+        newActive--;
+    else if (idx == s_activeIdx)
+        newActive = (idx < (int)s_tabs.size()) ? idx : (int)s_tabs.size() - 1;
+
     if (isActive)
     {
-        s_activeIdx = (idx < (int)s_tabs.size()) ? idx : (int)s_tabs.size() - 1;
-        SwitchToTab(s_activeIdx);
+        // Принудительно загружаем нужную сцену, минуя проверку idx == s_activeIdx
+        s_activeIdx = -1; // сбрасываем чтобы SwitchToTab не вернулся сразу
+        SwitchToTab(newActive);
     }
-    else if (idx < s_activeIdx)
+    else
     {
-        s_activeIdx--;
+        s_activeIdx = newActive;
     }
 
     return true;
