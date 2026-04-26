@@ -47,14 +47,20 @@ static const char* GetClipboardTextFn_Custom(void* user_data) {
 
 static void SetClipboardTextFn_Custom(void* user_data, const char* text) {
     if (!OpenClipboard(NULL)) return;
-    const size_t len = strlen(text) + 1;
-    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
+
+    EmptyClipboard();
+
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, text, -1, NULL, 0);
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, size_needed * sizeof(wchar_t));
+
     if (hMem) {
-        memcpy(GlobalLock(hMem), text, len);
+        wchar_t* pData = (wchar_t*)GlobalLock(hMem);
+        MultiByteToWideChar(CP_UTF8, 0, text, -1, pData, size_needed);
         GlobalUnlock(hMem);
-        EmptyClipboard();
-        SetClipboardData(CF_TEXT, hMem);
+
+        SetClipboardData(CF_UNICODETEXT, hMem);
     }
+
     CloseClipboard();
 }
 
