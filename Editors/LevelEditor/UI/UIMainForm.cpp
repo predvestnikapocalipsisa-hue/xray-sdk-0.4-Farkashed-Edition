@@ -148,9 +148,30 @@ void UIMainForm::Draw()
 
     if (s_showSplash)
     {
-        m_Render->Draw();
-        DrawSplash();
-        return; // ѕока висит заставка, остальное не рисуем
+        ImGui::SetNextWindowPos({ 0, 0 });
+        ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+
+        ImGui::Begin("Splash", nullptr,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs);
+
+        if (!g_splash_tex) {
+            u32 mem = 0;
+            g_splash_tex = RImplementation.texture_load("ui\\ui_sdk_overlay", mem);
+        }
+
+        ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+        if (g_splash_tex) {
+            ImVec2 imgSize = { 1500, 500 };
+            ImGui::SetCursorPos({ (screenSize.x - imgSize.x) * 0.5f, (screenSize.y - imgSize.y) * 0.5f });
+            ImGui::Image((ImTextureID)g_splash_tex, imgSize);
+        }
+
+        if (ImGui::GetTime() > 8.0f)
+            s_showSplash = false;
+
+        ImGui::End();
+        return;
     }
 
     ImGui::SetNextWindowSize(ImVec2(400, 100), ImGuiCond_FirstUseEver); 
