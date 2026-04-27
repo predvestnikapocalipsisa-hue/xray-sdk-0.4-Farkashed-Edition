@@ -175,7 +175,7 @@ void CCustomPreferences::FillProp(PropItemVec &props)
     PHelper().CreateFloat(props, "Viewport\\Fog\\Fogness", &fog_fogness, 0.f, 100.f);
     PHelper().CreateFloat(props, "Viewport\\Near Plane", &view_np, 0.01f, 10.f);
     PHelper().CreateFloat(props, "Viewport\\Far Plane", &view_fp, 10.f, 10000.f);
-    PHelper().CreateAngle(props, "Viewport\\FOV", &view_fov, deg2rad(0.1f), deg2rad(170.f));
+    PHelper().CreateAngle(props, "Viewport\\FOV", &view_fov, 0.f, 360);
     PHelper().CreateColor(props, "Viewport\\Clear Color", &scene_clear_color);
 
     ButtonValue *B = PHelper().CreateButton(props, "Keyboard\\Common\\File", "Load,Save", 0);
