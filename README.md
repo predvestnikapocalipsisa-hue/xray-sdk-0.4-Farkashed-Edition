@@ -15,7 +15,7 @@
 
 <img width="2557" height="1406" alt="LevelEditor_RR5P7aK3q8" src="https://github.com/user-attachments/assets/60671696-eda5-4772-b29a-269b8e86397c" />
 
-
+### Решения возможных проблем есть на вики
 
 
 ### Основные преимущества:
