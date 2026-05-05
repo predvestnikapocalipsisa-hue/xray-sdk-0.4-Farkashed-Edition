@@ -1,0 +1,804 @@
+## WORKSPACE EXECUTIVE SUMMARY (YAML)
+# Generated: 2026-04-28T10:28:28.6767014+03:00
+# Root: D:\game\instal\sdk\X-Ray SDK\hybrid\X-Ray SDK\level_editor\src\xraySdkEditors-0.6
+---
+- File: xraySdkEditors.sln
+  Preview: " Microsoft Visual Studio Solution File, Format Version 12.00 # Visual Studio Version 17 VisualStudioVersion = 17.3.32901.215 MinimumVisualStudioVersio..."
+- File: External\zlib\contrib\dotzlib\DotZLib.sln
+  Preview: "Microsoft Visual Studio Solution File, Format Version 8.00 Project('{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}') = 'DotZLib', 'DotZLib\DotZLib.csproj', '{..."
+- File: External\zlib\contrib\dotzlib\DotZLib\DotZLib.csproj
+  Preview: "<VisualStudioProject>   <CSHARP     ProjectType = 'Local'     ProductVersion = '7.10.3077'     SchemaVersion = '2.0'     ProjectGuid = '{BB1EE0B1-1808..."
+- File: External\zlib\contrib\vstudio\vc7\zlibvc.sln
+  Preview: "Microsoft Visual Studio Solution File, Format Version 7.00 Project('{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}') = 'zlibstat', 'zlibstat.vcproj', '{745DEC..."
+- File: External\zlib\contrib\vstudio\vc8\zlibvc.sln
+  Preview: " Microsoft Visual Studio Solution File, Format Version 9.00 # Visual Studio 2005 Project('{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}') = 'zlibvc', 'zlibvc..."
+- File: README.md
+  Preview: " <img width='2560' height='1020' alt='ui_sdk_overlay' src='https://github.com/user-attachments/assets/98dcf195-0a44-410d-9f5c-e9fb53fa8aa9' />  ### X-..."
+- File: stb_image.h
+  Preview: "/* stb_image - v2.30 - public domain image loader - http://nothings.org/stb                  no warranty implied; use at your own risk   Do this:    #..."
+- File: Editors\ActorEditor\ActorEditor.cpp
+  Preview: "// ActorEditor.cpp : Определяет точку входа для приложения. #include 'stdafx.h' int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWST..."
+- File: Editors\ActorEditor\imgui_impl_dx9.cpp
+  Preview: "// dear imgui: Renderer for DirectX9 // This needs to be used along with a Platform Binding (e.g. Win32) // Implemented features: // [X] Renderer: Use..."
+- File: Editors\ActorEditor\imgui_impl_dx9.h
+  Preview: "// dear imgui: Renderer for DirectX9 // This needs to be used along with a Platform Binding (e.g. Win32) // Implemented features: // [X] Renderer: Use..."
+- File: Editors\ActorEditor\imgui_log.txt
+  Preview: "You can also call ImGui::LogText() to output directly to the log without a visual output. Copy 'Hello, world!' to clipboard ## Window options ## ## Wi..."
+- File: Editors\ActorEditor\main.cpp
+  Preview: "// dear imgui: standalone example application for DirectX 9 // If you are new to dear imgui, see examples/README.txt and documentation at the top of i..."
+- File: Editors\ActorEditor\stdafx.h
+  Preview: "#pragma once #include '..\XrECore\stdafx.h' #include '..\XrECore\Editor\device.h' #include '..\XrECore\Editor\UI_MainCommand.h' #include '..\XrECore\E..."
+- File: Editors\ActorEditor\UIBoneForm.cpp
+  Preview: "#include 'stdafx.h' UIBoneForm *UIBoneForm::Form = nullptr; UIBoneForm::UIBoneForm() { } UIBoneForm::~UIBoneForm() { } void UIBoneForm::Draw() { 	if (..."
+- File: Editors\ActorEditor\UIBoneForm.h
+  Preview: "#pragma once class UIBoneForm : public XrUI { public: 	UIBoneForm(); 	virtual ~UIBoneForm(); 	virtual void Draw(); public: 	static void Update(); 	sta..."
+- File: Editors\ActorEditor\UIKeyForm.cpp
+  Preview: "#include 'stdafx.h' UIKeyForm::UIKeyForm() : m_AutoChange(true), m_TimeFactor(1), m_Position(0), m_currentEditMotion(nullptr) { } UIKeyForm::~UIKeyFor..."
+- File: Editors\ActorEditor\UIKeyForm.h
+  Preview: "#pragma once class UIKeyForm : public XrUI { public: 	UIKeyForm(); 	virtual ~UIKeyForm(); 	virtual void Draw(); 	IC bool AutoChange() const { return m..."
+- File: Editors\ActorEditor\UILeftBarForm.cpp
+  Preview: "#include 'stdafx.h' UILeftBarForm::UILeftBarForm() { 	m_RenderMode = Render_Editor; 	m_PickMode = 0; } UILeftBarForm::~UILeftBarForm() { } void UILeft..."
+- File: Editors\ActorEditor\UILeftBarForm.h
+  Preview: "#pragma once class UILeftBarForm : public XrUI { public: 	enum RenderMode 	{ 		Render_Editor, 		Render_Engine 	}; 	UILeftBarForm(); 	virtual ~UILeftBa..."
+- File: Editors\ActorEditor\UIMainForm.cpp
+  Preview: "#include 'stdafx.h' #include '../LevelEditor/color_editor.h' #include '../XrECore/Editor/EditorChooseEvents.h' bool UIMainForm::s_showSplash = true; v..."
+- File: Editors\ActorEditor\UIMainForm.h
+  Preview: "#pragma once class UIMainForm : public XrUI { public: 	UIMainForm(); 	virtual ~UIMainForm(); 	virtual void Draw(); 	bool Frame(); 	IC UILeftBarForm *G..."
+- File: Editors\ActorEditor\UIMainMenuForm.cpp
+  Preview: "#include 'stdafx.h' #include '../LevelEditor/color_editor.h' UIMainMenuForm::UIMainMenuForm() {   Colors::LoadSettings();   Colors::UpdateImGuiStyle()..."
+- File: Editors\ActorEditor\UIMainMenuForm.h
+  Preview: "#pragma once class UIMainMenuForm : public XrUI { public: 	UIMainMenuForm(); 	virtual ~UIMainMenuForm(); 	virtual void Draw(); }; "
+- File: Editors\ActorEditor\UITest.cpp
+  Preview: "#include 'UITest.h' UITest::UITest() {   out[0] = 0; } UITest::~UITest() { } void UITest::Draw() {   // ImGui::BeginChild('1234'); } "
+- File: Editors\ActorEditor\UITest.h
+  Preview: "#pragma once #include '..\XrEUI\stdafx.h' class UITest : public XrUI { public: 	UITest(); 	virtual ~UITest(); 	virtual void Draw(); private: 	string10..."
+- File: Editors\ActorEditor\UITopBarForm.cpp
+  Preview: "#include 'stdafx.h' UITopBarForm::UITopBarForm() { #define ADD_BUTTON_IMAGE_T1(Class, Name) #define ADD_BUTTON_IMAGE_T2(Class, Name) #define ADD_BUTTO..."
+- File: Editors\ActorEditor\UITopBarForm.h
+  Preview: "#pragma once class UITopBarForm : public XrUI { public: 	UITopBarForm(); 	virtual ~UITopBarForm(); 	virtual void Draw(); 	void RefreshBar(); private: ..."
+- File: Editors\ActorEditor\UITopBarForm_ButtonList.h
+  Preview: "#ifndef ADD_BUTTON_IMAGE_P #define ADD_BUTTON_IMAGE_P(Name) ADD_BUTTON_IMAGE_D(Name) #endif #ifndef ADD_BUTTON_IMAGE_T1_1 #define ADD_BUTTON_IMAGE_T1_..."
+- File: Editors\ActorEditor\UI_ActorMain.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'UI_ActorMain.h' //--------..."
+- File: Editors\ActorEditor\UI_ActorMain.h
+  Preview: "#pragma once enum {   COMMAND_EXTFIRST_EXT = COMMAND_MAIN_LAST - 1,   COMMAND_MAKE_PREVIEW,   COMMAND_IMPORT,   COMMAND_EXPORT_OGF,   COMMAND_EXPORT_O..."
+- File: Editors\ActorEditor\UI_ActorTools.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #define dSINGLE #include 'animation_..."
+- File: Editors\ActorEditor\UI_ActorTools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef UI_ActorToolsH #define UI_ActorToolsH #include 'animation_motion..."
+- File: Editors\ActorEditor\UI_ActorToolsMotions.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'UI_ActorTools.h' #include ..."
+- File: Editors\ActorEditor\UI_ActorToolsProps.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include '..\..\XrRender\Private\Kin..."
+- File: Editors\ActorEditor\UI_ActorToolsUndo.cpp
+  Preview: "#include 'stdafx.h' #pragma hdrstop #include 'UI_ActorTools.h' void CActorTools::UndoClear() { 	while (!m_RedoStack.empty()) 	{ 		unlink(m_RedoStack.b..."
+- File: Editors\ActorEditor\resources\resource.h
+  Preview: "//{{NO_DEPENDENCIES}} // ���������� ����, ��������� � Microsoft Visual C++. // ������������ ActorEditor.rc // #define IDI_ICON1            101 #define..."
+- File: Editors\FreeMagic\MagicFMLibType.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcAppr3DGaussPointsFit.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcAppr3DGaussPointsFit.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcAppr3DLineFit.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcAppr3DLineFit.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcAppr3DPlaneFit.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcAppr3DPlaneFit.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcBox3.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcBox3.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCont3DBox.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCont3DBox.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCont3DCylinder.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCont3DCylinder.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCont3DMinBox.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCont3DMinBox.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCont3DMinSphere.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCont3DMinSphere.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcConvexHull2D.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcConvexHull2D.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcConvexHull3D.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcCylinder.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcDist3DVecLin.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcDist3DVecLin.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcEigen.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcEigen.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcLine3.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcLinearSystem.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcLinearSystem.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcMath.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcMath.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcMatrix3.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcMatrix3.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcMinimize1D.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcMinimize1D.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcMinimizeND.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcMinimizeND.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcQuaternion.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcQuaternion.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcRay3.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcRTLib.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcSegment3.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcSmallSet.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcSphere.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcTriangleMesh.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcTriangleMesh.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcVector2.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcVector2.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcVector3.cpp
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\FreeMagic\MgcVector3.h
+  Preview: "// Magic Software, Inc. // http://www.magic-software.com // Copyright (c) 2000-2002. All Rights Reserved // // Source code from Magic Software is supp..."
+- File: Editors\LevelEditor\color_editor.h
+  Preview: "#pragma once #include <d3d9.h> #include <fstream> #include <string> #include <windows.h> #include <stdio.h> #include '../XrEUI/imgui.h' namespace Colo..."
+- File: Editors\LevelEditor\stdafx.h
+  Preview: "#pragma once #include '../XrECore/stdafx.h' #include '../XrECore/Editor/device.h' #include '../XrECore/Editor/UI_MainCommand.h' #include '../XrECore/E..."
+- File: Editors\LevelEditor\UIContentBrowser.cpp
+  Preview: "#include 'stdafx.h' #include 'UIContentBrowser.h' static const float kBaseTile = 72.f; static const float kBasePad = 5.f; static const float kBaseLabe..."
+- File: Editors\LevelEditor\UIContentBrowser.h
+  Preview: "#pragma once #include 'UITileToolHelper.h' // Forward declarations class UIObjectTool; class UISpawnTool; enum EContentBrowserMode {   CBM_OBJECTS,   ..."
+- File: Editors\LevelEditor\UIObjectList.cpp
+  Preview: "#include 'stdafx.h' UIObjectList* UIObjectList::Form = nullptr; UIObjectList::UIObjectList() { 	m_Mode = M_Visible; 	m_Filter[0] = 0; 	m_SelectedObjec..."
+- File: Editors\LevelEditor\Uitiletoolhelper.h
+  Preview: "#pragma once class UITileToolHelper { public:   UITileToolHelper()     : m_IconFolder(nullptr), m_IconObject(nullptr)   {     m_CurrentPath = '';   } ..."
+- File: Editors\LevelEditor\Builder\Builder.cpp
+  Preview: "#include 'stdafx.h' SceneBuilder Builder; ICF static void simple_hemi_callback(float x, float y, float z, float E, LPVOID P) {   SceneBuilder::BLVec *..."
+- File: Editors\LevelEditor\Builder\Builder.h
+  Preview: "#pragma once // refs class CSceneObject; class CEditableMesh; class EScene; class CLight; class CGlow; class CPortal; struct st_SPData; class CSurface..."
+- File: Editors\LevelEditor\Builder\BuilderCore.cpp
+  Preview: "#include 'stdafx.h' bool SceneBuilder::PreparePath() {   if (Scene->m_LevelOp.m_FNLevelPath.size() == 0)     return false;   FS.update_path(m_LevelPat..."
+- File: Editors\LevelEditor\Builder\BuilderGame.cpp
+  Preview: "#include 'stdafx.h' bool sort_fog_vol(EFogVolume *fv1, EFogVolume *fv2) {   return (fv1->m_volumeType < fv2->m_volumeType); } BOOL SceneBuilder::Build..."
+- File: Editors\LevelEditor\Builder\BuilderLODs.cpp
+  Preview: "#include 'stdafx.h' #define LEVEL_LODS_TEX_NAME 'level_lods' #define LEVEL_LODS_NRM_NAME 'level_lods_nm' // lod build functions DEFINE_VECTOR(Fvector4..."
+- File: Editors\LevelEditor\Builder\BuilderLTX.cpp
+  Preview: "#include 'stdafx.h' BOOL SceneBuilder::ParseLTX(CInifile *pIni, ObjectList &lst, LPCSTR prefix) {   return TRUE; } //---------------------------------..."
+- File: Editors\LevelEditor\Builder\BuilderOGF.cpp
+  Preview: "#include 'stdafx.h' // some types bool SceneBuilder::BuildHOMModel() {   CMemoryWriter F;   F.open_chunk(0);   F.w_u32(0);   F.close_chunk();   F.open..."
+- File: Editors\LevelEditor\Builder\BuilderRemote.cpp
+  Preview: "#include 'stdafx.h' // !!! использовать prefix если нужно имя !!! (Связано с группами) #define LEVEL_LODS_TEX_NAME 'level_lods' #define LEVEL_LODS_NRM..."
+- File: Editors\LevelEditor\Engine\communicate.h
+  Preview: "#pragma once #pragma pack(push, 4) const u32 XR_MAX_PORTAL_VERTS = 6; // internal use struct b_rc_face { 	u16 dwMaterial; 	u32 dwMaterialGame; 	Fvecto..."
+- File: Editors\LevelEditor\Engine\ShapeData.h
+  Preview: "#ifndef ShapeDataH #define ShapeDataH struct CShapeData { 	enum 	{ 		cfSphere = 0, 		cfBox 	}; 	union shape_data 	{ 		Fsphere sphere; 		Fmatrix box; 	..."
+- File: Editors\LevelEditor\Entry\CustomObject.cpp
+  Preview: "#include 'stdafx.h' #define CUSTOMOBJECT_CHUNK_PARAMS 0xF900 #define CUSTOMOBJECT_CHUNK_LOCK 0xF902 #define CUSTOMOBJECT_CHUNK_TRANSFORM 0xF903 #defin..."
+- File: Editors\LevelEditor\Entry\CustomObject.h
+  Preview: "#pragma once #define CHUNK_OBJECT_BODY 0x7777 struct SRayPickInfo; struct FSChunkDef; class CFrustum; class IReader; class IWriter; class COMotion; cl..."
+- File: Editors\LevelEditor\Entry\CustomObjectAnimation.cpp
+  Preview: "#include 'stdafx.h' void CCustomObject::OnMotionableChange(PropValue *sender) {   if (m_CO_Flags.is(flMotion))   {     m_Motion = xr_new<COMotion>(); ..."
+- File: Editors\LevelEditor\Entry\CustomObjectLE.cpp
+  Preview: "#include 'stdafx.h' // static part void CCustomObject::SnapMove(Fvector &pos, Fvector &rot, const Fmatrix &rotRP, const Fvector &amount) {   // !!! Hi..."
+- File: Editors\LevelEditor\Entry\EditObjectExportLWO.cpp
+  Preview: "#include 'stdafx.h' #include '../Utils/FS2.h' int FindLPCSTR(LPCSTRVec &vec, LPCSTR key) { 	for (LPCSTRIt it = vec.begin(); it != vec.end(); it++) 		i..."
+- File: Editors\LevelEditor\Entry\Glow\Glow.cpp
+  Preview: "#include 'stdafx.h' #define GLOW_VERSION 0x0012 #define GLOW_CHUNK_VERSION 0xC411 #define GLOW_CHUNK_PARAMS 0xC413 #define GLOW_CHUNK_SHADER 0xC414 #d..."
+- File: Editors\LevelEditor\Entry\Glow\Glow.h
+  Preview: "#pragma once class CFrustum; class CGlow : public CCustomObject { 	typedef CCustomObject inherited; 	CTLSprite m_RenderSprite; public: 	enum EFlags 	{..."
+- File: Editors\LevelEditor\Entry\Group\GroupObject.cpp
+  Preview: "#include 'stdafx.h' #define GROUPOBJ_CURRENT_VERSION_SOC 0x0011 #define GROUPOBJ_CURRENT_VERSION 0x0011 #define GROUPOBJ_CHUNK_VERSION 0x0000 #define ..."
+- File: Editors\LevelEditor\Entry\Group\GroupObject.h
+  Preview: "#pragma once class CGroupObject : public CCustomObject { 	typedef CCustomObject inherited; 	struct SGroupObjectItem 	{ 		CCustomObject *pObject; 		SGr..."
+- File: Editors\LevelEditor\Entry\Group\GroupObjectUtils.cpp
+  Preview: "#include 'stdafx.h' static const float EMPTY_GROUP_SIZE = 0.5f; bool CGroupObject::GetBox(Fbox &bb) {   bb.invalidate();   // update box   for (Object..."
+- File: Editors\LevelEditor\Entry\Light\ELight.cpp
+  Preview: "#include 'stdafx.h' static const u32 LIGHT_VERSION = 0x0011; enum {   LIGHT_CHUNK_VERSION = 0xB411,   LIGHT_CHUNK_FLAG = 0xB413,   LIGHT_CHUNK_BRIGHTN..."
+- File: Editors\LevelEditor\Entry\Light\ELight.h
+  Preview: "#pragma once namespace ELight {   enum EFlags   {     flAffectStatic = (1 << 0),     flAffectDynamic = (1 << 1),     flProcedural = (1 << 2),     flBr..."
+- File: Editors\LevelEditor\Entry\Light\ELight_IO.cpp
+  Preview: "#include 'stdafx.h' static const u32 LIGHT_VERSION = 0x0011; enum {   LIGHT_CHUNK_VERSION = 0xB411,   LIGHT_CHUNK_FLAG = 0xB413,   LIGHT_CHUNK_BRIGHTN..."
+- File: Editors\LevelEditor\Entry\Light\ELight_props.cpp
+  Preview: "#include 'stdafx.h' void CLight::OnAutoClick(ButtonValue *value, bool &bModif, bool &bSafe) {   ButtonValue *B = dynamic_cast<ButtonValue *>(value);  ..."
+- File: Editors\LevelEditor\Entry\Particles\EParticlesObject.cpp
+  Preview: "#include 'stdafx.h' #define CPSOBJECT_VERSION 0x0013 #define CPSOBJECT_CHUNK_VERSION 0x0001 #define CPSOBJECT_CHUNK_REFERENCE 0x0002 #define CPSOBJECT..."
+- File: Editors\LevelEditor\Entry\Particles\EParticlesObject.h
+  Preview: "#pragma once class EParticlesObject : public CCustomObject { 	typedef CCustomObject inherited; 	Fbox m_BBox; 	shared_str m_RefName; 	IParticleCustom *..."
+- File: Editors\LevelEditor\Entry\Portal\Portal.cpp
+  Preview: "#include 'stdafx.h' #define PORTAL_VERSION 0x0010 #define PORTAL_CHUNK_VERSION 0xFA10 #define PORTAL_CHUNK_COLOR 0xFA20 #define PORTAL_CHUNK_SECTOR_FR..."
+- File: Editors\LevelEditor\Entry\Portal\Portal.h
+  Preview: "#pragma once // refs class CSector; class CPortal : public CCustomObject {   friend class TfrmPropertiesPortal;   friend class CSector;   friend class..."
+- File: Editors\LevelEditor\Entry\Sector\Sector.cpp
+  Preview: "#include 'stdafx.h' #define SECTOR_VERSION 0x0011 #define SECTOR_CHUNK_VERSION 0xF010 #define SECTOR_CHUNK_COLOR 0xF020 #define SECTOR_CHUNK_PRIVATE 0..."
+- File: Editors\LevelEditor\Entry\Sector\Sector.h
+  Preview: "#pragma once enum EVisible {   fvNone,   fvPartialInside,   fvPartialOutside,   fvFully }; #define DEFAULT_SECTOR_NAME 'Sector_DEFAULT' // refs class ..."
+- File: Editors\LevelEditor\Entry\Shape\EShape.cpp
+  Preview: "#include 'stdafx.h' #define SHAPE_COLOR_TRANSP 0x32009000 #define SHAPE_COLOR_EDGE 0xFF202020 #define SHAPE_CURRENT_VERSION 0x0002 #define SHAPE_CHUNK..."
+- File: Editors\LevelEditor\Entry\Shape\EShape.h
+  Preview: "#pragma once enum eShapeUsage { 	eShapeCommon = 0, 	eShapeLevelBound }; class CEditShape : public CCustomObject, protected CShapeData { 	typedef CCust..."
+- File: Editors\LevelEditor\Entry\Sound\ESound_Environment.cpp
+  Preview: "#include 'stdafx.h' #define SOUND_SEL0_COLOR 0x00A0A0A0 #define SOUND_SEL1_COLOR 0x00FFFFFF #define SOUND_NORM_COLOR 0x000000FF #define SOUND_LOCK_COL..."
+- File: Editors\LevelEditor\Entry\Sound\ESound_Environment.h
+  Preview: "#pragma once class ESoundEnvironment : public CEditShape { 	typedef CCustomObject inherited; 	friend class CLevelSoundManager; 	// Env 	shared_str m_E..."
+- File: Editors\LevelEditor\Entry\Sound\ESound_Source.cpp
+  Preview: "#include 'stdafx.h' #include '../../xrSound/stdafx.h' #include '../../xrSound/SoundRender_Source.h' #define VIS_RADIUS 0.25f #define SOUND_SEL0_COLOR ..."
+- File: Editors\LevelEditor\Entry\Sound\ESound_Source.h
+  Preview: "#pragma once class ESoundSource : public CCustomObject {   typedef CCustomObject inherited;   // static sound   ref_sound m_Source;   shared_str m_WAV..."
+- File: Editors\LevelEditor\Entry\Spawn\SpawnPoint.cpp
+  Preview: "#include 'stdafx.h' #define SPAWNPOINT_CHUNK_VERSION 0xE411 #define SPAWNPOINT_CHUNK_POSITION 0xE412 #define SPAWNPOINT_CHUNK_RPOINT 0xE413 #define SP..."
+- File: Editors\LevelEditor\Entry\Spawn\SpawnPoint.h
+  Preview: "#pragma once #define SPAWNPOINT_VERSION 0x0017 // refs class CSE_Visual; class CSE_Motion; class CObjectAnimator; class ISE_Abstract;  class CLE_Visua..."
+- File: Editors\LevelEditor\Entry\StaticObject\SceneObject.cpp
+  Preview: "#include 'stdafx.h' #include <windows.h> #include <commdlg.h> const float BLINK_TIME = 300.f; CSceneObject::CSceneObject(LPVOID data, LPCSTR name) : C..."
+- File: Editors\LevelEditor\Entry\StaticObject\SceneObject.h
+  Preview: "#pragma once class CSceneObject : public CCustomObject { 	shared_str m_ReferenceName; 	CEditableObject *m_pReference; 	void ReferenceChange(PropValue ..."
+- File: Editors\LevelEditor\Entry\StaticObject\SceneObjectIO.cpp
+  Preview: "#include 'stdafx.h' #define SCENEOBJ_CURRENT_VERSION 0x0012 #define SCENEOBJ_CHUNK_VERSION 0x0900 #define SCENEOBJ_CHUNK_REFERENCE 0x0902 #define SCEN..."
+- File: Editors\LevelEditor\Entry\WayPoint\WayPoint.cpp
+  Preview: "#include 'stdafx.h' #define WAYPOINT_SIZE 1.5f #define WAYPOINT_RADIUS WAYPOINT_SIZE * .5f bool IsPointMode() {   return LTools->GetSubTarget() == est..."
+- File: Editors\LevelEditor\Entry\WayPoint\WayPoint.h
+  Preview: "#pragma once class CFrustum; class CWayPoint; struct SWPLink {   CWayPoint *way_point;   float probability;   //			  SWPLink():way_point(0),probabilit..."
+- File: Editors\LevelEditor\Kernel\LevelEditor.cpp
+  Preview: "#include 'stdafx.h' class ISE_Abstract;  int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {   if (!IsDe..."
+- File: Editors\LevelEditor\Kernel\stdafx.cpp
+  Preview: "#include 'stdafx.h'"
+- File: Editors\LevelEditor\Kernel\stdafx.h
+  Preview: "#pragma once #include '../XrECore/stdafx.h' #include '../XrECore/Editor/device.h' #include '../XrECore/Editor/UI_MainCommand.h' #include '../XrECore/E..."
+- File: Editors\LevelEditor\Kernel\UI_LevelMain.cpp
+  Preview: "#include 'stdafx.h' #ifdef _LEVEL_EDITOR //.  if (m_Cursor->GetVisible()) RedrawScene(); #endif CLevelMain *LUI = (CLevelMain *)UI; CLevelMain::CLevel..."
+- File: Editors\LevelEditor\Kernel\UI_LevelMain.h
+  Preview: "#pragma once enum {   COMMAND_EXTFIRST_EXT = COMMAND_MAIN_LAST - 1,   COMMAND_CHANGE_TARGET,   COMMAND_ENABLE_TARGET,   COMMAND_READONLY_TARGET,   COM..."
+- File: Editors\LevelEditor\Kernel\UI_LevelTools.cpp
+  Preview: "#include 'stdafx.h' #define DETACH_FRAME(a) \   if (a)       \   {          \     a = 0;     \   } #define ATTACH_FRAME(a, b) \   if (a)         \   {..."
+- File: Editors\LevelEditor\Kernel\UI_LevelTools.h
+  Preview: "#pragma once // refs class ESceneToolBase; class TfrmObjectList; #define estDefault 0 #define CHECK_SNAP(R, A, C)  \   {             \     R += A;    ..."
+- File: Editors\LevelEditor\Resources\resource.h
+  Preview: "//{{NO_DEPENDENCIES}} // ���������� ����, ��������� � Microsoft Visual C++. // ������������ LevelEditor.rc // #define IDI_ICON2 102 #define MAINICON 1..."
+- File: Editors\LevelEditor\Scene\LEPhysics.cpp
+  Preview: "#include 'stdafx.h' #include 'mesh_data.h' #include '../../xrphysics/iphworld.h' CScenePhyscs g_scene_physics; bool CScenePhyscs ::Simulating() {   re..."
+- File: Editors\LevelEditor\Scene\LEPhysics.h
+  Preview: "#pragma once class CObjectSpace; class CScenePhyscs {  CObjectSpace *m_object_space;  bool b_update_level_collision; public:  CScenePhyscs() : m_objec..."
+- File: Editors\LevelEditor\Scene\mesh_data.h
+  Preview: "#ifndef _MESH_DATA_H_ #define _MESH_DATA_H_ namespace CDB { 	struct TRI; } struct mesh_build_data { 	int l_vert_cnt, l_vert_it; 	int l_face_cnt, l_fac..."
+- File: Editors\LevelEditor\Scene\scene.cpp
+  Preview: "#include 'stdafx.h' EScene *Scene; st_LevelOptions::st_LevelOptions() {   Reset(); } void st_LevelOptions::Reset() {   m_FNLevelPath = 'level';   m_Le..."
+- File: Editors\LevelEditor\Scene\scene.h
+  Preview: "#pragma once #if 1 extern doug_lea_allocator g_render_lua_allocator; template <class T> class doug_lea_alloc { public: 	typedef size_t size_type; 	typ..."
+- File: Editors\LevelEditor\Scene\SceneGraph.h
+  Preview: "#pragma once #if 0 template <class K, class T> class FixedMAP { public: 	struct TNode 	{ 		K key; 		T val; 		TNode *left, *right; 		TNode() { right = ..."
+- File: Editors\LevelEditor\Scene\SceneIO.cpp
+  Preview: "#include 'stdafx.h' #define CURRENT_FILE_VERSION 0x00000005 #define CURRENT_LEVELOP_VERSION 0x0000000C #define CURRENT_LEVELOP_BP_VERSION 0x00000009 #..."
+- File: Editors\LevelEditor\Scene\ScenePick.cpp
+  Preview: "#include 'stdafx.h' int EScene::FrustumPick(const CFrustum &frustum, ObjClassID classfilter, ObjectList &ol) {   int count = 0;   if (classfilter == O..."
+- File: Editors\LevelEditor\Scene\SceneRender.cpp
+  Preview: "#include 'stdafx.h' #ifdef USE_ARENA_ALLOCATOR static const u32 s_arena_size = 32 * 1024 * 1024; char *s_fake_array = nullptr; doug_lea_allocator g_re..."
+- File: Editors\LevelEditor\Scene\SceneSelection.cpp
+  Preview: "#include 'stdafx.h' void EScene::SelectObjects(bool flag, ObjClassID classfilter) {   if (classfilter == OBJCLASS_DUMMY)   {     SceneToolsMapPairIt _..."
+- File: Editors\LevelEditor\Scene\SceneSnap.cpp
+  Preview: "#include 'stdafx.h' ObjectList *EScene::GetSnapList(bool bIgnoreUse) {   ObjClassID cls = LTools->CurrentClassID();   ESceneToolBase *mt = m_SceneTool..."
+- File: Editors\LevelEditor\Scene\SceneSummaryInfo.cpp
+  Preview: "#include 'stdafx.h' static SSceneSummary s_summary; xr_token summary_texture_type_tokens[] = {   {'Base', SSceneSummary::sttBase},   {'Implicit', SSce..."
+- File: Editors\LevelEditor\Scene\SceneSummaryInfo.h
+  Preview: "#ifndef SceneSummaryInfoH #define SceneSummaryInfoH #pragma once #include '../../xrRender/Private/ETextureParams.h' class SSceneSummary { public:   en..."
+- File: Editors\LevelEditor\Scene\SceneUndo.cpp
+  Preview: "#include 'stdafx.h' void EScene::UndoClear() { 	while (!m_RedoStack.empty()) 	{ 		unlink(m_RedoStack.back().m_FileName); 		m_RedoStack.pop_back(); 	} ..."
+- File: Editors\LevelEditor\Scene\SceneUtil.cpp
+  Preview: "#include 'stdafx.h' CCustomObject *EScene::FindObjectByName(LPCSTR name, ObjClassID classfilter) {   if (!name)     return NULL;   CCustomObject *obje..."
+- File: Editors\LevelEditor\Scene\Scene_Tools.cpp
+  Preview: "#include 'stdafx.h' void EScene::RegisterSceneTools(ESceneToolBase *mt) {   m_SceneTools[mt->FClassID] = mt;   mt->OnCreate(); } void EScene::CreateSc..."
+- File: Editors\LevelEditor\Tools\ESceneClassList.h
+  Preview: "#ifndef ESceneClassListH #define ESceneClassListH // refs class CCustomObject; typedef u32 ObjClassID; //---------------------------------------------..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapControls.cpp
+  Preview: "#include 'stdafx.h' // Node Add TUI_ControlAIMapNodeAdd::TUI_ControlAIMapNodeAdd(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act,..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapControls.h
+  Preview: "#pragma once // refs class ESceneAIMapTool; #define estAIMapNode 0 class TUI_ControlAIMapNodeAdd : public TUI_CustomControl { 	int append_nodes; publi..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools.cpp
+  Preview: "#include 'stdafx.h' // chunks #define AIMAP_VERSION 0x0002 #define AIMAP_CHUNK_VERSION 0x0001 #define AIMAP_CHUNK_FLAGS 0x0002 #define AIMAP_CHUNK_BOX..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools.h
+  Preview: "#pragma once // refs class ESceneAIMapTool; struct SAINode; const DWORD InvalidNode = (1 << 24) - 1; #pragma pack(push, 1) struct SAINode // definitio..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools_Controls.cpp
+  Preview: "#include 'stdafx.h' void ESceneAIMapTool::CreateControls() { 	inherited::CreateDefaultControls(estDefault); 	// node tools 	//  AddControl(xr_new<TUI_..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools_Export.cpp
+  Preview: "#include 'stdafx.h' void ESceneAIMapTool::UnpackPosition(Fvector &Pdest, const NodePosition &Psrc, Fbox &bb, SAIParams &params) {   Pdest.x = float(Ps..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools_Export.h
+  Preview: "#ifndef ESceneAIMapTools_ExportH #define ESceneAIMapTools_ExportH //---------------------------------------------------- struct SAIParams { 	float fPa..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools_Generate.cpp
+  Preview: "#include 'stdafx.h' static SPickQuery PQ; IC void SnapXZ(Fvector &V, float ps) {   V.x = snapto(V.x, ps);   V.z = snapto(V.z, ps); } struct tri {   Fv..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools_MotionSimulator.cpp
+  Preview: "#include 'stdafx.h' struct cl_tri { 	Fvector e10; 	float e10s; 	Fvector e21; 	float e21s; 	Fvector e02; 	float e02s; 	Fvector p[3]; 	Fvector N; 	float..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools_Pick.cpp
+  Preview: "#include 'stdafx.h' SAINode *ESceneAIMapTool::PickNode(const Fvector &start, const Fvector &dir, float &dist) {   SAINode *R = 0;   CFrustum frustum; ..."
+- File: Editors\LevelEditor\Tools\AIMap\ESceneAIMapTools_Render.cpp
+  Preview: "#include 'stdafx.h' typedef Fvector2 t_node_tc[4]; static const float dtc = 0.25f; static t_node_tc node_tc[16] =   {     {{0.f + 0 * dtc, 0.25f + 0 *..."
+- File: Editors\LevelEditor\Tools\Base\ESceneControlsCustom.cpp
+  Preview: "#include 'stdafx.h' TUI_CustomControl::TUI_CustomControl(int st, int act, ESceneToolBase *parent) {   parent_tool = parent;   VERIFY(parent);   sub_ta..."
+- File: Editors\LevelEditor\Tools\Base\ESceneControlsCustom.h
+  Preview: "#pragma once // refs class ESceneToolBase; struct SBeforeAppendCallbackParams {   LPVOID data;   xr_string name_prefix;   SBeforeAppendCallbackParams(..."
+- File: Editors\LevelEditor\Tools\Base\ESceneCustomMTools.cpp
+  Preview: "#include 'stdafx.h' #define CHUNK_TOOLS_TAG 0x7777 ESceneToolBase::ESceneToolBase(ObjClassID cls) {   FClassID = cls;   // controls   sub_target = 0; ..."
+- File: Editors\LevelEditor\Tools\Base\ESceneCustomMTools.h
+  Preview: "#pragma once // refs struct SSceneSummary; class TUI_CustomControl; class ESceneCustomMTools; class SceneBuilder; struct SExportStreams; struct mesh_b..."
+- File: Editors\LevelEditor\Tools\Base\ESceneCustomMToolsControls.cpp
+  Preview: "#include 'stdafx.h' void ESceneToolBase::CreateDefaultControls(u32 sub_target_id) {   for (int a = 0; a < etaMaxActions; a++)     AddControl(xr_new<TU..."
+- File: Editors\LevelEditor\Tools\Base\ESceneCustomOTools.cpp
+  Preview: "#include 'stdafx.h' ESceneCustomOTool::ESceneCustomOTool(ObjClassID cls) : ESceneToolBase(cls) { } ESceneCustomOTool::~ESceneCustomOTool() { } void ES..."
+- File: Editors\LevelEditor\Tools\Base\ESceneCustomOTools.h
+  Preview: "#ifndef ESceneCustomOToolsH #define ESceneCustomOToolsH #include 'ESceneCustomMTools.h' struct SRayPickInfo; struct mesh_build_data; class ESceneCusto..."
+- File: Editors\LevelEditor\Tools\Base\ESceneCustomOToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u32 CHUNK_VERSION = 0x0001; static const u32 CHUNK_OBJECT_COUNT = 0x0002; static const u32 CHUNK_OBJECTS = ..."
+- File: Editors\LevelEditor\Tools\Base\ESceneDummyTools.cpp
+  Preview: "#include 'stdafx.h' void ESceneDummyTool::CreateControls() { 	inherited::CreateDefaultControls(estDefault); } void ESceneDummyTool::RemoveControls() {..."
+- File: Editors\LevelEditor\Tools\Base\ESceneDummyTools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef ESceneDummyToolsH #define ESceneDummyToolsH #include 'ESceneCust..."
+- File: Editors\LevelEditor\Tools\Details\ESceneDOTools.cpp
+  Preview: "#include 'stdafx.h' #include '..\..\xrRender\Private\DetailFormat.h' #include <commdlg.h> static const u32 DETMGR_VERSION = 0x0003ul; enum {   DETMGR_..."
+- File: Editors\LevelEditor\Tools\Details\ESceneDOTools.h
+  Preview: "#pragma once class CFrustum; class CEditableObject; class Shader; struct SIndexDist {   u32 index;   float dist;   float dens[4];   float cnt[4];   SI..."
+- File: Editors\LevelEditor\Tools\Details\ESceneDOTools_Controls.cpp
+  Preview: "#include 'stdafx.h' void EDetailManager::CreateControls() { 	AddControl(xr_new<TUI_CustomControl>(estDefault, etaSelect, this)); 	// frame 	pForm = xr..."
+- File: Editors\LevelEditor\Tools\Details\ESceneDOTools_Generate.cpp
+  Preview: "#include 'stdafx.h' static Fvector down_vec = { 0.f, -1.f, 0.f }; static Fvector left_vec = { -1.f, 0.f, 0.f }; static Fvector right_vec = { 1.f, 0.f,..."
+- File: Editors\LevelEditor\Tools\Details\ESceneDOTools_Pick.cpp
+  Preview: "#include 'stdafx.h' int EDetailManager::RaySelect(int flag, float &dist, const Fvector &start, const Fvector &direction, BOOL bDistanceOnly) {   // bo..."
+- File: Editors\LevelEditor\Tools\FogVolume\ESceneFogVolumeTools.cpp
+  Preview: "#include 'stdafx.h' static const u16 FOG_VOL_TOOLS_VERSION = 0x0000; static const u16 FOG_VOL_VERSION = 0x0002; enum {   TOOL_CHUNK_VERSION = 0x1001ul..."
+- File: Editors\LevelEditor\Tools\FogVolume\ESceneFogVolumeTools.h
+  Preview: "#pragma once class EFogVolume; enum {   fvEmitter = 0,   fvOcclusion = 1, }; class ESceneFogVolumeTool : public ESceneCustomOTool {   typedef ESceneCu..."
+- File: Editors\LevelEditor\Tools\Glow\ESceneGlowTools.cpp
+  Preview: "#include 'stdafx.h' void ESceneGlowTool::CreateControls() {   inherited::CreateDefaultControls(estDefault);   m_Flags.zero(); } void ESceneGlowTool::R..."
+- File: Editors\LevelEditor\Tools\Glow\ESceneGlowTools.h
+  Preview: "#pragma once class ESceneGlowTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited;   friend class CGlow; protected:   // controls  ..."
+- File: Editors\LevelEditor\Tools\Glow\ESceneGlowToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 GLOW_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul,   CHUNK_FLAGS = 0x1002ul, }; bool EScen..."
+- File: Editors\LevelEditor\Tools\Group\ESceneGroupControls.cpp
+  Preview: "#include 'stdafx.h' TUI_ControlGroupAdd::TUI_ControlGroupAdd(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act, parent) { } bool TU..."
+- File: Editors\LevelEditor\Tools\Group\ESceneGroupControls.h
+  Preview: "#pragma once class TUI_ControlGroupAdd : public TUI_CustomControl { 	bool AfterAppendCallback(TShiftState Shift, CCustomObject *obj); public: 	TUI_Con..."
+- File: Editors\LevelEditor\Tools\Group\ESceneGroupTools.cpp
+  Preview: "#include 'stdafx.h' void ESceneGroupTool::CreateControls() {   inherited::CreateDefaultControls(estDefault);   AddControl(xr_new<TUI_ControlGroupAdd>(..."
+- File: Editors\LevelEditor\Tools\Group\ESceneGroupTools.h
+  Preview: "#pragma once class ESceneGroupTool : public ESceneCustomOTool, private pureDrawUI {   typedef ESceneCustomOTool inherited;   xr_string m_CurrentObject..."
+- File: Editors\LevelEditor\Tools\Group\ESceneGroupToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 GROUP_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul, }; bool ESceneGroupTool::LoadStream(IR..."
+- File: Editors\LevelEditor\Tools\Light\ESceneLightTools.cpp
+  Preview: "#include 'stdafx.h' ESceneLightTool::ESceneLightTool() : ESceneCustomOTool(OBJCLASS_LIGHT) {   Clear();   m_Flags.zero(); } ESceneLightTool::~ESceneLi..."
+- File: Editors\LevelEditor\Tools\Light\ESceneLightTools.h
+  Preview: "#pragma once class CEditFlare : public CLensFlare { public:   CEditFlare();   void Load(IReader &F);   void Save(IWriter &F);   void Render();   void ..."
+- File: Editors\LevelEditor\Tools\Light\ESceneLightToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 LIGHT_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul,   CHUNK_LCONTROLS = 0x1002ul,   CHUNK_..."
+- File: Editors\LevelEditor\Tools\Particles\EScenePSControls.cpp
+  Preview: "#include 'stdafx.h' TUI_ControlPSAdd::TUI_ControlPSAdd(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act, parent) { } bool TUI_Cont..."
+- File: Editors\LevelEditor\Tools\Particles\EScenePSControls.h
+  Preview: "#pragma once class TUI_ControlPSAdd : public TUI_CustomControl { 	bool AfterAppendCallback(TShiftState Shift, CCustomObject *obj); public: 	TUI_Contro..."
+- File: Editors\LevelEditor\Tools\Particles\EScenePSTools.cpp
+  Preview: "#include 'stdafx.h' void EScenePSTool::CreateControls() { 	inherited::CreateDefaultControls(estDefault); 	AddControl(xr_new<TUI_ControlPSAdd>(estDefau..."
+- File: Editors\LevelEditor\Tools\Particles\EScenePSTools.h
+  Preview: "#pragma once class EScenePSTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited; protected:   // controls   virtual void CreateCont..."
+- File: Editors\LevelEditor\Tools\Particles\EScenePSToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 PS_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul, }; bool EScenePSTool::LoadLTX(CInifile &i..."
+- File: Editors\LevelEditor\Tools\Portal\EScenePortalControls.cpp
+  Preview: "#include 'stdafx.h' TUI_ControlPortalSelect::TUI_ControlPortalSelect(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act, parent) { }..."
+- File: Editors\LevelEditor\Tools\Portal\EScenePortalControls.h
+  Preview: "#pragma once class TUI_ControlPortalSelect : public TUI_CustomControl { public: 	TUI_ControlPortalSelect(int st, int act, ESceneToolBase *parent); 	vi..."
+- File: Editors\LevelEditor\Tools\Portal\EScenePortalTools.cpp
+  Preview: "#include 'stdafx.h' /* TODO 1 -oAlexMX -cTODO: Create tools as AI Map */ void EScenePortalTool::CreateControls() {   //	inherited::CreateControls();  ..."
+- File: Editors\LevelEditor\Tools\Portal\EScenePortalTools.h
+  Preview: "#pragma once class EScenePortalTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited;   friend class CPortal; protected:   enum   { ..."
+- File: Editors\LevelEditor\Tools\Portal\EScenePortalToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 PORTAL_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul,   CHUNK_FLAGS = 0x1002ul, }; bool ESc..."
+- File: Editors\LevelEditor\Tools\Sector\ESceneSectorControls.cpp
+  Preview: "#include 'stdafx.h' // add TUI_ControlSectorAdd::TUI_ControlSectorAdd(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act, parent) { ..."
+- File: Editors\LevelEditor\Tools\Sector\ESceneSectorControls.h
+  Preview: "#pragma once // refs class UISectorTool; enum ESectorAction {   saNone,   saAddMesh,   saDelMesh,   saMeshBoxSelection }; class TUI_ControlSectorAdd :..."
+- File: Editors\LevelEditor\Tools\Sector\ESceneSectorTools.cpp
+  Preview: "#include 'stdafx.h' /* TODO 1 -oAlexMX -cTODO: Create tools as AI Map */ void ESceneSectorTool::CreateControls() {   //	inherited::CreateControls();  ..."
+- File: Editors\LevelEditor\Tools\Sector\ESceneSectorTools.h
+  Preview: "#pragma once class CSceneObject; class ESceneSectorTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited;   friend class CSector; pr..."
+- File: Editors\LevelEditor\Tools\Sector\ESceneSectorToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 SECTOR_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul,   CHUNK_FLAGS = 0x1002ul, }; bool ESc..."
+- File: Editors\LevelEditor\Tools\Shape\ESceneShapeControls.cpp
+  Preview: "#include 'stdafx.h' TUI_ControlShapeAdd::TUI_ControlShapeAdd(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act, parent) { } bool TU..."
+- File: Editors\LevelEditor\Tools\Shape\ESceneShapeControls.h
+  Preview: "#pragma once class TUI_ControlShapeAdd : public TUI_CustomControl {   bool AfterAppendCallback(TShiftState _Shift, CCustomObject *obj); public:   TUI_..."
+- File: Editors\LevelEditor\Tools\Shape\ESceneShapeTools.cpp
+  Preview: "#include 'stdafx.h' void ESceneShapeTool::CreateControls() {   inherited::CreateDefaultControls(estDefault);   AddControl(xr_new<TUI_ControlShapeAdd>(..."
+- File: Editors\LevelEditor\Tools\Shape\ESceneShapeTools.h
+  Preview: "#pragma once class ESceneShapeTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited; protected:   // controls   virtual void CreateC..."
+- File: Editors\LevelEditor\Tools\Shape\ESceneShapeToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 SHAPE_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul, }; bool ESceneShapeTool::LoadLTX(CInif..."
+- File: Editors\LevelEditor\Tools\Sound\ESceneSoundEnvTools.cpp
+  Preview: "#include 'stdafx.h' void ESceneSoundEnvTool::CreateControls() { 	inherited::CreateDefaultControls(estDefault); } void ESceneSoundEnvTool::RemoveContro..."
+- File: Editors\LevelEditor\Tools\Sound\ESceneSoundEnvTools.h
+  Preview: "#pragma once class ESceneSoundEnvTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited; protected:   // controls   virtual void Crea..."
+- File: Editors\LevelEditor\Tools\Sound\ESceneSoundEnvToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 SOUND_ENV_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul, }; bool ESceneSoundEnvTool::LoadLT..."
+- File: Editors\LevelEditor\Tools\Sound\ESceneSoundSrcTools.cpp
+  Preview: "#include 'stdafx.h' void ESceneSoundSrcTool::CreateControls() { 	inherited::CreateDefaultControls(estDefault); } void ESceneSoundSrcTool::RemoveContro..."
+- File: Editors\LevelEditor\Tools\Sound\ESceneSoundSrcTools.h
+  Preview: "#pragma once class ESceneSoundSrcTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited; protected:   // controls   virtual void Crea..."
+- File: Editors\LevelEditor\Tools\Sound\ESceneSoundSrcToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 SOUND_SRC_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul, }; bool ESceneSoundSrcTool::LoadLT..."
+- File: Editors\LevelEditor\Tools\Spawn\ESceneSpawnControls.cpp
+  Preview: "#include 'stdafx.h' TUI_ControlSpawnAdd::TUI_ControlSpawnAdd(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act, parent) { } bool TU..."
+- File: Editors\LevelEditor\Tools\Spawn\ESceneSpawnControls.h
+  Preview: "#pragma once // refs class TfraRPoint; class TUI_ControlSpawnAdd : public TUI_CustomControl {   bool AppendCallback(SBeforeAppendCallbackParams *p); p..."
+- File: Editors\LevelEditor\Tools\Spawn\ESceneSpawnTools.cpp
+  Preview: "#include 'stdafx.h' static HMODULE hXRSE_FACTORY = 0; CEditableObject *ESceneSpawnTool::get_draw_visual(u8 _RP_TeamID, u8 _RP_Type, const GameTypeChoo..."
+- File: Editors\LevelEditor\Tools\Spawn\ESceneSpawnTools.h
+  Preview: "#pragma once class CEditableObject; class ESceneSpawnTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited;   friend class CSpawnPoi..."
+- File: Editors\LevelEditor\Tools\Spawn\ESceneSpawnToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 SPAWN_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul,   CHUNK_FLAGS = 0x1002ul, }; bool ESce..."
+- File: Editors\LevelEditor\Tools\StaticObject\ESceneObjectControls.cpp
+  Preview: "#include 'stdafx.h' TUI_ControlObjectAdd::TUI_ControlObjectAdd(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act, parent) { } bool ..."
+- File: Editors\LevelEditor\Tools\StaticObject\ESceneObjectControls.h
+  Preview: "#pragma once class TUI_ControlObjectAdd : public TUI_CustomControl { public: 	TUI_ControlObjectAdd(int st, int act, ESceneToolBase *parent); 	virtual ..."
+- File: Editors\LevelEditor\Tools\StaticObject\ESceneObjectTools.cpp
+  Preview: "#include 'stdafx.h' ESceneObjectTool::ESceneObjectTool() : ESceneCustomOTool(OBJCLASS_SCENEOBJECT) {   m_AppendRandomMinScale.set(1.f, 1.f, 1.f);   m_..."
+- File: Editors\LevelEditor\Tools\StaticObject\ESceneObjectTools.h
+  Preview: "#pragma once class ESceneObjectTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited; protected:   // controls   virtual void Create..."
+- File: Editors\LevelEditor\Tools\StaticObject\ESceneObjectToolsExportBreakable.cpp
+  Preview: "#include 'stdafx.h' static bool s_draw_dbg = false; IC bool build_mesh(const Fmatrix &parent, CEditableMesh *mesh, CGeomPartExtractor *extractor, u32 ..."
+- File: Editors\LevelEditor\Tools\StaticObject\ESceneObjectToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 OBJECT_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul,   CHUNK_APPEND_RANDOM = 0x1002ul,   C..."
+- File: Editors\LevelEditor\Tools\Wallmark\ESceneWallmarkControls.cpp
+  Preview: "#include 'stdafx.h' // Node Add TUI_ControlWallmarkAdd::TUI_ControlWallmarkAdd(int st, int act, ESceneToolBase *parent) : TUI_CustomControl(st, act, p..."
+- File: Editors\LevelEditor\Tools\Wallmark\ESceneWallmarkControls.h
+  Preview: "#pragma once // refs class ESceneWallmarkTools; class TUI_ControlWallmarkAdd : public TUI_CustomControl { 	u32 wm_cnt; public: 	TUI_ControlWallmarkAdd..."
+- File: Editors\LevelEditor\Tools\Wallmark\ESceneWallmarkTools.cpp
+  Preview: "#include 'stdafx.h' // chunks #define WM_VERSION 0x0004 #define WM_CHUNK_VERSION 0x0001 #define WM_CHUNK_FLAGS 0x0002 #define WM_CHUNK_PARAMS 0x0003 #..."
+- File: Editors\LevelEditor\Tools\Wallmark\ESceneWallmarkTools.h
+  Preview: "#pragma once class ESceneWallmarkTool : public ESceneToolBase { 	typedef ESceneToolBase inherited; public: 	DEFINE_VECTOR(FVF::LIT, LITVertVec, LITVer..."
+- File: Editors\LevelEditor\Tools\WayPoint\ESceneWayControls.cpp
+  Preview: "#include 'stdafx.h' void ESceneWayTool::OnActivate() {   inherited::OnActivate();   UIWayTool *frame = (UIWayTool *)pForm;   if (sub_target == estWayM..."
+- File: Editors\LevelEditor\Tools\WayPoint\ESceneWayControls.h
+  Preview: "#pragma once // refs class CWayPoint; enum {   estWayModeWay,   estWayModePoint }; class TUI_ControlWayPointAdd : public TUI_CustomControl { public:  ..."
+- File: Editors\LevelEditor\Tools\WayPoint\ESceneWayTools.cpp
+  Preview: "#include 'stdafx.h' CCustomObject *ESceneWayTool::CreateObject(LPVOID data, LPCSTR name) {   CCustomObject *O = xr_new<CWayObject>(data, name);   O->F..."
+- File: Editors\LevelEditor\Tools\WayPoint\ESceneWayTools.h
+  Preview: "#pragma once class ESceneWayTool : public ESceneCustomOTool {   typedef ESceneCustomOTool inherited; protected:   // controls   virtual void CreateCon..."
+- File: Editors\LevelEditor\Tools\WayPoint\ESceneWayToolsIO.cpp
+  Preview: "#include 'stdafx.h' // chunks static const u16 WAY_TOOLS_VERSION = 0x0000; enum {   CHUNK_VERSION = 0x1001ul, }; bool ESceneWayTool::LoadLTX(CInifile ..."
+- File: Editors\LevelEditor\UI\UIDOOneColor.cpp
+  Preview: "#include 'stdafx.h' #include 'UIDOOneColor.h' #include 'UIDOShuffle.h' UIDOOneColor::UIDOOneColor() { 	list_index = 0; } UIDOOneColor::~UIDOOneColor()..."
+- File: Editors\LevelEditor\UI\UIDOOneColor.h
+  Preview: "#pragma once class UIDOShuffle; class UIDOOneColor : public XrUI { public: 	UIDOOneColor(); 	virtual ~UIDOOneColor(); 	virtual void Draw(); 	void Remo..."
+- File: Editors\LevelEditor\UI\UIDOShuffle.cpp
+  Preview: "#include 'stdafx.h' UIDOShuffle* UIDOShuffle::Form = nullptr; UIDOShuffle::UIDOShuffle() { 	bModif = false; 	m_ChooseObject = false; 	m_Texture = null..."
+- File: Editors\LevelEditor\UI\UIDOShuffle.h
+  Preview: "#pragma once class EDetailManager; class EImageThumbnail; class UIDOOneColor; class UIDOShuffle : public XrUI { 	friend UIDOOneColor; public: 	UIDOShu..."
+- File: Editors\LevelEditor\UI\UIEditLibrary.cpp
+  Preview: "#include 'stdafx.h' UIEditLibrary *UIEditLibrary::Form = nullptr; UIEditLibrary::UIEditLibrary() { 	{ 		ref_texture texture_null; 		texture_null.creat..."
+- File: Editors\LevelEditor\UI\UIEditLibrary.h
+  Preview: "#pragma once class UIEditLibrary : public XrUI { public: 	UIEditLibrary(); 	virtual ~UIEditLibrary(); 	static void Update(); 	static void Show(); 	sta..."
+- File: Editors\LevelEditor\UI\UIEditLibrary_utf8.cpp
+  Preview: "#include 'stdafx.h' UIEditLibrary *UIEditLibrary::Form = nullptr; UIEditLibrary::UIEditLibrary() { 	{ 		ref_texture texture_null; 		texture_null.creat..."
+- File: Editors\LevelEditor\UI\UILeftBarForm.cpp
+  Preview: "#include 'stdafx.h' UILeftBarForm::UILeftBarForm() { 	m_UseSnapList = false; 	m_SnapListMode = false; 	m_SnapItem_Current = 0; } UILeftBarForm::~UILef..."
+- File: Editors\LevelEditor\UI\UILeftBarForm.h
+  Preview: "#pragma once class UILeftBarForm : public XrUI { public: 	UILeftBarForm(); 	virtual ~UILeftBarForm(); 	virtual void Draw(); 	IC bool IsUseSnapList() c..."
+- File: Editors\LevelEditor\UI\UILPropertiesFrom.cpp
+  Preview: "#include 'stdafx.h' UILPropertiesFrom::UILPropertiesFrom() { } UILPropertiesFrom::~UILPropertiesFrom() { } void UILPropertiesFrom::Draw() { 	if (bOpen..."
+- File: Editors\LevelEditor\UI\UILPropertiesFrom.h
+  Preview: "#pragma once class UILPropertiesFrom : public XrUI { public: 	UILPropertiesFrom(); 	virtual ~UILPropertiesFrom(); 	virtual void Draw(); 	IC void Open(..."
+- File: Editors\LevelEditor\UI\UIMainForm.cpp
+  Preview: "#include 'stdafx.h' #include '../XrECore/Editor/EditorChooseEvents.h' #include 'UISceneTabBar.h' UIMainForm* MainForm = nullptr; bool        UIMainFor..."
+- File: Editors\LevelEditor\UI\UIMainForm.h
+  Preview: "#pragma once typedef void (*SplashAnimCallback)(ImDrawList* drawList,                  ImVec2   origin,                  ImVec2   size,               ..."
+- File: Editors\LevelEditor\UI\UIMainMenuForm.cpp
+  Preview: "#include 'stdafx.h' #include '../LevelEditor/color_editor.h' #include 'UISceneTabBar.h' #include 'UIContentBrowser.h'  UIMainMenuForm::UIMainMenuForm(..."
+- File: Editors\LevelEditor\UI\UIMainMenuForm.h
+  Preview: "  #pragma once   class UIContentBrowser; // �������-����������   class UIMainMenuForm : public XrUI   {   private:     UIContentBrowser* m_ContentBrow..."
+- File: Editors\LevelEditor\UI\UIObjectList.cpp
+  Preview: "#include 'stdafx.h' UIObjectList *UIObjectList::Form = nullptr; UIObjectList::UIObjectList() {   m_Mode = M_Visible;   m_Filter[0] = 0;   m_SelectedOb..."
+- File: Editors\LevelEditor\UI\UIObjectList.h
+  Preview: "#pragma once #include <vector>  class CCustomObject; class UIObjectList : public XrUI { public:   UIObjectList();   virtual ~UIObjectList();   virtual..."
+- File: Editors\LevelEditor\UI\UIPropertiesModal.cpp
+  Preview: "#include 'stdafx.h' UIPropertiesModal *UIPropertiesModal::Form = nullptr; UIPropertiesModal::UIPropertiesModal() { 	m_Props = xr_new<UIPropertiesForm>..."
+- File: Editors\LevelEditor\UI\UIPropertiesModal.h
+  Preview: "#pragma once class UIPropertiesModal : public XrUI { public: 	UIPropertiesModal(); 	virtual ~UIPropertiesModal(); 	virtual void Draw(); 	static void U..."
+- File: Editors\LevelEditor\UI\UISceneTabBar.cpp
+  Preview: "#include 'stdafx.h' #include 'UISceneTabBar.h' #include '../color_editor.h' #include '../Kernel/UI_LevelMain.h' xr_vector<SceneTab> UISceneTabBar::s_t..."
+- File: Editors\LevelEditor\UI\UISceneTabBar.h
+  Preview: "#pragma once #include <string> #include <vector> #include '../XrEUI/imgui.h' // ============================================================ // UIScen..."
+- File: Editors\LevelEditor\UI\UITopBarForm.cpp
+  Preview: "#include 'stdafx.h' UITopBarForm::UITopBarForm() { #define ADD_BUTTON_IMAGE_T1(Class, Name) #define ADD_BUTTON_IMAGE_T2(Class, Name) #define ADD_BUTTO..."
+- File: Editors\LevelEditor\UI\UITopBarForm.h
+  Preview: "#pragma once class UITopBarForm : public XrUI { public: 	UITopBarForm(); 	virtual ~UITopBarForm(); 	virtual void Draw(); 	void RefreshBar(); private: ..."
+- File: Editors\LevelEditor\UI\UITopBarForm_ButtonList.h
+  Preview: "#ifndef ADD_BUTTON_IMAGE_P #define ADD_BUTTON_IMAGE_P(Name) ADD_BUTTON_IMAGE_D(Name) #endif #ifndef ADD_BUTTON_IMAGE_T1_1 #define ADD_BUTTON_IMAGE_T1_..."
+- File: Editors\LevelEditor\UI\Tools\UIAIMapTool.cpp
+  Preview: "#include 'stdafx.h' UIAIMapTool::UIAIMapTool() { 	m_Mode = mdAppend; 	m_AutoLink = true; 	m_IgnoreConstraints = false; 	m_IgnoreMaterialsListSelected ..."
+- File: Editors\LevelEditor\UI\Tools\UIAIMapTool.h
+  Preview: "#pragma once class ESceneAIMapTool; class UIAIMapTool : public UIToolCustom { public: 	UIAIMapTool(); 	virtual ~UIAIMapTool(); 	virtual void Draw(); 	..."
+- File: Editors\LevelEditor\UI\Tools\UIDOTool.cpp
+  Preview: "#include 'stdafx.h' UIDOTool::UIDOTool() { 	m_DOShuffle = false; } UIDOTool::~UIDOTool() { } void UIDOTool::Draw() { 	ImGui::SetNextItemOpen(true, ImG..."
+- File: Editors\LevelEditor\UI\Tools\UIDOTool.h
+  Preview: "#pragma once class EDetailManager; class UIDOTool : public UIToolCustom { public: 	UIDOTool(); 	virtual ~UIDOTool(); 	virtual void Draw(); 	virtual vo..."
+- File: Editors\LevelEditor\UI\Tools\UIFogVolTool.cpp
+  Preview: "#include 'stdafx.h' UIFogVolTool::UIFogVolTool() {} UIFogVolTool::~UIFogVolTool() {} void UIFogVolTool::Draw() { 	ImGui::SetNextItemOpen(true, ImGuiCo..."
+- File: Editors\LevelEditor\UI\Tools\UIFogVolTool.h
+  Preview: "#pragma once class ESceneFogVolumeTool; class UIFogVolTool : public UIToolCustom { public: 	UIFogVolTool(); 	virtual ~UIFogVolTool(); 	virtual void Dr..."
+- File: Editors\LevelEditor\UI\Tools\UIGroupTool.cpp
+  Preview: "#include 'stdafx.h' UIGroupTool::UIGroupTool() { 	m_ChooseGroup = false; 	m_selPercent = true; } UIGroupTool::~UIGroupTool() { } void UIGroupTool::Dra..."
+- File: Editors\LevelEditor\UI\Tools\UIGroupTool.h
+  Preview: "#pragma once class ESceneGroupTool; class UIGroupTool : public UIToolCustom { public: 	UIGroupTool(); 	virtual ~UIGroupTool(); 	virtual void Draw(); 	..."
+- File: Editors\LevelEditor\UI\Tools\UILightTool.cpp
+  Preview: "#include 'stdafx.h' UILightTool::UILightTool() { } UILightTool::~UILightTool() { } void UILightTool::Draw() { 	ImGui::SetNextItemOpen(true, ImGuiCond_..."
+- File: Editors\LevelEditor\UI\Tools\UILightTool.h
+  Preview: "#pragma once class UILightTool : public UIToolCustom { public: 	UILightTool(); 	virtual ~UILightTool(); 	virtual void Draw(); private: 	void UseInD3D(..."
+- File: Editors\LevelEditor\UI\Tools\UIObjectTool.cpp
+  Preview: "#include 'stdafx.h' UIObjectTool::UIObjectTool() {   m_selPercent = 0.f;   m_MultiAppend = false;   m_PropRandom = false;   m_Current = nullptr;   m_R..."
+- File: Editors\LevelEditor\UI\Tools\UIObjectTool.h
+  Preview: "#pragma once class ESceneObjectTool; class UIObjectTool : public UIToolCustom { public: 	UIObjectTool(); 	virtual ~UIObjectTool(); 	virtual void Draw(..."
+- File: Editors\LevelEditor\UI\Tools\UIParticlesTool.cpp
+  Preview: "#include 'stdafx.h' UIParticlesTool::UIParticlesTool() {   m_Current = nullptr;   m_ParticlesList = xr_new<UIItemListForm>();   m_ParticlesList->SetOn..."
+- File: Editors\LevelEditor\UI\Tools\UIParticlesTool.h
+  Preview: "#pragma once class UIParticlesTool : public UIToolCustom { public: 	UIParticlesTool(); 	virtual ~UIParticlesTool(); 	virtual void Draw(); 	IC const ch..."
+- File: Editors\LevelEditor\UI\Tools\UIPortalTool.cpp
+  Preview: "#include 'stdafx.h' UIPortalTool::UIPortalTool() { } UIPortalTool::~UIPortalTool() { } void UIPortalTool::Draw() {   ImGui::SetNextItemOpen(true, ImGu..."
+- File: Editors\LevelEditor\UI\Tools\UIPortalTool.h
+  Preview: "#pragma once class EScenePortalTool; class UIPortalTool : public UIToolCustom { public: 	UIPortalTool(); 	virtual ~UIPortalTool(); 	virtual void Draw(..."
+- File: Editors\LevelEditor\UI\Tools\UISectorTool.cpp
+  Preview: "#include 'stdafx.h' UISectorTool::UISectorTool() {   m_Edit = false;   m_CreateNewMultiple = false;   m_CreateNewSingle = false;   m_MeshAdd = true;  ..."
+- File: Editors\LevelEditor\UI\Tools\UISectorTool.h
+  Preview: "#pragma once class UISectorTool : public UIToolCustom { public: 	UISectorTool(); 	virtual ~UISectorTool(); 	virtual void Draw(); 	IC void ShowEdit() {..."
+- File: Editors\LevelEditor\UI\Tools\UIShapeTool.cpp
+  Preview: "#include 'stdafx.h' UIShapeTool::UIShapeTool() {   Tool = nullptr;   m_AttachShape = false; } UIShapeTool::~UIShapeTool() { } void UIShapeTool::Draw()..."
+- File: Editors\LevelEditor\UI\Tools\UIShapeTool.h
+  Preview: "#pragma once class ESceneShapeTool; class UIShapeTool : public UIToolCustom { public: 	ESceneShapeTool *Tool; 	UIShapeTool(); 	virtual ~UIShapeTool();..."
+- File: Editors\LevelEditor\UI\Tools\UISpawnTool.cpp
+  Preview: "#include 'stdafx.h' UISpawnTool::UISpawnTool() {   m_selPercent = 100;   m_Current = nullptr;   m_SpawnList = xr_new<UIItemListForm>();   m_SpawnList-..."
+- File: Editors\LevelEditor\UI\Tools\UISpawnTool.h
+  Preview: "#pragma once class UISpawnTool : public UIToolCustom { public: 	UISpawnTool(); 	virtual ~UISpawnTool(); 	virtual void Draw(); 	void SelByRefObject(boo..."
+- File: Editors\LevelEditor\UI\Tools\UIToolCustom.h
+  Preview: "#pragma once class UIToolCustom : public XrUI { public: 	virtual void OnDrawUI() {} };"
+- File: Editors\LevelEditor\UI\Tools\UIWayTool.cpp
+  Preview: "#include 'stdafx.h' UIWayTool::UIWayTool() {   m_WayMode = true;   m_AutoLink = true; } UIWayTool::~UIWayTool() { } void UIWayTool::Draw() {   ImGui::..."
+- File: Editors\LevelEditor\UI\Tools\UIWayTool.h
+  Preview: "#pragma once class UIWayTool : public UIToolCustom { public: 	UIWayTool(); 	virtual ~UIWayTool(); 	virtual void Draw(); 	IC bool IsAutoLink() const { ..."
+- File: Editors\LevelEditor\Utils\Cursor3D.cpp
+  Preview: "#include 'stdafx.h' static WORD CrossIndices[4] = {0, 2, 1, 3}; #pragma package(smart_init) C3DCursor::C3DCursor() {   m_Visible = false;   brush_radi..."
+- File: Editors\LevelEditor\Utils\Cursor3D.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef Cursor3DH #define Cursor3DH //----------------------------------..."
+- File: Editors\LevelEditor\Utils\Custom2DProjector.cpp
+  Preview: "#include 'stdafx.h' // SBase #define MAX_BUF_SIZE 0xFFFF CCustom2DProjector::CCustom2DProjector() { 	name = ''; 	shader_overlap = 0; 	shader_blended =..."
+- File: Editors\LevelEditor\Utils\Custom2DProjector.h
+  Preview: "#pragma once class CCustom2DProjector { protected:   ref_shader shader_blended;   ref_shader shader_overlap;   u32 w;   u32 h;   U32Vec data;   DEFINE..."
+- File: Editors\LevelEditor\Utils\FS2.cpp
+  Preview: "#include 'stdafx.h' #pragma hdrstop #include 'FS2.h' // memory CMemoryStream::~CMemoryStream() { 	xr_free(data); } void CMemoryStream::write(const voi..."
+- File: Editors\LevelEditor\Utils\FS2.h
+  Preview: "#pragma once #include <fcntl.h> #include <io.h> #include 'lwchunks.h' class IBasicStream { private: 	std::stack<u32> chunk_pos; 	std::stack<u16> subch..."
+- File: Editors\LevelEditor\Utils\GeometryPartExtractor.cpp
+  Preview: "#include 'stdafx.h' // Parts void SBPart::append_face(SBFace *F) {   m_Faces.push_back(F); } void SBPart::use_face(SBFace *F, u32 &cnt, u32 bone_id, f..."
+- File: Editors\LevelEditor\Utils\GeometryPartExtractor.h
+  Preview: "#pragma once struct SBFace; class CSurface; DEFINE_VECTOR(SBFace *, SBFaceVec, SBFaceVecIt); struct SBFace {   // internal   int vert_id[3];   bool ma..."
+- File: Editors\LevelEditor\Utils\iniStreamImpl.cpp
+  Preview: "#include 'stdafx.h' #pragma hdrstop #include 'iniStreamImpl.h' LPCSTR SIniFileStream::gen_name() { 	++counter; 	sprintf(tmp_buff, '%06d', counter); 	r..."
+- File: Editors\LevelEditor\Utils\iniStreamImpl.h
+  Preview: "#ifndef inistream_impl_h_included #define inistream_impl_h_included #pragma pack(push, 1) struct SIniFileStream : public IIniFileStream { 	CInifile *i..."
+- File: Editors\LevelEditor\Utils\LevelPreferences.cpp
+  Preview: "#include 'stdafx.h' void CLevelPreferences::Load(CInifile *I) {   inherited::Load(I);   {     OpenObjectList = R_BOOL_SAFE('windows', 'object_list', f..."
+- File: Editors\LevelEditor\Utils\LevelPreferences.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef LevelPreferencesH #define LevelPreferencesH #include '../XrECore..."
+- File: Editors\LevelEditor\Utils\lwchunks.h
+  Preview: "#ifndef LWCHUNKS_H #define LWCHUNKS_H #ifndef LWID_ #define LWID_(a, b, c, d) (((a) << 24) | ((b) << 16) | ((c) << 8) | (d)) #endif /* chunk and subch..."
+- File: Editors\LevelEditor\Utils\portalutils.cpp
+  Preview: "#include 'stdafx.h' CPortalUtils PortalUtils; #define EPS_P 0.001f CSector *CPortalUtils::GetSelectedSector() {   ObjectList lst;   Scene->GetQueryObj..."
+- File: Editors\LevelEditor\Utils\portalutils.h
+  Preview: "#pragma once #include <iterator> // refs class CEditableMesh; class CEditableObject; class CSceneObject; class CSector; struct SVertex : public Fvecto..."
+- File: Editors\LevelEditor\Utils\SoundManager_LE.cpp
+  Preview: "#include 'stdafx.h' CLevelSoundManager *LSndLib = (CLevelSoundManager *)SndLib; bool CLevelSoundManager::Validate() {   ObjectList &snd_envs = Scene->..."
+- File: Editors\LevelEditor\Utils\SoundManager_LE.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef SoundManager_LEH #define SoundManager_LEH #include '../XrECore/E..."
+- File: Editors\ParticleEditor\noise.cpp
+  Preview: "#include 'stdafx.h' #pragma hdrstop #include 'noise.h' //============================================================================== // Perlin's no..."
+- File: Editors\ParticleEditor\noise.h
+  Preview: "#ifndef noiseH #define noiseH float noise3(const Fvector &vec); float fractalsum3(const Fvector &v, float freq, int octaves); float turbulence3(const ..."
+- File: Editors\ParticleEditor\ParticleEditor.cpp
+  Preview: "// ParticleEditor.cpp : Определяет точку входа для приложения. #include 'stdafx.h' int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, P..."
+- File: Editors\ParticleEditor\ParticleEffectActionsImpl.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include '../XrECore/Editor/Particle..."
+- File: Editors\ParticleEditor\ParticleEffectEditor.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #ifdef _PARTICLE_EDITOR #include '....."
+- File: Editors\ParticleEditor\ParticleGroupEditor.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include '..\..\XrRender\Private\Par..."
+- File: Editors\ParticleEditor\PSLibraryEditor.cpp
+  Preview: "#include 'stdafx.h' #pragma hdrstop #include '..\..\XrRender\Private\PSLibrary.h' #include '..\..\XrRender\Private\ParticleEffect.h' #include '..\..\X..."
+- File: Editors\ParticleEditor\StatGraph.cpp
+  Preview: "#include 'stdafx.h' #pragma hdrstop #include 'StatGraph.h' //--------------------------------------------- CStatGraph::CStatGraph() { 	EDevice.seqRend..."
+- File: Editors\ParticleEditor\StatGraph.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef StatGraphH #define StatGraphH //--------------------------------..."
+- File: Editors\ParticleEditor\stdafx.cpp
+  Preview: "#include 'stdafx.h' #pragma hdrstop // external dependencies "
+- File: Editors\ParticleEditor\stdafx.h
+  Preview: "#pragma once #include '..\XrECore\stdafx.h' #include '..\XrECore\Editor\device.h' #include '..\XrECore\Editor\UI_MainCommand.h' #include '..\XrECore\E..."
+- File: Editors\ParticleEditor\UILeftBarForm.cpp
+  Preview: "#include 'stdafx.h' UILeftBarForm::UILeftBarForm() { } UILeftBarForm::~UILeftBarForm() { } void UILeftBarForm::Draw() { 	ImGui::Begin('LeftBar', 0); 	..."
+- File: Editors\ParticleEditor\UILeftBarForm.h
+  Preview: "#pragma once class UILeftBarForm : public XrUI { public: 	UILeftBarForm(); 	virtual ~UILeftBarForm(); 	virtual void Draw(); private: }; "
+- File: Editors\ParticleEditor\UIMainForm.cpp
+  Preview: "#include 'stdafx.h' #include '../XrECore/Editor/EditorChooseEvents.h' bool UIMainForm::s_showSplash = true; void* UIMainForm::g_splash_tex = nullptr; ..."
+- File: Editors\ParticleEditor\UIMainForm.h
+  Preview: "#pragma once class UIMainForm : public XrUI { public: 	UIMainForm(); 	virtual ~UIMainForm(); 	virtual void Draw(); 	bool Frame(); 	IC UILeftBarForm *G..."
+- File: Editors\ParticleEditor\UIMainMenuForm.cpp
+  Preview: "#include 'stdafx.h' #include '../LevelEditor/color_editor.h' UIMainMenuForm::UIMainMenuForm() {   Colors::LoadSettings();   Colors::UpdateImGuiStyle()..."
+- File: Editors\ParticleEditor\UIMainMenuForm.h
+  Preview: "#pragma once class UIMainMenuForm : public XrUI { public: 	UIMainMenuForm(); 	virtual ~UIMainMenuForm(); 	virtual void Draw(); }; "
+- File: Editors\ParticleEditor\UIRightBarForm.cpp
+  Preview: "#include 'stdafx.h' UIRightBarForm::UIRightBarForm() { } UIRightBarForm::~UIRightBarForm() { } void UIRightBarForm::Draw() { 	ImGui::Begin('RightBar',..."
+- File: Editors\ParticleEditor\UIRightBarForm.h
+  Preview: "#pragma once class UIRightBarForm : public XrUI { public: 	UIRightBarForm(); 	virtual ~UIRightBarForm(); 	virtual void Draw(); private: }; "
+- File: Editors\ParticleEditor\UITopBarForm.cpp
+  Preview: "#include 'stdafx.h' UITopBarForm::UITopBarForm() { #define ADD_BUTTON_IMAGE_T1(Class, Name) #define ADD_BUTTON_IMAGE_T2(Class, Name) #define ADD_BUTTO..."
+- File: Editors\ParticleEditor\UITopBarForm.h
+  Preview: "#pragma once class UITopBarForm : public XrUI { public: 	UITopBarForm(); 	virtual ~UITopBarForm(); 	virtual void Draw(); 	void RefreshBar(); private: ..."
+- File: Editors\ParticleEditor\UITopBarForm_ButtonList.h
+  Preview: "#ifndef ADD_BUTTON_IMAGE_P #define ADD_BUTTON_IMAGE_P(Name) ADD_BUTTON_IMAGE_D(Name) #endif #ifndef ADD_BUTTON_IMAGE_T1_1 #define ADD_BUTTON_IMAGE_T1_..."
+- File: Editors\ParticleEditor\UI_ParticleMain.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'UI_ParticleMain.h' #includ..."
+- File: Editors\ParticleEditor\UI_ParticleMain.h
+  Preview: "#ifndef UI_ParticleMainH #define UI_ParticleMainH enum {   COMMAND_EXTFIRST_EXT = COMMAND_MAIN_LAST - 1,   COMMAND_VALIDATE,   COMMAND_SELECT_PREVIEW_..."
+- File: Editors\ParticleEditor\UI_ParticleTools.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'UI_ParticleTools.h' #inclu..."
+- File: Editors\ParticleEditor\UI_ParticleTools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef UI_ParticleToolsH #define UI_ParticleToolsH //. ?#include 'Parti..."
+- File: Editors\ParticleEditor\UI_ParticleToolsProps.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'UI_ParticleTools.h' void C..."
+- File: Editors\ParticleEditor\resources\resource.h
+  Preview: "//{{NO_DEPENDENCIES}} // ���������� ����, ��������� � Microsoft Visual C++. // ������������ ParticleEditor.rc // #define MAINICON            5 #define..."
+- File: Editors\Public\convert.h
+  Preview: "#ifndef _CONVERT_H_ #define _CONVERT_H_ IC D3DXVECTOR3 &cv_vector(D3DXVECTOR3 &l, const Fvector &r) { 	l.x = r.x; 	l.y = r.y; 	l.z = r.z; 	return l; }..."
+- File: Editors\Public\hxGridInterface.cpp
+  Preview: "#include 'hxgrid/Interface/hxGridInterface.h' #include 'assert.h' typedef IGridUser *(__cdecl TCreateGridUserObject)(DWORD version); typedef IGenericS..."
+- File: Editors\Public\mender_input_output.h
+  Preview: "#ifndef _MENDER_INPUT_OUTPUT_H_ #define _MENDER_INPUT_OUTPUT_H_ #include 'convert.h' template <typename type_face> IC void add_face(xr_vector<unsigned..."
+- File: Editors\Public\NVMeshMender.h
+  Preview: "/*********************************************************************NVMH4**** Path: File: Copyright NVIDIA Corporation 2003 TO THE MAXIMUM EXTENT PE..."
+- File: Editors\Public\NVMeshMenderTwo.cpp
+  Preview: "/*********************************************************************NVMH4**** Path: File: Copyright NVIDIA Corporation 2003 TO THE MAXIMUM EXTENT PE..."
+- File: Editors\Public\ReadMe.txt
+  Preview: "========================================================================   STATIC LIBRARY : nv_meshmender ============================================..."
+- File: Editors\Public\remove_isolated_verts.h
+  Preview: "#ifndef _REMOVE_ISOLATED_VERTS_H_ #define _REMOVE_ISOLATED_VERTS_H_ template <typename type_vertex, typename type_face> static void add_face(const typ..."
+- File: Editors\Public\Shader_xrLC.h
+  Preview: "#ifndef SHADER_XRLC_H #define SHADER_XRLC_H #pragma once struct Shader_xrLC; struct Shader_xrLC { public: 	enum 	{ 		flCollision = 1 << 0, 		flRenderi..."
+- File: Editors\ShaderEditor\GameMtlLib_Editor.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'GameMtlLib.h' //----------..."
+- File: Editors\ShaderEditor\ShaderEditor.cpp
+  Preview: "// ShaderEditor.cpp : ���������� ����� ����� ��� ����������. #include 'stdafx.h' int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWS..."
+- File: Editors\ShaderEditor\SHCompilerTools.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'SHCompilerTools.h' #includ..."
+- File: Editors\ShaderEditor\SHCompilerTools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef SHCompilerToolsH #define SHCompilerToolsH #include 'Shader_xrLC...."
+- File: Editors\ShaderEditor\SHCompilerToolsProperties.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'SHCompilerTools.h' //#incl..."
+- File: Editors\ShaderEditor\SHEngineTools.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'SHEngineTools.h' #include ..."
+- File: Editors\ShaderEditor\SHEngineTools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef SHEngineToolsH #define SHEngineToolsH #include 'SHToolsInterface..."
+- File: Editors\ShaderEditor\SHEngineToolsProperties.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'SHEngineTools.h' //-------..."
+- File: Editors\ShaderEditor\SHGameMtlPairTools.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'SHGameMtlPairTools.h' #inc..."
+- File: Editors\ShaderEditor\SHGameMtlPairTools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef SHGameMtlPairToolsH #define SHGameMtlPairToolsH #include 'SHTool..."
+- File: Editors\ShaderEditor\SHGameMtlTools.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #include 'SHGameMtlTools.h' #include 'ui_shadermain...."
+- File: Editors\ShaderEditor\SHGameMtlTools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef SHGameMtlToolsH #define SHGameMtlToolsH #include 'SHToolsInterfa..."
+- File: Editors\ShaderEditor\SHSoundEnvTools.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'ui_shadermain.h' #include ..."
+- File: Editors\ShaderEditor\SHSoundEnvTools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef SHSoundEnvToolsH #define SHSoundEnvToolsH #include 'SHToolsInter..."
+- File: Editors\ShaderEditor\SHToolsInterface.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'SHToolsInterface.h' #inclu..."
+- File: Editors\ShaderEditor\SHToolsInterface.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef SHToolsInterfaceH #define SHToolsInterfaceH // refs enum EToolsI..."
+- File: Editors\ShaderEditor\stdafx.cpp
+  Preview: "#include 'stdafx.h' #pragma hdrstop"
+- File: Editors\ShaderEditor\stdafx.h
+  Preview: "//---------------------------------------------------- // file: stdafx.h //---------------------------------------------------- #pragma once #include ..."
+- File: Editors\ShaderEditor\UILeftBarForm.cpp
+  Preview: "#include 'stdafx.h' UILeftBarForm::UILeftBarForm() { } UILeftBarForm::~UILeftBarForm() { } void UILeftBarForm::Draw() { 	ImGui::Begin('LeftBar', 0); 	..."
+- File: Editors\ShaderEditor\UILeftBarForm.h
+  Preview: "#pragma once class UILeftBarForm : public XrUI { public: 	UILeftBarForm(); 	virtual ~UILeftBarForm(); 	virtual void Draw(); private: }; "
+- File: Editors\ShaderEditor\UIMainForm.cpp
+  Preview: "#include 'stdafx.h' #include '../XrECore/Editor/EditorChooseEvents.h' bool UIMainForm::s_showSplash = true; void* UIMainForm::g_splash_tex = nullptr; ..."
+- File: Editors\ShaderEditor\UIMainForm.h
+  Preview: "#pragma once class UIMainForm : public XrUI { public: 	UIMainForm(); 	virtual ~UIMainForm(); 	virtual void Draw(); 	bool Frame(); 	IC UILeftBarForm *G..."
+- File: Editors\ShaderEditor\UIMainMenuForm.cpp
+  Preview: "#include 'stdafx.h' #include '../LevelEditor/color_editor.h' UIMainMenuForm::UIMainMenuForm() {   Colors::LoadSettings();   Colors::UpdateImGuiStyle()..."
+- File: Editors\ShaderEditor\UIMainMenuForm.h
+  Preview: "#pragma once class UIMainMenuForm : public XrUI { public: 	UIMainMenuForm(); 	virtual ~UIMainMenuForm(); 	virtual void Draw(); }; "
+- File: Editors\ShaderEditor\UITopBarForm.cpp
+  Preview: "#include 'stdafx.h' UITopBarForm::UITopBarForm() { #define ADD_BUTTON_IMAGE_T1(Class, Name) #define ADD_BUTTON_IMAGE_T2(Class, Name) #define ADD_BUTTO..."
+- File: Editors\ShaderEditor\UITopBarForm.h
+  Preview: "#pragma once class UITopBarForm : public XrUI { public: 	UITopBarForm(); 	virtual ~UITopBarForm(); 	virtual void Draw(); 	void RefreshBar(); private: ..."
+- File: Editors\ShaderEditor\UITopBarForm_ButtonList.h
+  Preview: "#ifndef ADD_BUTTON_IMAGE_P #define ADD_BUTTON_IMAGE_P(Name) ADD_BUTTON_IMAGE_D(Name) #endif #ifndef ADD_BUTTON_IMAGE_T1_1 #define ADD_BUTTON_IMAGE_T1_..."
+- File: Editors\ShaderEditor\ui_shadermain.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'UI_ShaderMain.h' #include ..."
+- File: Editors\ShaderEditor\ui_shadermain.h
+  Preview: "#ifndef UI_ShaderMainH #define UI_ShaderMainH enum {   COMMAND_EXTFIRST_EXT = COMMAND_MAIN_LAST - 1,   COMMAND_UPDATE_LIST, }; //---------------------..."
+- File: Editors\ShaderEditor\UI_shadertools.cpp
+  Preview: "//--------------------------------------------------------------------------- #include 'stdafx.h' #pragma hdrstop #include 'UI_ShaderTools.h' //------..."
+- File: Editors\ShaderEditor\UI_shadertools.h
+  Preview: "//--------------------------------------------------------------------------- #ifndef UI_ShaderToolsH #define UI_ShaderToolsH #include 'SHToolsInterfa..."
+- File: Editors\ShaderEditor\resources\resource.h
+  Preview: "//{{NO_DEPENDENCIES}} // ���������� ����, ��������� � Microsoft Visual C++. // ������������ ShaderEditor.rc // #define IDI_ICON1            101 #defin..."
+- File: Editors\XrDXT\colorconvert.h
+  Preview: "#pragma once #include 'tPixel.h' #ifndef ULMIN #define ULMIN template <class T> inline T ulMin(const T &x, const T &y) {   if (x < y)     return x;   ..."
+- File: Editors\XrDXT\dds.h
+  Preview: "// This header defines constants and structures that are useful when parsing // DDS files. DDS files were originally designed to use several structure..."
+- File: Editors\XrDXT\ddsTypes.h
+  Preview: "#pragma once typedef enum RescaleTypes {   RESCALE_NONE,         // no rescale   RESCALE_NEAREST_POWER2,    // rescale to nearest power of two   RESCA..."
+- File: Editors\XrDXT\DXT.cpp
+  Preview: "// DXT.cpp : Defines the entry point for the DLL application. // #include 'stdafx.h' #include 'dds/ddsTypes.h' #include 'dds.h' #include 'nvtt.h' #pra..."
+- File: Editors\XrDXT\dxtlib.h
+  Preview: "/****************************************************************************************   Copyright (C) NVIDIA Corporation 2003   TO THE MAXIMUM EXT..."
+- File: Editors\XrDXT\Image_DXTC.cpp
+  Preview: "/*********************************************************************NVMH2**** Path: C:\Dev\devrel\Nv_sdk_4\Direct3D\Decompress_DXTC File: Image_DXTC..."
+- File: Editors\XrDXT\Image_DXTC.h
+  Preview: "/*********************************************************************NVMH2**** Path: C:\Dev\devrel\Nv_sdk_4\Direct3D\Decompress_DXTC File: Image_DXTC..."
+- File: Editors\XrDXT\NormalMapGen.cpp
+  Preview: "#include 'stdafx.h' #include 'NV_Common.h' #include 'NVI_Convolution.h' #include 'NVI_Image.h' using namespace xray_nvi; enum KernelType {   KERNEL_4x..."
+- File: Editors\XrDXT\nvdxt.cpp
+  Preview: "/**************************************************************************************** Copyright (C) NVIDIA Corporation 2003 TO THE MAXIMUM EXTENT ..."
+- File: Editors\XrDXT\NVI_Convolution.cpp
+  Preview: "/*********************************************************************NVMH2**** Path: C:\Dev\devrel\Nv_sdk_4\CommonSrc\nvImageLib File: NVI_Convolutio..."
+- File: Editors\XrDXT\NVI_Convolution.h
+  Preview: "/*********************************************************************NVMH2**** Path: C:\Dev\devrel\Nv_sdk_4\CommonSrc\nvImageLib File: NVI_Convolutio..."
+- File: Editors\XrDXT\NVI_Image.cpp
+  Preview: "/*********************************************************************NVMH2**** Path: D:\Dev\devrel\Nv_sdk_4\CommonSrc\nvImageLib File: NVI_Image.cpp ..."
+- File: Editors\XrDXT\NVI_Image.h
+  Preview: "/*********************************************************************NVMH2**** Path: C:\Dev\devrel\Nv_sdk_4\CommonSrc\nvImageLib File: NVI_Image.h Co..."
+- File: Editors\XrDXT\NV_Common.h
+  Preview: "/*********************************************************************NVMH2**** Path: c:\Dev\devrel\Nv_sdk_4\Include File: NV_Common.h Copyright (C) 1..."
+- File: Editors\XrDXT\ReadMe.txt
+  Preview: "========================================================================    DYNAMIC LINK LIBRARY : DXT ===============================================..."
+- File: Editors\XrDXT\StdAfx.cpp
+  Preview: "// stdafx.cpp : source file that includes just the standard includes // stdafx.obj will contain the pre-compiled type information #include 'stdafx.h' ..."
+- File: Editors\XrDXT\StdAfx.h
+  Preview: "// stdafx.h : include file for standard system include files, // or project specific include files that are used frequently, but //   are changed infr..."
+- File: Editors\XrDXT\tga.cpp
+  Preview: "// file: targasaver.cpp #include 'stdafx.h' #pragma hdrstop #include 'tga.h' /* void	tga_save	(LPCSTR name, u32 w, u32 h, void* data, BOOL alpha ) { 	..."
+- File: Editors\XrDXT\tga.h
+  Preview: "// file: targasaver.h #ifndef _INCDEF_TARGASAVER_H_ #define _INCDEF_TARGASAVER_H_ #pragma pack(push, 1) struct tgaImgSpecHeader { 	u16 tgaXOrigin; 	u1..."
+- File: Editors\XrDXT\tPixel.h
+  Preview: "#ifndef TPIXEL_H #define TPIXEL_H #include <math.h> #include <memory.h> #include 'tVector.h' #pragma pack(push, 4) // rad and green class u16v16_t { p..."
+- File: Editors\XrDXT\tVector.h
+  Preview: "#pragma once #include <windows.h> template <class _Type> class nvVector {   _Type *m_data;   size_t allocated_size;   size_t current_size; public:   v..."
+- File: Editors\XrDXT\dds\ConvertColor.h
+  Preview: "#pragma once #include 'tPixel.h' namespace nv {   template <class T>   inline T Min(const T &x, const T &y)   {     return x < y ?: x : y;   }   templ..."

@@ -237,6 +237,7 @@ public:
     const xr_string &GetEditFileName() { return m_LastFileName; }
 
     CEditableObject *m_pAxisMoveObject;
+    CEditableObject *m_pRotationGizmo;
     Fmatrix m_axis_xform;
 
     virtual bool GetSelectionPosition(Fmatrix &result) = 0;
