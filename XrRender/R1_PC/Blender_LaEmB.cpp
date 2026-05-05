@@ -48,6 +48,25 @@ void CBlender_LaEmB::Compile(CBlender_Compile &C)
 	BOOL bConstant = (0 != stricmp(oT2_const, "$null"));
 	if (C.bEditor)
 	{
+		// Fix rendering corruption: if sky environment map, skip env map stages
+		if (strstr(oT2_Name, "sky"))
+		{
+			C.PassBegin();
+			{
+				C.PassSET_ZB(TRUE, TRUE);
+				C.PassSET_Blend_SET();
+				C.PassSET_LightFog(TRUE, TRUE);
+
+				C.StageBegin();
+				C.StageSET_Color(D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE);
+				C.StageSET_Alpha(D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE);
+				C.StageSET_TMC(oT_Name, oT_xform, "$null", 0);
+				C.StageEnd();
+			}
+			C.PassEnd();
+			return;
+		}
+
 		if (bConstant)
 			compile_EDc(C);
 		else

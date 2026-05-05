@@ -55,7 +55,26 @@ void CBlender_LmEbB::Compile(CBlender_Compile &C)
 	IBlender::Compile(C);
 	if (C.bEditor)
 	{
-		C.PassBegin();
+		// Fix rendering corruption: if sky environment map, just render base texture
+		if (strstr(oT2_Name, "sky"))
+		{
+			C.PassBegin();
+			{
+				C.PassSET_ZB(TRUE, TRUE);
+				C.PassSET_Blend_SET();
+				C.PassSET_LightFog(TRUE, TRUE);
+
+				C.StageBegin();
+				C.StageSET_Color(D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE);
+				C.StageSET_Alpha(D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE);
+				C.StageSET_TMC(oT_Name, oT_xform, "$null", 0);
+				C.StageEnd();
+			}
+			C.PassEnd();
+			return;
+		}
+
+		LPCSTR env_tex = oT2_Name;
 		{
 			C.PassSET_ZB(TRUE, TRUE);
 			C.PassSET_Blend_SET();
@@ -66,7 +85,7 @@ void CBlender_LmEbB::Compile(CBlender_Compile &C)
 			C.StageSET_Address(D3DTADDRESS_CLAMP);
 			C.StageSET_Color(D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_DIFFUSE);
 			C.StageSET_Alpha(D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_DIFFUSE);
-			C.StageSET_TMC(oT2_Name, oT2_xform, "$null", 0);
+			C.StageSET_TMC(env_tex, oT2_xform, "$null", 0);
 			C.StageEnd();
 
 			// Stage2 - Base texture
