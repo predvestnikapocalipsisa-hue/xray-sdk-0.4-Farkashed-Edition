@@ -52,36 +52,34 @@ void CBlender_Model_EbB::Compile(CBlender_Compile &C)
 	IBlender::Compile(C);
 	if (C.bEditor)
 	{
-		// Fix rendering corruption: if sky environment map, just render base texture to avoid multi-stage D3D leaks
+		// Fix rendering corruption: if sky environment map, just render base texture
 		if (strstr(oT2_Name, "sky"))
 		{
 			if (C.iElement == 0)
 			{
 				C.PassBegin();
 				{
+					C.PassSET_ZB(TRUE, oBlend.value ? FALSE : TRUE);
 					if (oBlend.value)
-					{
-						C.PassSET_ZB(TRUE, FALSE);
-						C.PassSET_Blend_BLEND();
-					}
+						C.PassSET_Blend_BLEND(FALSE, 0);
 					else
-					{
-						C.PassSET_ZB(TRUE, TRUE);
 						C.PassSET_Blend_SET();
-					}
 					C.PassSET_LightFog(TRUE, TRUE);
 
 					C.StageBegin();
 					C.StageSET_Color(D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE);
-					C.StageSET_Alpha(D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE);
-					C.StageSET_TMC(oT_Name, oT_xform, "$null", 0);
+					C.StageSET_Alpha(D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_DIFFUSE);
+					C.StageSET_TMC(oT_Name, "$null", "$null", 0);
 					C.StageEnd();
 				}
 				C.PassEnd();
 			}
 			else if (C.iElement == 1)
 			{
-				C.r_Pass("model_def_lq", "model_def_lq", TRUE);
+				if (oBlend.value)
+					C.r_Pass("model_def_hq", "model_def_hq", FALSE, TRUE, TRUE, TRUE, D3DBLEND_SRCALPHA, D3DBLEND_INVSRCALPHA, FALSE, 0);
+				else
+					C.r_Pass("model_def_hq", "model_def_hq", FALSE);
 				C.r_Sampler("s_base", C.L_textures[0]);
 				C.r_End();
 			}

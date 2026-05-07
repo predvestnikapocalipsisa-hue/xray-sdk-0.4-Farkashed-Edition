@@ -59,7 +59,7 @@ void CBlender_LaEmB::Compile(CBlender_Compile &C)
 
 				C.StageBegin();
 				C.StageSET_Color(D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE);
-				C.StageSET_Alpha(D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE);
+				C.StageSET_Alpha(D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_DIFFUSE);
 				C.StageSET_TMC(oT_Name, oT_xform, "$null", 0);
 				C.StageEnd();
 			}
