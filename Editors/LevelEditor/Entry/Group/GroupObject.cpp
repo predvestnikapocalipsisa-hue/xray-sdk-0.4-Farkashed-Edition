@@ -205,7 +205,7 @@ bool CGroupObject::LoadStream(IReader &F)
 
     Flags32 tmp_flags;
     tmp_flags.zero();
-    if (version < 0x0012)
+    if (version < 0x0011)
         F.r_chunk(GROUPOBJ_CHUNK_FLAGS, &tmp_flags);
 
     // objects
