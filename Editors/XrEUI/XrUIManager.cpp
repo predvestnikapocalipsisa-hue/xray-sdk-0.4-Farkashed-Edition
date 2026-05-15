@@ -193,18 +193,6 @@ void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* in
     io.GetClipboardTextFn = GetClipboardTextFn_Custom;
     io.SetClipboardTextFn = SetClipboardTextFn_Custom;
 
-    static const ImWchar ranges[] = {
-    0x0020, 0x00FF, 
-    0x0400, 0x052F, 
-    0,
-    };
-
-    // Посмотрим как оно выглядит, люди с плохим зрением 100 проц заценят.
-    ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\tahoma.ttf", 16.0f, NULL, ranges);
-    if (font) {
-        io.FontDefault = font;
-    }
-
     xr_strcpy(m_name_ini, ini_path);
     io.IniFilename = m_name_ini;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
