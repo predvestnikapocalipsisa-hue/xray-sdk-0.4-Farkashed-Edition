@@ -24,7 +24,7 @@ void UIPropertiesItem::Draw()
 	if (Items.size())
 	{
 		ImGuiTreeNodeFlags FloderFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-		bool open = ImGui::TreeNodeEx(Name.c_str(), FloderFlags);
+		bool open = ImGui::TreeNodeEx(DX2U(Name.c_str()), FloderFlags);
 		ImGui::TableNextColumn();
 		DrawItem();
 
@@ -38,7 +38,7 @@ void UIPropertiesItem::Draw()
 	}
 	else
 	{
-		ImGui::TreeNodeEx(Name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth);
+		ImGui::TreeNodeEx(DX2U(Name.c_str()), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth);
 		ImGui::TableNextColumn();
 		DrawItem();
 	}
@@ -65,7 +65,7 @@ void UIPropertiesItem::DrawItem()
 	{
 		if (PItem->m_Flags.test(PropItem::flMixed))
 		{
-			ImGui::TextDisabled(PItem->GetDrawText().c_str());
+			ImGui::TextDisabled(DX2U(PItem->GetDrawText().c_str()));
 
 		}
 		else
@@ -80,7 +80,7 @@ void UIPropertiesItem::DrawItem()
 
 	case PROP_BUTTON:
 		if (PItem->m_Flags.test(PropItem::flMixed))		
-			ImGui::TextDisabled(PItem->GetDrawText().c_str());		
+			ImGui::TextDisabled(DX2U(PItem->GetDrawText().c_str()));		
 		else
 		{
 			ImGui::PushID(Name.c_str());
@@ -101,7 +101,7 @@ void UIPropertiesItem::DrawItem()
 				{
 					int k = it - V->value.begin();
 
-					if (ImGui::Button(it->c_str(), ImVec2(dx + offset, 0)))
+					if (ImGui::Button(DX2U(it->c_str()), ImVec2(dx + offset, 0)))
 					{
 						V->btn_num = k;
 						bRes |= V->OnBtnClick(bSafe);
@@ -123,7 +123,7 @@ void UIPropertiesItem::DrawItem()
 		break;
 
 	case PROP_CAPTION:	
-		ImGui::TextDisabled(PItem->GetDrawText().c_str());
+		ImGui::TextDisabled(DX2U(PItem->GetDrawText().c_str()));
 		break;
 
 	default:
@@ -137,7 +137,7 @@ void UIPropertiesItem::DrawItem()
 				ImGui::TextDisabled(V->GetValueEx() ? "true" : "false");
 			}
 			else			
-				ImGui::TextDisabled(PItem->GetDrawText().c_str());			
+				ImGui::TextDisabled(DX2U(PItem->GetDrawText().c_str()));			
 		}
 		else if (PItem->m_Flags.test(PropItem::flMixed) && !PItem->m_Flags.test(PropItem::flIgnoreMixed))
 		{
@@ -154,7 +154,7 @@ void UIPropertiesItem::DrawItem()
 					ImGui::TextDisabled(V->GetValueEx() ? "true" : "false");
 				}
 				else				
-					ImGui::TextDisabled(PItem->GetDrawText().c_str());				
+					ImGui::TextDisabled(DX2U(PItem->GetDrawText().c_str()));				
 			}
 			else
 			{

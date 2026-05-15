@@ -29,6 +29,7 @@ public:
 
 	inline float GetMenuBarHeight() const { return m_MenuBarHeight; }
 	inline TShiftState GetShiftState() const { return m_ShiftState; };
+	static xr_string ConvertCP1251ToUTF8(const char *str);
 
 protected:
 	virtual void OnDrawUI();

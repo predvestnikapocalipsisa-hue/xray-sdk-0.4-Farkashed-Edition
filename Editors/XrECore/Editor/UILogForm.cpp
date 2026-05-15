@@ -22,21 +22,22 @@ void UILogForm::AddMessage(TMsgDlgType mt, const xr_string &msg)
 		else
 			M += msg[i];
 	}
+	xr_string M_utf8 = XrUIManager::ConvertCP1251ToUTF8(M.c_str());
 	switch (mt)
 	{
 	case mtError:
-		M.insert(0, "###");
+		M_utf8.insert(0, "###");
 		break;
 	case mtConfirmation:
-		M.insert(0, "##@");
+		M_utf8.insert(0, "##@");
 		break;
 	}
-	GetList()->push_back(M);
+	GetList()->push_back(M_utf8);
 }
 
 void UILogForm::AddDlgMessage(TMsgDlgType mt, const xr_string &msg)
 {
-	GetList()->push_back(msg);
+	GetList()->push_back(XrUIManager::ConvertCP1251ToUTF8(msg.c_str()));
 }
 
 void UILogForm::Show()

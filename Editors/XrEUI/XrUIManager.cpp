@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
 #include "./discord_rpc.h"
@@ -62,6 +62,20 @@ static void SetClipboardTextFn_Custom(void* user_data, const char* text) {
     }
 
     CloseClipboard();
+}
+
+xr_string XrUIManager::ConvertCP1251ToUTF8(const char* str)
+{
+    if (!str || !str[0]) return "";
+    int wlen = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
+    if (wlen <= 0) return "";
+    xr_vector<wchar_t> wstr(wlen);
+    MultiByteToWideChar(CP_ACP, 0, str, -1, wstr.data(), wlen);
+    int ulen = WideCharToMultiByte(CP_UTF8, 0, wstr.data(), -1, NULL, 0, NULL, NULL);
+    if (ulen <= 0) return "";
+    xr_vector<char> ustr(ulen);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.data(), -1, ustr.data(), ulen, NULL, NULL);
+    return xr_string(ustr.data());
 }
 
 XrUIManager::XrUIManager()
@@ -465,6 +479,14 @@ LRESULT XrUIManager::WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             ApplyShortCut(wParam);
             break;
         }
+        break;
+    case WM_CHAR:
+    {
+        wchar_t wch;
+        MultiByteToWideChar(CP_ACP, 0, (char*)&wParam, 1, &wch, 1);
+        ImGui::GetIO().AddInputCharacterUTF16(wch);
+        return 0;
+    }
     default:
         break;
     }

@@ -150,8 +150,8 @@ void UIChooseForm::Draw()
                 }
                 else
                 {
-                    ImGui::Text("Name:%s", m_SelectedItem->Object->name.c_str());
-                    ImGui::Text("Hit:%s", m_SelectedItem->Object->hint.c_str());
+                    ImGui::Text("Name:%s", DX2U(m_SelectedItem->Object->name.c_str()));
+                    ImGui::Text("Hit:%s", DX2U(m_SelectedItem->Object->hint.c_str()));
                 }
 
                 ImGui::Separator();
@@ -229,7 +229,7 @@ void UIChooseForm::Draw()
                         if (HereY == i)
                             ImGui::SetScrollHereY();
 
-                        if (ImGui::Selectable(item->name.c_str(), m_SelectedList == i))                        
+                        if (ImGui::Selectable(XrUIManager::ConvertCP1251ToUTF8(item->name.c_str()).c_str(), m_SelectedList == i))
                             m_SelectedList = i;
                         
                         i++;

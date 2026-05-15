@@ -17,3 +17,4 @@ using ImTextureID = IDirect3DBaseTexture9*;
 #define IMGUI_INCLUDE_IMGUI_USER_H
 
 #include "imgui.h"
+#define DX2U(s) XrUIManager::ConvertCP1251ToUTF8(s).c_str()

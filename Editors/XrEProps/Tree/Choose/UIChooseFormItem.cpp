@@ -45,7 +45,7 @@ void UIChooseFormItem::Draw()
 			ImGui::SameLine(0, 0);
 		}
 
-		ImGui::TreeNodeEx(Text.c_str(), Flags);
+		ImGui::TreeNodeEx(DX2U(Text.c_str()), Flags);
 
 		if (ImGui::IsItemClicked())
 		{
@@ -106,7 +106,7 @@ void UIChooseFormItem::Draw()
 			ImGui::SameLine(0, 0);
 		}
 
-		if (ImGui::TreeNodeEx(Name.c_str(), Flags))
+		if (ImGui::TreeNodeEx(DX2U(Name.c_str()), Flags))
 		{
 			for (UITreeItem *Item : Items)
 				((UIChooseFormItem *)Item)->Draw();
