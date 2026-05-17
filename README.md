@@ -82,6 +82,8 @@
 
     Исправлены группы обьектов.
 
+    Исправлена кириллица.
+
     Добавлен Drag & Drop для level editor.
 
 ### [ВИКИ ПРОЕКТА](https://github.com/predvestnikapocalipsisa-hue/xray-sdk-0.4-Farkashed-Edition/wiki) 
