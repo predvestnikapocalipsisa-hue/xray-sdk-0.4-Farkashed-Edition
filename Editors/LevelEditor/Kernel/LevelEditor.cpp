@@ -81,7 +81,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             else
                 Scene->SaveLTX(full_path, false, false);
 
-            MessageBoxA(NULL, "Редактор вылетел! Сцена была сохранена в папку maps с припиской _fail.level", "Emergency Save", MB_OK | MB_ICONERROR);
+            MessageBoxA(NULL, "Это окно появляется в случае, если редактор крашнулся, завис или произошла непредвиденная ошибка. Сцена была сохранена в папку maps с припиской _fail.level.", "Опааа...", MB_OK | MB_ICONERROR);
     }
 
     while (MainForm->Frame()) 
