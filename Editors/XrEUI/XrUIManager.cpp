@@ -201,6 +201,19 @@ void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* in
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+
+    static const ImWchar ranges[] = {
+        0x0020, 0x00FF,
+        0x0400, 0x052F,
+        0,
+    };
+
+    // Посмотрим как оно выглядит, люди с плохим зрением 100 проц заценят.
+    ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\tahoma.ttf", 16.0f, NULL, ranges);
+    if (font) {
+        io.FontDefault = font;
+    }
+
     // Setup Dear ImGui style
     ImGui::StyleColorsClassic();
 
