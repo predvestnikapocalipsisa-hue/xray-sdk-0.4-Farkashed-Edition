@@ -1,6 +1,11 @@
 #include "stdafx.h"
 
-TUI_CustomControl::TUI_CustomControl(int st, int act, ESceneToolBase *parent)
+// ‘лаг активной трансформации Ч подавл€ет Modified()/UPDATE_CAPTION во врем€ движени€ мыши
+static bool s_transformInProgress = false;
+
+bool IsTransformInProgress() { return s_transformInProgress; }
+
+TUI_CustomControl::TUI_CustomControl(int st, int act, ESceneToolBase* parent)
 {
     parent_tool = parent;
     VERIFY(parent);
@@ -13,71 +18,49 @@ bool TUI_CustomControl::Start(TShiftState _Shift)
 {
     switch (action)
     {
-    case etaSelect:
-        return SelectStart(_Shift);
-    case etaAdd:
-        return AddStart(_Shift);
-    case etaMove:
-        return MovingStart(_Shift);
-    case etaRotate:
-        return RotateStart(_Shift);
-    case etaScale:
-        return ScaleStart(_Shift);
+    case etaSelect: return SelectStart(_Shift);
+    case etaAdd:    return AddStart(_Shift);
+    case etaMove:   return MovingStart(_Shift);
+    case etaRotate: return RotateStart(_Shift);
+    case etaScale:  return ScaleStart(_Shift);
     }
     return false;
 }
+
 bool TUI_CustomControl::End(TShiftState _Shift)
 {
     switch (action)
     {
-    case etaSelect:
-        return SelectEnd(_Shift);
-    case etaAdd:
-        return AddEnd(_Shift);
-    case etaMove:
-        return MovingEnd(_Shift);
-    case etaRotate:
-        return RotateEnd(_Shift);
-    case etaScale:
-        return ScaleEnd(_Shift);
+    case etaSelect: return SelectEnd(_Shift);
+    case etaAdd:    return AddEnd(_Shift);
+    case etaMove:   return MovingEnd(_Shift);
+    case etaRotate: return RotateEnd(_Shift);
+    case etaScale:  return ScaleEnd(_Shift);
     }
     return false;
 }
+
 void TUI_CustomControl::Move(TShiftState _Shift)
 {
     switch (action)
     {
-    case etaSelect:
-        SelectProcess(_Shift);
-        break;
-    case etaAdd:
-        AddProcess(_Shift);
-        break;
-    case etaMove:
-        MovingProcess(_Shift);
-        break;
-    case etaRotate:
-        RotateProcess(_Shift);
-        break;
-    case etaScale:
-        ScaleProcess(_Shift);
-        break;
+    case etaSelect: SelectProcess(_Shift);  break;
+    case etaAdd:    AddProcess(_Shift);     break;
+    case etaMove:   MovingProcess(_Shift);  break;
+    case etaRotate: RotateProcess(_Shift);  break;
+    case etaScale:  ScaleProcess(_Shift);   break;
     }
 }
+
 bool TUI_CustomControl::HiddenMode()
 {
     switch (action)
     {
-    case etaSelect:
-        return false;
-    case etaAdd:
-        return false;
-    case etaMove:
-        return true;
-    case etaRotate:
-        return true;
-    case etaScale:
-        return true;
+    case etaSelect: return false;
+    case etaAdd:    return false;
+    case etaMove:   return true;
+    case etaRotate: return true;
+    case etaScale:  return true;
     }
     return false;
 }
@@ -85,7 +68,7 @@ bool TUI_CustomControl::HiddenMode()
 //------------------------------------------------------------------------------
 // add
 //------------------------------------------------------------------------------
-CCustomObject *TUI_CustomControl::DefaultAddObject(TShiftState Shift, TBeforeAppendCallback before, TAfterAppendCallback after)
+CCustomObject* TUI_CustomControl::DefaultAddObject(TShiftState Shift, TBeforeAppendCallback before, TAfterAppendCallback after)
 {
     if (Shift == ssRBOnly)
     {
@@ -93,10 +76,9 @@ CCustomObject *TUI_CustomControl::DefaultAddObject(TShiftState Shift, TBeforeApp
         return 0;
     }
     Fvector p, n;
-    CCustomObject *obj = 0;
+    CCustomObject* obj = 0;
     if (LUI->PickGround(p, UI->m_CurrentRStart, UI->m_CurrentRDir, 1, &n))
     {
-        // before callback
         SBeforeAppendCallbackParams P;
         if (before && !before(&P))
             return 0;
@@ -109,7 +91,6 @@ CCustomObject *TUI_CustomControl::DefaultAddObject(TShiftState Shift, TBeforeApp
             xr_delete(obj);
             return 0;
         }
-        // after callback
         if (after && !after(Shift, obj))
         {
             xr_delete(obj);
@@ -131,42 +112,29 @@ bool TUI_CustomControl::AddStart(TShiftState Shift)
     DefaultAddObject(Shift, 0);
     return false;
 }
-void TUI_CustomControl::AddProcess(TShiftState _Shift)
-{
-}
-bool TUI_CustomControl::AddEnd(TShiftState _Shift)
-{
-    return true;
-}
+void TUI_CustomControl::AddProcess(TShiftState _Shift) {}
+bool TUI_CustomControl::AddEnd(TShiftState _Shift) { return true; }
 
 bool TUI_CustomControl::CheckSnapList(TShiftState Shift)
 {
     if (MainForm->GetLeftBarForm()->IsSnapListMode())
     {
-        CCustomObject *O = Scene->RayPickObject(UI->ZFar(), UI->m_CurrentRStart, UI->m_CurrentRDir, OBJCLASS_SCENEOBJECT, 0, 0);
+        CCustomObject* O = Scene->RayPickObject(UI->ZFar(), UI->m_CurrentRStart, UI->m_CurrentRDir, OBJCLASS_SCENEOBJECT, 0, 0);
         if (O)
         {
             if (Scene->FindObjectInSnapList(O))
             {
                 if (Shift & ssAlt)
-                {
                     Scene->DelFromSnapList(O);
-                }
                 else if (Shift & ssCtrl)
-                {
                     Scene->DelFromSnapList(O);
-                }
             }
             else
             {
                 if (!(Shift & (ssCtrl | ssAlt)))
-                {
                     Scene->AddToSnapList(O);
-                }
                 else if (Shift & ssCtrl)
-                {
                     Scene->AddToSnapList(O);
-                }
             }
             return true;
         }
@@ -179,7 +147,7 @@ bool TUI_CustomControl::CheckSnapList(TShiftState Shift)
 }
 
 //------------------------------------------------------------------------------
-// total select
+// select
 //------------------------------------------------------------------------------
 bool TUI_CustomControl::SelectStart(TShiftState Shift)
 {
@@ -195,9 +163,7 @@ bool TUI_CustomControl::SelectStart(TShiftState Shift)
     if (!((Shift & ssCtrl) || (Shift & ssAlt)))
         Scene->SelectObjects(false, cls);
 
-    int cnt = Scene->RaySelect((Shift & ssCtrl) ? -1 : (Shift & ssAlt) ? 0
-                                                                       : 1,
-                               parent_tool->FClassID);
+    int cnt = Scene->RaySelect((Shift & ssCtrl) ? -1 : (Shift & ssAlt) ? 0 : 1, parent_tool->FClassID);
     bBoxSelection = ((0 != cnt) && ((Shift & ssCtrl) || (Shift & ssAlt))) || (0 == cnt);
     if (bBoxSelection)
     {
@@ -225,9 +191,9 @@ bool TUI_CustomControl::SelectEnd(TShiftState _Shift)
     return true;
 }
 
-//------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // moving
-//------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool TUI_CustomControl::MovingStart(TShiftState Shift)
 {
     ObjClassID cls = LTools->CurrentClassID();
@@ -260,13 +226,11 @@ bool TUI_CustomControl::MovingStart(TShiftState Shift)
             else
             {
                 Fvector p, n;
-                Fvector D = {0, -1, 0};
+                Fvector D = { 0, -1, 0 };
                 for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
                 {
                     if (LUI->PickGround(p, (*_F)->GetPosition(), D, 1, &n))
-                    {
                         (*_F)->MoveTo(p, n);
-                    }
                 }
             }
         }
@@ -290,10 +254,13 @@ bool TUI_CustomControl::MovingStart(TShiftState Shift)
         }
         m_MovingReminder.set(0, 0, 0);
     }
+
+    // начало трансформации Ч подавл€ем Modified() во врем€ движени€
+    s_transformInProgress = true;
     return true;
 }
 
-bool TUI_CustomControl::DefaultMovingProcess(TShiftState Shift, Fvector &amount)
+bool TUI_CustomControl::DefaultMovingProcess(TShiftState Shift, Fvector& amount)
 {
     if ((Shift & ssLeft) || (Shift & ssRight))
     {
@@ -328,18 +295,24 @@ void TUI_CustomControl::MovingProcess(TShiftState _Shift)
         if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
             for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
                 (*_F)->Move(amount);
+        // только редрав сцены, без UPDATE_PROPERTIES и UPDATE_CAPTION
+        UI->RedrawScene();
     }
 }
 
 bool TUI_CustomControl::MovingEnd(TShiftState _Shift)
 {
+    s_transformInProgress = false;
     Scene->UndoSave();
+    // один раз обновл€ем UI после завершени€ перемещени€
+    ExecCommand(COMMAND_UPDATE_PROPERTIES);
+    ExecCommand(COMMAND_UPDATE_CAPTION);
     return true;
 }
 
-//------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // rotate
-//------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool TUI_CustomControl::RotateStart(TShiftState Shift)
 {
     ObjClassID cls = LTools->CurrentClassID();
@@ -360,6 +333,8 @@ bool TUI_CustomControl::RotateStart(TShiftState Shift)
     else if (etAxisZ == Tools->GetAxis())
         m_RotateVector.set(0, 0, 1);
     m_fRotateSnapAngle = 0;
+
+    s_transformInProgress = true;
     return true;
 }
 
@@ -376,18 +351,20 @@ void TUI_CustomControl::RotateProcess(TShiftState _Shift)
         if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
             for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
                 if (Tools->GetSettings(etfCSParent))
-                {
                     (*_F)->RotateParent(m_RotateVector, amount);
-                }
                 else
-                {
                     (*_F)->RotateLocal(m_RotateVector, amount);
-                }
+
+        UI->RedrawScene();
     }
 }
+
 bool TUI_CustomControl::RotateEnd(TShiftState _Shift)
 {
+    s_transformInProgress = false;
     Scene->UndoSave();
+    ExecCommand(COMMAND_UPDATE_PROPERTIES);
+    ExecCommand(COMMAND_UPDATE_CAPTION);
     return true;
 }
 
@@ -404,6 +381,8 @@ bool TUI_CustomControl::ScaleStart(TShiftState Shift)
     }
     if (Scene->SelectionCount(true, cls) == 0)
         return false;
+
+    s_transformInProgress = true;
     return true;
 }
 
@@ -432,10 +411,15 @@ void TUI_CustomControl::ScaleProcess(TShiftState _Shift)
     if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
         for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
             (*_F)->Scale(amount);
+
+    UI->RedrawScene();
 }
+
 bool TUI_CustomControl::ScaleEnd(TShiftState _Shift)
 {
+    s_transformInProgress = false;
     Scene->UndoSave();
+    ExecCommand(COMMAND_UPDATE_PROPERTIES);
+    ExecCommand(COMMAND_UPDATE_CAPTION);
     return true;
 }
-//------------------------------------------------------------------------------
