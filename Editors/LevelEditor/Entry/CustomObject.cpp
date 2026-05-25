@@ -20,6 +20,20 @@ enum class SocFlags : u32
 	flCameraView = (1 << 31),
 };
 
+static bool s_batchTransform = false;
+
+void CCustomObject::BeginBatchTransform()
+{
+	s_batchTransform = true;
+}
+
+void CCustomObject::EndBatchTransform(CCustomObject* obj)
+{
+	s_batchTransform = false;
+	if (obj)
+		obj->UpdateTransform(true);
+}
+
 CCustomObject::CCustomObject(LPVOID data, LPCSTR name)
 {
 	save_id = 0;
@@ -41,6 +55,10 @@ CCustomObject::CCustomObject(LPVOID data, LPCSTR name)
 	FPosition.set(0, 0, 0);
 	FScale.set(1, 1, 1);
 	FRotation.set(0, 0, 0);
+	m_bBoxDirty = true;
+	m_CachedBox.invalidate();
+
+	m_bNeedRedraw = false;
 }
 
 CCustomObject::~CCustomObject()
@@ -51,34 +69,40 @@ CCustomObject::~CCustomObject()
 
 bool CCustomObject::IsRender()
 {
-	Fbox bb;
-	GetBox(bb);
+	if (m_bBoxDirty)
+	{
+		GetBox(m_CachedBox);
+		m_bBoxDirty = false;
+	}
 
-	float distance = 0.f;
-	Fvector center;
-
-	bb.getcenter(center);
-	distance = center.distance_to(EDevice.vCameraPosition);
-
-	if (distance > bb.getradius() + EDevice.RadiusRender)
+	if (!m_CachedBox.is_valid())
 		return false;
 
-	return ::Render->occ_visible(bb) || (Selected() && m_CO_Flags.is_any(flRenderAnyWayIfSelected | flMotion));
+	Fvector center;
+	m_CachedBox.getcenter(center);
+	float distance = center.distance_to(EDevice.vCameraPosition);
+
+	if (distance > m_CachedBox.getradius() + EDevice.RadiusRender)
+		return false;
+
+	return ::Render->occ_visible(m_CachedBox) || (Selected() && m_CO_Flags.is_any(flRenderAnyWayIfSelected | flMotion));
 }
 
 void CCustomObject::OnUpdateTransform()
 {
 	m_RT_Flags.set(flRT_UpdateTransform, FALSE);
 
-	// update transform matrix
 	FTransformR.setXYZi(-GetRotation().x, -GetRotation().y, -GetRotation().z);
-
 	FTransformS.scale(GetScale());
 	FTransformP.translate(GetPosition());
 	FTransformRP.mul(FTransformP, FTransformR);
 	FTransform.mul(FTransformRP, FTransformS);
+
 	FITransformRP.invert(FTransformRP);
 	FITransform.invert(FTransform);
+
+	// инвалидируем кэш bbox после пересчёта матриц
+	m_bBoxDirty = true;
 
 	if (Motionable() && Visible() && Selected() && m_CO_Flags.is(flAutoKey))
 		AnimationCreateKey(m_MotionParams->Frame());
@@ -89,6 +113,25 @@ void CCustomObject::Select(int flag)
 	if (m_RT_Flags.is(flRT_Visible) && (!!m_RT_Flags.is(flRT_Selected) != flag))
 	{
 		m_RT_Flags.set(flRT_Selected, (flag == -1) ? (m_RT_Flags.is(flRT_Selected) ? FALSE : TRUE) : flag);
+
+		if (!s_batchTransform)
+		{
+			UI->RedrawScene();
+			ExecCommand(COMMAND_UPDATE_PROPERTIES);
+			FParentTools->OnSelected(this);
+		}
+		else
+		{
+			m_bNeedRedraw = true;
+		}
+	}
+}
+
+void CCustomObject::FlushPendingRedraw()
+{
+	if (m_bNeedRedraw)
+	{
+		m_bNeedRedraw = false;
 		UI->RedrawScene();
 		ExecCommand(COMMAND_UPDATE_PROPERTIES);
 		FParentTools->OnSelected(this);
@@ -112,7 +155,29 @@ BOOL CCustomObject::Editable() const
 	return !b1 || (b1 && b2);
 }
 
-bool CCustomObject::LoadLTX(CInifile &ini, LPCSTR sect_name)
+void CCustomObject::SetPosition(const Fvector& pos)
+{
+	FPosition.set(pos);
+	if (!s_batchTransform)
+		UpdateTransform();
+}
+
+void CCustomObject::SetRotation(const Fvector& rot)
+{
+	FRotation.set(rot);
+	VERIFY(_valid(FRotation));
+	if (!s_batchTransform)
+		UpdateTransform();
+}
+
+void CCustomObject::SetScale(const Fvector& scale)
+{
+	FScale.set(scale);
+	if (!s_batchTransform)
+		UpdateTransform();
+}
+
+bool CCustomObject::LoadLTX(CInifile& ini, LPCSTR sect_name)
 {
 	m_CO_Flags.assign(ini.r_u32(sect_name, "co_flags"));
 
@@ -124,14 +189,13 @@ bool CCustomObject::LoadLTX(CInifile &ini, LPCSTR sect_name)
 	FScale = ini.r_fvector3(sect_name, "scale");
 	VERIFY2(_valid(FScale), sect_name);
 
-	// object motion
 	if (m_CO_Flags.is(flMotion))
 		m_CO_Flags.set(flMotion, FALSE);
 
 	return true;
 }
 
-bool CCustomObject::LoadStream(IReader &F)
+bool CCustomObject::LoadStream(IReader& F)
 {
 	R_ASSERT(F.find_chunk(CUSTOMOBJECT_CHUNK_FLAGS));
 
@@ -161,7 +225,6 @@ bool CCustomObject::LoadStream(IReader &F)
 		F.r_fvector3(FScale);
 	}
 
-	// object motion
 	if (F.find_chunk(CUSTOMOBJECT_CHUNK_MOTION))
 	{
 		m_Motion = xr_new<COMotion>();
@@ -187,7 +250,7 @@ bool CCustomObject::LoadStream(IReader &F)
 	return true;
 }
 
-void CCustomObject::SaveLTX(CInifile &ini, LPCSTR sect_name)
+void CCustomObject::SaveLTX(CInifile& ini, LPCSTR sect_name)
 {
 	ini.w_u32(sect_name, "co_flags", m_CO_Flags.get());
 	ini.w_string(sect_name, "name", FName.c_str());
@@ -197,7 +260,7 @@ void CCustomObject::SaveLTX(CInifile &ini, LPCSTR sect_name)
 	ini.w_fvector3(sect_name, "scale", FScale);
 }
 
-void CCustomObject::SaveStream(IWriter &F)
+void CCustomObject::SaveStream(IWriter& F)
 {
 	F.open_chunk(CUSTOMOBJECT_CHUNK_FLAGS);
 
@@ -227,7 +290,6 @@ void CCustomObject::SaveStream(IWriter &F)
 	F.w_fvector3(FScale);
 	F.close_chunk();
 
-	// object motion
 	if (m_CO_Flags.is(flMotion))
 	{
 		VERIFY(m_Motion);
@@ -271,7 +333,7 @@ void CCustomObject::Render(int priority, bool strictB2F)
 	}
 }
 
-bool CCustomObject::RaySelect(int flag, const Fvector &start, const Fvector &dir, bool bRayTest)
+bool CCustomObject::RaySelect(int flag, const Fvector& start, const Fvector& dir, bool bRayTest)
 {
 	float dist = UI->ZFar();
 
@@ -284,7 +346,7 @@ bool CCustomObject::RaySelect(int flag, const Fvector &start, const Fvector &dir
 	return false;
 }
 
-bool CCustomObject::FrustumSelect(int flag, const CFrustum &frustum)
+bool CCustomObject::FrustumSelect(int flag, const CFrustum& frustum)
 {
 	if (FrustumPick(frustum))
 	{
@@ -295,14 +357,18 @@ bool CCustomObject::FrustumSelect(int flag, const CFrustum &frustum)
 	return false;
 }
 
-bool CCustomObject::GetSummaryInfo(SSceneSummary *inf)
+bool CCustomObject::GetSummaryInfo(SSceneSummary* inf)
 {
-	Fbox bb;
-
-	if (GetBox(bb))
+	if (m_bBoxDirty)
 	{
-		inf->bbox.modify(bb.min);
-		inf->bbox.modify(bb.max);
+		GetBox(m_CachedBox);
+		m_bBoxDirty = false;
+	}
+
+	if (m_CachedBox.is_valid())
+	{
+		inf->bbox.modify(m_CachedBox.min);
+		inf->bbox.modify(m_CachedBox.max);
 	}
 
 	return true;

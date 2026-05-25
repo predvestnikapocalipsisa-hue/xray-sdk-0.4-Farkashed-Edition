@@ -124,22 +124,9 @@ public:
     virtual const Fvector &GetRotation() const { return FRotation; }
     virtual const Fvector &GetScale() const { return FScale; }
 
-    virtual void SetPosition(const Fvector &pos)
-    {
-        FPosition.set(pos);
-        UpdateTransform();
-    }
-    virtual void SetRotation(const Fvector &rot)
-    {
-        FRotation.set(rot);
-        VERIFY(_valid(FRotation));
-        UpdateTransform();
-    }
-    virtual void SetScale(const Fvector &scale)
-    {
-        FScale.set(scale);
-        UpdateTransform();
-    }
+    virtual void SetPosition(const Fvector& pos);
+    virtual void SetRotation(const Fvector& rot);
+    virtual void SetScale(const Fvector& scale);
 
     void OnNameChange(PropValue *sender);
     void OnChangeIngroupUnique(PropValue *sender);
@@ -260,6 +247,9 @@ public:
 public:
     static void SnapMove(Fvector &pos, Fvector &rot, const Fmatrix &rotRP, const Fvector &amount);
     static void NormalAlign(Fvector &rot, const Fvector &up, const Fvector &dir);
+    static void BeginBatchTransform();
+    static void EndBatchTransform(CCustomObject* obj = nullptr);
+    void FlushPendingRedraw();
 
 private:
     virtual void OnDrawUI();
@@ -270,4 +260,7 @@ private:
     float m_ToTime;
     float m_ScaleFactor;
     float m_Speed;
+    bool m_bBoxDirty;
+    Fbox m_CachedBox;
+    bool m_bNeedRedraw;
 };
