@@ -111,6 +111,21 @@ void CTextureDescrMngr::Load()
 	LoadTHM("$game_textures$");
 	LoadTHM("$level$");
 
+	FS_FileSet flist;
+	FS.file_list(flist, "$game_textures$", FS_ListFiles, "*.dds");
+	FS_FileSetIt It = flist.begin();
+	FS_FileSetIt It_e = flist.end();
+	for (; It != It_e; ++It)
+	{
+		if (strstr(It->name.c_str(), "terrain\\") || strstr(It->name.c_str(), "terrain/"))
+		{
+			string_path fn;
+			xr_strcpy(fn, It->name.c_str());
+			fix_texture_thm_name(fn);
+			CheckAndLoadMissingTHM(fn);
+		}
+	}
+
 #ifdef DEBUG
 	Msg("load time=%d ms", TT.GetElapsed_ms());
 #endif // #ifdef DEBUG
@@ -137,6 +152,80 @@ CTextureDescrMngr::~CTextureDescrMngr()
 		xr_delete(I->second);
 
 	m_detail_scalers.clear();
+}
+
+void CTextureDescrMngr::CheckAndLoadMissingTHM(const shared_str &tex_name) const
+{
+	if (m_texture_details.find(tex_name) != m_texture_details.end())
+		return;
+
+	if (strstr(tex_name.c_str(), "terrain\\") || strstr(tex_name.c_str(), "terrain/"))
+	{
+		string_path fn;
+		FS.update_path(fn, "$game_textures$", "ed\\template_terrain.thm");
+		if (FS.exist(fn))
+		{
+			IReader *F = FS.r_open(fn);
+			if (F)
+			{
+				STextureParams tp;
+				if (F->find_chunk(THM_CHUNK_TYPE))
+				{
+					F->r_u32();
+					tp.Clear();
+					tp.Load(*F);
+
+					if (STextureParams::ttImage == tp.type ||
+						STextureParams::ttTerrain == tp.type ||
+						STextureParams::ttNormalMap == tp.type)
+					{
+						CTextureDescrMngr *_this = const_cast<CTextureDescrMngr *>(this);
+						texture_desc &desc = _this->m_texture_details[tex_name];
+						cl_dt_scaler *&dts = _this->m_detail_scalers[tex_name];
+
+						if (tp.detail_name.size() &&
+							tp.flags.is_any(STextureParams::flDiffuseDetail | STextureParams::flBumpDetail))
+						{
+							if (desc.m_assoc)
+								xr_delete(desc.m_assoc);
+
+							desc.m_assoc = xr_new<texture_assoc>();
+							desc.m_assoc->detail_name = tp.detail_name;
+							if (dts)
+								dts->scale = tp.detail_scale;
+							else
+								dts = xr_new<cl_dt_scaler>(tp.detail_scale);
+
+							desc.m_assoc->usage = 0;
+
+							if (tp.flags.is(STextureParams::flDiffuseDetail))
+								desc.m_assoc->usage |= (1 << 0);
+
+							if (tp.flags.is(STextureParams::flBumpDetail))
+								desc.m_assoc->usage |= (1 << 1);
+						}
+						if (desc.m_spec)
+							xr_delete(desc.m_spec);
+
+						desc.m_spec = xr_new<texture_spec>();
+						desc.m_spec->m_material = tp.material + tp.material_weight;
+						desc.m_spec->m_use_steep_parallax = false;
+
+						if (tp.bump_mode == STextureParams::tbmUse)
+						{
+							desc.m_spec->m_bump_name = tp.bump_name;
+						}
+						else if (tp.bump_mode == STextureParams::tbmUseParallax)
+						{
+							desc.m_spec->m_bump_name = tp.bump_name;
+							desc.m_spec->m_use_steep_parallax = true;
+						}
+					}
+				}
+				FS.r_close(F);
+			}
+		}
+	}
 }
 
 shared_str CTextureDescrMngr::GetBumpName(const shared_str &tex_name) const

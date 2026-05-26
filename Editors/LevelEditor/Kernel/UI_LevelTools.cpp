@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+extern bool IsTransformInProgress();
+
 #define DETACH_FRAME(a) \
     if (a)              \
     {                   \
@@ -150,7 +152,7 @@ void CLevelTool::RealSetAction(ETAction act)
 
 void CLevelTool::SetAction(ETAction act)
 {
-    // если мышь захвачена - изменим action после того как она освободится
+    // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅ action пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     if (UI->IsMouseCaptured() || UI->IsMouseInUse() || !false)
     {
         m_Flags.set(flChangeAction, TRUE);
@@ -196,7 +198,7 @@ void CLevelTool::ResetSubTarget()
 
 void CLevelTool::SetTarget(ObjClassID tgt, int sub_tgt)
 {
-    // если мышь захвачена - изменим target после того как она освободится
+    // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅ target пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     if (UI->IsMouseCaptured() || UI->IsMouseInUse() || !false)
     {
         m_Flags.set(flChangeTarget, TRUE);
@@ -323,16 +325,16 @@ void CLevelTool::OnFrame()
     {
         if (true /*!UI->IsMouseCaptured()*/)
         {
-            // если нужно изменить target выполняем после того как мышь освободится
+            // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ target пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             if (m_Flags.is(flChangeTarget))
                 RealSetTarget(iNeedTarget, iNeedSubTarget, false);
-            // если нужно изменить action выполняем после того как мышь освободится
+            // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ action пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             if (m_Flags.is(flChangeAction))
                 RealSetAction(ETAction(iNeedAction));
         }
-        if (m_Flags.is(flUpdateProperties))
+        if (m_Flags.is(flUpdateProperties) && !IsTransformInProgress())
             RealUpdateProperties();
-        if (m_Flags.is(flUpdateObjectList))
+        if (m_Flags.is(flUpdateObjectList) && !IsTransformInProgress())
             RealUpdateObjectList();
     }
 }

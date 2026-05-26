@@ -104,7 +104,17 @@ bool ETextureThumbnail::Load(LPCSTR src_name, LPCSTR path)
     }
 
     if (!FS.exist(fn))
-        return false;
+    {
+        LPCSTR tex_name = src_name ? src_name : m_Name.c_str();
+        if (strstr(tex_name, "terrain\\") || strstr(tex_name, "terrain/"))
+        {
+            FS.update_path(fn, "$game_textures$", "ed\\template_terrain.thm");
+            if (!FS.exist(fn))
+                return false;
+        }
+        else
+            return false;
+    }
 
     IReader *F = FS.r_open(fn);
     u16 version = 0;

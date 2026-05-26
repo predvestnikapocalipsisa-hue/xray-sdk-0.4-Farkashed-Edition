@@ -37,6 +37,7 @@ class CTextureDescrMngr
 	map_CS m_detail_scalers;
 
 	void LoadTHM(LPCSTR initial);
+	void CheckAndLoadMissingTHM(const shared_str &tex_name) const;
 
 public:
 	~CTextureDescrMngr();
