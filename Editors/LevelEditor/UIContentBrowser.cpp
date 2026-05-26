@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "UIContentBrowser.h"
 
 static const float kBaseTile = 72.f;
@@ -228,32 +228,33 @@ void UIContentBrowser::DrawTileGridCustom()
         bool hovered = ImGui::IsItemHovered();
         ImGui::PopID();
 
-        ImU32 bgCol = selected ? IM_COL32(44, 93, 135, 255)
-            : hovered ? IM_COL32(65, 65, 65, 255)
-            : IM_COL32(45, 45, 45, 200);
-        ImU32 bdCol = selected ? IM_COL32(100, 160, 220, 255)
-            : hovered ? IM_COL32(100, 100, 100, 255)
-            : IM_COL32(70, 70, 70, 120);
+        ImVec2 winMin = ImGui::GetWindowPos();
+        ImVec2 winMax = ImVec2(winMin.x + ImGui::GetWindowWidth(),
+            winMin.y + ImGui::GetWindowHeight());
+        bool isVisible = (cursor.y + cellH > winMin.y) && (cursor.y < winMax.y);
 
-        ImVec2 r0 = cursor;
-        ImVec2 r1 = ImVec2(cursor.x + cellW, cursor.y + cellH);
-        dl->AddRectFilled(r0, r1, bgCol, 3.f);
-        dl->AddRect(r0, r1, bdCol, 3.f, 0, 1.f);
-
-        ImVec2 iMin = ImVec2(cursor.x + tilePad, cursor.y + tilePad);
-        ImVec2 iMax = ImVec2(iMin.x + tileSize, iMin.y + tileSize);
-
-        ImTextureID thumb = nullptr;
-        if (m_Mode == CBM_OBJECTS)
+        if (isVisible)
         {
-            thumb = m_FolderHelper.GetThumb(key);
-            if (!thumb)
+            ImU32 bgCol = selected ? IM_COL32(44, 93, 135, 255)
+                : hovered ? IM_COL32(65, 65, 65, 255)
+                : IM_COL32(45, 45, 45, 200);
+            ImU32 bdCol = selected ? IM_COL32(100, 160, 220, 255)
+                : hovered ? IM_COL32(100, 100, 100, 255)
+                : IM_COL32(70, 70, 70, 120);
+
+            ImVec2 r0 = cursor;
+            ImVec2 r1 = ImVec2(cursor.x + cellW, cursor.y + cellH);
+            dl->AddRectFilled(r0, r1, bgCol, 3.f);
+            dl->AddRect(r0, r1, bdCol, 3.f, 0, 1.f);
+
+            ImVec2 iMin = ImVec2(cursor.x + tilePad, cursor.y + tilePad);
+            ImVec2 iMax = ImVec2(iMin.x + tileSize, iMin.y + tileSize);
+
+            ImTextureID thumb = nullptr;
+            if (m_Mode == CBM_OBJECTS)
             {
-                // Check if tile rect is inside the visible scroll region
-                ImVec2 winMin = ImGui::GetWindowPos();
-                ImVec2 winMax = ImVec2(winMin.x + ImGui::GetWindowWidth(),
-                    winMin.y + ImGui::GetWindowHeight());
-                if (cursor.y < winMax.y && cursor.y + cellH > winMin.y)
+                thumb = m_FolderHelper.GetThumb(key);
+                if (!thumb)
                 {
                     // Load this one thumbnail on demand
                     EObjectThumbnail* thm = xr_new<EObjectThumbnail>(key, true);
@@ -268,35 +269,35 @@ void UIContentBrowser::DrawTileGridCustom()
                     }
                 }
             }
-        }
-        if (thumb)
-        {
-            dl->AddImage(thumb, iMin, iMax, ImVec2(0, 0), ImVec2(1, 1));
-        }
-        else
-        {
-            dl->AddRectFilled(iMin, iMax, IM_COL32(45, 65, 90, 255), 2.f);
-            dl->AddRect(iMin, iMax, IM_COL32(70, 100, 130, 200), 2.f);
-            const char* disp = strrchr(name, '\\');
-            disp = disp ? disp + 1 : name;
-            char letter[2] = { disp[0] ? (char)toupper((unsigned char)disp[0]) : '?', 0 };
-            ImVec2 ts = ImGui::CalcTextSize(letter);
-            dl->AddText(ImGui::GetFont(), tileSize * 0.28f,
-                ImVec2(iMin.x + (tileSize - ts.x) * 0.5f,
-                    iMin.y + (tileSize - ts.y) * 0.5f),
-                IM_COL32(160, 190, 210, 180), letter);
-        }
+            if (thumb)
+            {
+                dl->AddImage(thumb, iMin, iMax, ImVec2(0, 0), ImVec2(1, 1));
+            }
+            else
+            {
+                dl->AddRectFilled(iMin, iMax, IM_COL32(45, 65, 90, 255), 2.f);
+                dl->AddRect(iMin, iMax, IM_COL32(70, 100, 130, 200), 2.f);
+                const char* disp = strrchr(name, '\\');
+                disp = disp ? disp + 1 : name;
+                char letter[2] = { disp[0] ? (char)toupper((unsigned char)disp[0]) : '?', 0 };
+                ImVec2 ts = ImGui::CalcTextSize(letter);
+                dl->AddText(ImGui::GetFont(), tileSize * 0.28f,
+                    ImVec2(iMin.x + (tileSize - ts.x) * 0.5f,
+                        iMin.y + (tileSize - ts.y) * 0.5f),
+                    IM_COL32(160, 190, 210, 180), letter);
+            }
 
-        {
-            const char* disp = strrchr(name, '\\');
-            disp = disp ? disp + 1 : name;
-            ImU32 tc = selected ? IM_COL32(255, 255, 255, 255) : IM_COL32(200, 200, 200, 255);
-            float ty = iMax.y + 3.f;
-            dl->PushClipRect(ImVec2(cursor.x + tilePad, ty),
-                ImVec2(cursor.x + cellW - tilePad, ty + labelH), true);
-            dl->AddText(ImGui::GetFont(), 11.f,
-                ImVec2(cursor.x + tilePad, ty), tc, disp);
-            dl->PopClipRect();
+            {
+                const char* disp = strrchr(name, '\\');
+                disp = disp ? disp + 1 : name;
+                ImU32 tc = selected ? IM_COL32(255, 255, 255, 255) : IM_COL32(200, 200, 200, 255);
+                float ty = iMax.y + 3.f;
+                dl->PushClipRect(ImVec2(cursor.x + tilePad, ty),
+                    ImVec2(cursor.x + cellW - tilePad, ty + labelH), true);
+                dl->AddText(ImGui::GetFont(), 11.f,
+                    ImVec2(cursor.x + tilePad, ty), tc, disp);
+                dl->PopClipRect();
+            }
         }
 
         if (hovered && key) ImGui::SetTooltip("%s", key);
