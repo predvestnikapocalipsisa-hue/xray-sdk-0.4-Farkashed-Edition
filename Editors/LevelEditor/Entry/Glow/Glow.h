@@ -66,6 +66,8 @@ public:
 	virtual bool GetBox(Fbox &box);
 	virtual void FillProp(LPCSTR pref, PropItemVec &values);
 
+	void OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, bool& bSafe);
+
 	// device dependent routine
 	virtual void OnDeviceCreate();
 	virtual void OnDeviceDestroy();

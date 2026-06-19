@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include <windows.h>
+#include <commdlg.h>
 
 #define GLOW_VERSION 0x0012
 
@@ -23,6 +25,7 @@ void CGlow::Construct(LPVOID data)
     m_bDefLoad = false;
     m_Flags.zero();
     m_ShaderName = "effects\\glow";
+    m_TexName = "<none>";   // чтобы кнопка отрисовывалась сразу
 }
 
 CGlow::~CGlow()
@@ -152,6 +155,51 @@ bool CGlow::RayPick(float &distance, const Fvector &start, const Fvector &direct
     return false;
 }
 
+void CGlow::OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, bool& bSafe)
+{
+    OPENFILENAMEA ofn;
+    char szFile[260] = { 0 };
+
+    string_path initial_dir;
+    FS.update_path(initial_dir, "$game_textures$", "");
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "Textures (*.dds;*.tga)\0*.dds;*.tga\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrInitialDir = initial_dir;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if (GetOpenFileNameA(&ofn))
+    {
+        string_path relative_path = "";
+        const char* textures_root = strstr(szFile, "textures\\");
+
+        if (textures_root)
+        {
+            strcpy(relative_path, textures_root + 9);
+            char* dot = strrchr(relative_path, '.');
+            if (dot) *dot = '\0';
+
+            m_TexName = relative_path;
+
+            // пересоздать шейдер с новой текстурой
+            ShaderChange(nullptr);
+
+            bDataModified = true;
+            Msg("~ [Glow] Texture set to: %s", relative_path);
+        }
+        else
+        {
+            ELog.DlgMsg(mtError, "Файл должен быть внутри gamedata\\textures!");
+        }
+    }
+    bSafe = true;
+}
+
 bool CGlow::LoadLTX(CInifile &ini, LPCSTR sect_name)
 {
     u32 version = ini.r_u32(sect_name, "version");
@@ -255,8 +303,9 @@ void CGlow::FillProp(LPCSTR pref, PropItemVec &items)
 {
     inherited::FillProp(pref, items);
     PropValue *V = 0;
-    V = PHelper().CreateChoose(items, PrepareKey(pref, "Texture"), &m_TexName, smTexture);
-    V->OnChangeEvent.bind(this, &CGlow::ShaderChange);
+    ButtonValue* B_Tex = PHelper().CreateButton(items, PrepareKey(pref, "Texture"), m_TexName, 0);
+    B_Tex->tag = 0;
+    B_Tex->OnBtnClickEvent.bind(this, &CGlow::OnTextureExplorerClick);
     V = PHelper().CreateChoose(items, PrepareKey(pref, "Shader"), &m_ShaderName, smEShader);
     V->OnChangeEvent.bind(this, &CGlow::ShaderChange);
     PHelper().CreateFloat(items, PrepareKey(pref, "Radius"), &m_fRadius, 0.01f, 10000.f);
