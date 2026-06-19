@@ -27,7 +27,7 @@ void ELogCallback(LPCSTR txt)
 #endif
 #ifdef _LW_EXPORT
 #include <lwhost.h>
-extern "C" LWMessageFuncs *g_msg;
+extern "C" LWMessageFuncs* g_msg;
 void ELogCallback(LPCSTR txt)
 {
 	if (0 == txt[0])
@@ -77,11 +77,47 @@ void ELogCallback(LPCSTR txt)
 
 //----------------------------------------------------
 CLog ELog;
+LPCSTR g_DlgMsgBtnCaptions[3] = { 0, 0, 0 }; // Yes, No, Cancel — see ELog.h
 //----------------------------------------------------
-inline TMsgDlgButtons MessageDlg(const char *text, TMsgDlgType mt, int btn)
+static HHOOK s_DlgMsgHook = NULL;
+
+// Relabels standard MessageBox buttons (Yes/No/Cancel) right after the
+// dialog is created, using whatever is set in g_DlgMsgBtnCaptions.
+// This is the only way to change a stock MessageBox button's text without
+// switching the whole codebase over to TaskDialogIndirect.
+static LRESULT CALLBACK DlgMsgCBTProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	if (nCode == HCBT_ACTIVATE)
+	{
+		HWND hwnd = (HWND)wParam;
+		char cls[64];
+		GetClassNameA(hwnd, cls, sizeof(cls));
+		if (0 == _stricmp(cls, "#32770")) // standard MessageBox dialog class
+		{
+			struct
+			{
+				int ctrl_id;
+				int caption_idx;
+			} map[3] = { { IDYES, 0 }, { IDNO, 1 }, { IDCANCEL, 2 } };
+
+			for (int i = 0; i < 3; ++i)
+			{
+				if (g_DlgMsgBtnCaptions[map[i].caption_idx])
+				{
+					HWND btn = GetDlgItem(hwnd, map[i].ctrl_id);
+					if (btn)
+						SetWindowTextA(btn, g_DlgMsgBtnCaptions[map[i].caption_idx]);
+				}
+			}
+		}
+	}
+	return CallNextHookEx(s_DlgMsgHook, nCode, wParam, lParam);
+}
+//----------------------------------------------------
+inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 {
 	UINT Flags = 0;
-	const char *Title = "";
+	const char* Title = "";
 	switch (mt)
 	{
 	case mtCustom:
@@ -122,11 +158,22 @@ inline TMsgDlgButtons MessageDlg(const char *text, TMsgDlgType mt, int btn)
 	{
 		R_ASSERT(0);
 	}
+	bool need_caption_hook = g_DlgMsgBtnCaptions[0] || g_DlgMsgBtnCaptions[1] || g_DlgMsgBtnCaptions[2];
+	if (need_caption_hook)
+		s_DlgMsgHook = SetWindowsHookEx(WH_CBT, DlgMsgCBTProc, NULL, GetCurrentThreadId());
+
 	int msgboxID = MessageBox(
 		NULL,
 		text,
 		Title,
 		Flags);
+
+	if (need_caption_hook)
+	{
+		UnhookWindowsHookEx(s_DlgMsgHook);
+		s_DlgMsgHook = NULL;
+		g_DlgMsgBtnCaptions[0] = g_DlgMsgBtnCaptions[1] = g_DlgMsgBtnCaptions[2] = 0;
+	}
 	switch (msgboxID)
 	{
 	case IDCANCEL:

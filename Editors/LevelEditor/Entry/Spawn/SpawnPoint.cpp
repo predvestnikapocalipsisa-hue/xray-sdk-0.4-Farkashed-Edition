@@ -51,6 +51,7 @@ CLE_Visual::CLE_Visual(CSE_Visual* src)
 }
 
 bool CLE_Visual::g_tmp_lock = false;
+bool CLE_Visual::g_NoToAll_MissingVisual = false;
 
 CLE_Visual::~CLE_Visual()
 {
@@ -80,16 +81,22 @@ void CLE_Visual::OnChangeVisual()
     {
         visual = ::Render->model_Create(source->visual_name.c_str());
 
-        if (NULL == visual && !g_tmp_lock)
+        if (NULL == visual && !g_tmp_lock && !g_NoToAll_MissingVisual)
         {
             xr_string _msg = "Model [" + xr_string(source->visual_name.c_str()) + "] not found. Do you want to select it from library?";
-            int mr = ELog.DlgMsg(mtConfirmation, mbYes | mbNo, _msg.c_str());
+
+            g_DlgMsgBtnCaptions[2] = "No to all"; // relabel the Cancel button just for this prompt
+            int mr = ELog.DlgMsg(mtConfirmation, mbYes | mbNo | mbCancel, _msg.c_str());
             LPCSTR _new_val = 0;
             g_tmp_lock = true;
             if (mr == mrYes)
             {
                 UIChooseForm::SelectItem(smVisual, 1);
                 EDevice.seqDrawUI.Add(this);
+            }
+            else if (mr == mrCancel)
+            {
+                g_NoToAll_MissingVisual = true;
             }
 
             g_tmp_lock = false;
@@ -220,8 +227,7 @@ CSpawnPoint::CLE_Motion::CLE_Motion(CSE_Motion* src)
     animator = 0;
 }
 CSpawnPoint::CLE_Motion::~CLE_Motion()
-{
-}
+{}
 void CSpawnPoint::CLE_Motion::OnChangeMotion()
 {
     xr_delete(animator);

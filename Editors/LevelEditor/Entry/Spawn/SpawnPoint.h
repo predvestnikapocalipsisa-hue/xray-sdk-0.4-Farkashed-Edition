@@ -16,6 +16,10 @@ class CLE_Visual : private pureDrawUI
 
 public:
     static bool g_tmp_lock;
+    // Set to true once the user picks "No to all" on the "model not found"
+    // prompt; subsequent missing-visual prompts are silently skipped until
+    // this is reset (e.g. at the start of a fresh scene/level load).
+    static bool g_NoToAll_MissingVisual;
     CSE_Visual* source;
     IRenderVisual* visual;
     void OnChangeVisual();

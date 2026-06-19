@@ -246,6 +246,8 @@ void EScene::Clear(BOOL bEditableToolsOnly)
 
     Tools->ClearDebugDraw();
 
+    CLE_Visual::g_NoToAll_MissingVisual = false;
+
     m_RTFlags.set(flRT_Unsaved | flRT_Modified, FALSE);
 
     m_GUID = generate_guid();
