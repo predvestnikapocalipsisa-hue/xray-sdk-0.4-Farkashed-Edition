@@ -30,9 +30,15 @@ void ESceneAIMapTool::PackPosition(NodePosition &Dest, Fvector &Src, Fbox &bb, S
 
 bool ESceneAIMapTool::Export(LPCSTR path)
 {
-    //.?	if (!RealUpdateSnapList()) return false;
     if (!Valid())
         return false;
+
+    // Extended AI Map:
+    // 0x0001 = обычный формат, ссылки 3 байта
+    // 0x0002 = расширенный формат, ссылки 4 байта
+    const bool extended = m_Flags.is(flExtendedAIMap);
+    const u16 exportVersion =
+        extended ? E_AIMAP_EXT_VERSION : E_AIMAP_VERSION;
 
     // calculate bbox
     Fbox bb;
@@ -40,64 +46,141 @@ bool ESceneAIMapTool::Export(LPCSTR path)
 
     xr_string fn = xr_string(path) + "build.aimap";
 
-    // export
-    IWriter *F = FS.w_open(fn.c_str());
+    IWriter* F = FS.w_open(fn.c_str());
 
-    if (F)
+    if (!F)
     {
-        F->open_chunk(E_AIMAP_CHUNK_VERSION);
-        F->w_u16(E_AIMAP_VERSION);
-        F->close_chunk();
+        ELog.Msg(
+            mtError,
+            "AIMap: Can't create build.aimap"
+        );
 
-        F->open_chunk(E_AIMAP_CHUNK_BOX);
-        F->w(&bb, sizeof(bb));
-        F->close_chunk();
-
-        F->open_chunk(E_AIMAP_CHUNK_PARAMS);
-        F->w(&m_Params, sizeof(m_Params));
-        F->close_chunk();
-
-        EnumerateNodes();
-        F->open_chunk(E_AIMAP_CHUNK_NODES);
-
-        u32 nodesCount = m_Nodes.size();
-        u32 defaultMaxNodesCount = (u32(1) << u32(MAX_NODE_BIT_COUNT)) - 2;
-
-        if (nodesCount > defaultMaxNodesCount)
-        {
-            ELog.DlgMsg(mtInformation, "Warning. AI-Map contains %u nodes. Original compiler/game can handle only %u nodes. Extra: %u nodes",
-                        nodesCount,
-                        defaultMaxNodesCount,
-                        nodesCount - defaultMaxNodesCount);
-        }
-
-        F->w_u32(nodesCount);
-
-        for (AINodeIt it = m_Nodes.begin(); it != m_Nodes.end(); it++)
-        {
-            u32 id;
-            u16 pl;
-            NodePosition np;
-
-            id = (*it)->n1 ? (u32)(*it)->n1->idx : InvalidNode;
-            F->w(&id, 3);
-            id = (*it)->n2 ? (u32)(*it)->n2->idx : InvalidNode;
-            F->w(&id, 3);
-            id = (*it)->n3 ? (u32)(*it)->n3->idx : InvalidNode;
-            F->w(&id, 3);
-            id = (*it)->n4 ? (u32)(*it)->n4->idx : InvalidNode;
-            F->w(&id, 3);
-            pl = pvCompress((*it)->Plane.n);
-            F->w_u16(pl);
-            PackPosition(np, (*it)->Pos, bb, m_Params);
-            F->w(&np, sizeof(np));
-        }
-        F->close_chunk();
-
-        FS.w_close(F);
-        return true;
+        return false;
     }
-    return false;
+
+    // --------------------------------------------------------
+    // VERSION
+    // --------------------------------------------------------
+
+    F->open_chunk(E_AIMAP_CHUNK_VERSION);
+    F->w_u16(exportVersion);
+    F->close_chunk();
+
+    // --------------------------------------------------------
+    // BOX
+    // --------------------------------------------------------
+
+    F->open_chunk(E_AIMAP_CHUNK_BOX);
+    F->w(&bb, sizeof(bb));
+    F->close_chunk();
+
+    // --------------------------------------------------------
+    // PARAMS
+    // --------------------------------------------------------
+
+    F->open_chunk(E_AIMAP_CHUNK_PARAMS);
+    F->w(&m_Params, sizeof(m_Params));
+    F->close_chunk();
+
+    // --------------------------------------------------------
+    // NODES
+    // --------------------------------------------------------
+
+    EnumerateNodes();
+
+    F->open_chunk(E_AIMAP_CHUNK_NODES);
+
+    u32 nodesCount = (u32)m_Nodes.size();
+
+    u32 defaultMaxNodesCount =
+        (u32(1) << u32(MAX_NODE_BIT_COUNT)) - 2;
+
+    if (nodesCount > defaultMaxNodesCount)
+    {
+        ELog.DlgMsg(
+            mtInformation,
+            "Warning. AI-Map contains %u nodes. "
+            "Original compiler/game can handle only %u nodes. "
+            "Extra: %u nodes",
+            nodesCount,
+            defaultMaxNodesCount,
+            nodesCount - defaultMaxNodesCount
+        );
+    }
+
+    F->w_u32(nodesCount);
+
+    // --------------------------------------------------------
+    // NODE DATA
+    // --------------------------------------------------------
+
+    for (AINodeIt it = m_Nodes.begin();
+        it != m_Nodes.end();
+        ++it)
+    {
+        u32 id;
+        u16 pl;
+        NodePosition np;
+
+        // n1
+        id = (*it)->n1
+            ? (u32)(*it)->n1->idx
+            : InvalidNode;
+
+        F->w(&id, extended ? 4 : 3);
+
+        // n2
+        id = (*it)->n2
+            ? (u32)(*it)->n2->idx
+            : InvalidNode;
+
+        F->w(&id, extended ? 4 : 3);
+
+        // n3
+        id = (*it)->n3
+            ? (u32)(*it)->n3->idx
+            : InvalidNode;
+
+        F->w(&id, extended ? 4 : 3);
+
+        // n4
+        id = (*it)->n4
+            ? (u32)(*it)->n4->idx
+            : InvalidNode;
+
+        F->w(&id, extended ? 4 : 3);
+
+        // plane
+        pl = pvCompress((*it)->Plane.n);
+        F->w_u16(pl);
+
+        // position
+        PackPosition(
+            np,
+            (*it)->Pos,
+            bb,
+            m_Params
+        );
+
+        F->w(&np, sizeof(np));
+    }
+
+    F->close_chunk();
+
+    FS.w_close(F);
+
+    // --------------------------------------------------------
+    // LOG
+    // --------------------------------------------------------
+
+    ELog.Msg(
+        mtInformation,
+        "AIMap EXPORT: version=0x%04X, nodes=%u",
+        E_AIMAP_VERSION,
+        m_Nodes.size()
+    );
+
+    return true;
 }
 /*
     u32 			id;

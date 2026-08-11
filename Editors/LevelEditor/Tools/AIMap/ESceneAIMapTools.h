@@ -142,6 +142,7 @@ public:
 		flHideNodes = (1 << 1),
 		flSlowCalculate = (1 << 2),
 		flUpdateHL = (1 << 15),
+		flExtendedAIMap = (1 << 16),
 	};
 	Flags32 m_Flags;
 

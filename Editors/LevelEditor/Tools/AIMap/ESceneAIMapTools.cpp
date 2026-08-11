@@ -602,6 +602,12 @@ void ESceneAIMapTool::FillProp(LPCSTR pref, PropItemVec &items)
 {
     PHelper().CreateFlag32(items, PrepareKey(pref, "Common\\Draw Nodes"), &m_Flags, flHideNodes, 0, 0, FlagValueCustom::flInvertedDraw);
     PHelper().CreateFlag32(items, PrepareKey(pref, "Common\\Slow Calculate Mode"), &m_Flags, flSlowCalculate);
+    PHelper().CreateFlag32(
+        items,
+        PrepareKey(pref, "Common\\Extended AI Map"),
+        &m_Flags,
+        flExtendedAIMap
+    );
     PHelper().CreateFloat(items, PrepareKey(pref, "Common\\Visible Radius"), &m_VisRadius, 10.f, 250.f);
     PHelper().CreateFloat(items, PrepareKey(pref, "Common\\Smooth Height"), &m_SmoothHeight, 0.1f, 100.f);
 

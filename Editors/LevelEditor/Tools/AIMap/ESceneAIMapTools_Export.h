@@ -4,26 +4,29 @@
 //----------------------------------------------------
 struct SAIParams
 {
-	float fPatchSize;  // patch size
-	float fTestHeight; // test height (center of the "tester")
-	float fCanUP;	   // can reach point in up (dist)
-	float fCanDOWN;	   // can reach point down  (dist)
+    float fPatchSize;
+    float fTestHeight;
+    float fCanUP;
+    float fCanDOWN;
 
-	SAIParams()
-	{
-		fPatchSize = 0.7f;
-		fTestHeight = 1.0f;
-		fCanUP = 1.5f;
-		fCanDOWN = 4.0f;
-	}
+    SAIParams()
+    {
+        fPatchSize = 0.7f;
+        fTestHeight = 1.0f;
+        fCanUP = 1.5f;
+        fCanDOWN = 4.0f;
+    }
 };
 
-// chunks
-#define E_AIMAP_VERSION 0x0001
+// AIMap export versions
+#define E_AIMAP_VERSION     0x0001
+#define E_AIMAP_EXT_VERSION 0x0002
+
 //----------------------------------------------------
 #define E_AIMAP_CHUNK_VERSION 0x0001
-#define E_AIMAP_CHUNK_BOX 0x0002
-#define E_AIMAP_CHUNK_PARAMS 0x0003
-#define E_AIMAP_CHUNK_NODES 0x0004
+#define E_AIMAP_CHUNK_BOX     0x0002
+#define E_AIMAP_CHUNK_PARAMS  0x0003
+#define E_AIMAP_CHUNK_NODES   0x0004
+
 //----------------------------------------------------
 #endif
