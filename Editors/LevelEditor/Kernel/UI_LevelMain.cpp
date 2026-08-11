@@ -268,7 +268,7 @@ CCommandVar CommandSave(CCommandVar p1, CCommandVar p2)
         xr_string temp_fn = LTools->m_LastFileName.c_str();
 
         if (EFS.GetSaveName(_maps_, temp_fn))
-            return ExecCommand(COMMAND_SAVE, temp_fn, 66);
+            return ExecCommand(COMMAND_SAVE, temp_fn, 0);
         else
             return FALSE;
     }
@@ -284,10 +284,7 @@ CCommandVar CommandSave(CCommandVar p1, CCommandVar p2)
     xr_strlwr(temp_fn);
     UI->SetStatus("Level saving...");
 
-    if (Core.SocSdk)
-        Scene->Save(temp_fn.c_str(), false, true);
-    else
-        Scene->SaveLTX(temp_fn.c_str(), false, (p2 == 66));
+    Scene->Save(temp_fn.c_str(), false, false);
 
     UI->ResetStatus();
     // set new name

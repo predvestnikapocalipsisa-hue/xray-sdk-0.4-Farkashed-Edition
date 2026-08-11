@@ -484,20 +484,27 @@ bool EScene::LoadToolLTX(ObjClassID clsid, LPCSTR fn)
 void EScene::Save(LPCSTR map_name, bool bUndo, bool bForceSaveAll)
 {
     if (!Core.SocSdk)
-        R_ASSERT(bUndo);
 
-    VERIFY(map_name);
+        VERIFY(map_name);
 
     CTimer T;
     T.Start();
-    xr_string full_name;
-    full_name = map_name;
-
+    xr_string full_name = map_name;
     xr_string part_prefix;
 
     bool bSaveMain = true;
 
-    IWriter *F = 0;
+    if (!bUndo)
+    {
+        if (bSaveMain)
+        {
+            EFS.MarkFile(full_name.c_str(), true);
+        }
+
+        part_prefix = LevelPartPath(full_name.c_str());
+    }
+
+    IWriter* F = 0;
 
     if (bSaveMain)
     {
@@ -528,43 +535,71 @@ void EScene::Save(LPCSTR map_name, bool bUndo, bool bForceSaveAll)
 
         F->open_chunk(CHUNK_SNAPOBJECTS);
         F->w_u32(m_ESO_SnapObjects.size());
-
         for (ObjectIt _F = m_ESO_SnapObjects.begin(); _F != m_ESO_SnapObjects.end(); ++_F)
             F->w_stringZ((*_F)->GetName());
-
         F->close_chunk();
     }
 
-    m_SaveCache.clear();
 
+    m_SaveCache.clear();
     SceneToolsMapPairIt _I = m_SceneTools.begin();
     SceneToolsMapPairIt _E = m_SceneTools.end();
 
     for (; _I != _E; ++_I)
     {
-        if ((_I->first != OBJCLASS_DUMMY) &&
-            _I->second &&
-            _I->second->IsEnabled() &&
-            _I->second->IsEditable() &&
-            (_I->second->IsChanged() || bForceSaveAll))
+        if ((_I->first != OBJCLASS_DUMMY) && _I->second)
         {
-
-            if (_I->second->IsEnabled() && _I->second->IsEditable())
+            if (bUndo)
             {
-                if (_I->second->IsNeedSave())
+                if (_I->second->IsEnabled() && _I->second->IsEditable())
                 {
+                    if (_I->second->IsNeedSave())
+                    {
+                        _I->second->SaveStream(m_SaveCache);
+                        if (F)
+                        {
+                            F->open_chunk(CHUNK_TOOLS_DATA + _I->first);
+                            F->w(m_SaveCache.pointer(), m_SaveCache.size());
+                            F->close_chunk();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (_I->second->IsEnabled() && _I->second->IsEditable() &&
+                    (_I->second->IsChanged() || bForceSaveAll))
+                {
+                    xr_string part_name = part_prefix + _I->second->ClassName() + ".part";
+
                     _I->second->SaveStream(m_SaveCache);
-                    F->open_chunk(CHUNK_TOOLS_DATA + _I->first);
-                    F->w(m_SaveCache.pointer(), m_SaveCache.size());
-                    F->close_chunk();
+
+                    EFS.MarkFile(part_name.c_str(), true);
+
+                    IWriter* FF = FS.w_open(part_name.c_str());
+                    if (0 != FF)
+                    {
+                        FF->open_chunk(CHUNK_TOOLS_GUID);
+                        FF->w(&m_GUID, sizeof(m_GUID));
+                        FF->close_chunk();
+
+                        FF->open_chunk(CHUNK_TOOLS_DATA + _I->first);
+                        FF->w(m_SaveCache.pointer(), m_SaveCache.size());
+                        FF->close_chunk();
+
+                        FS.w_close(FF);
+                    }
+                    else
+                    {
+                        Msg("!Can't save level part '%s' - access denied.", _I->second->ClassName());
+                    }
                 }
             }
             m_SaveCache.clear();
         }
     }
 
-    // save data
-    if (bSaveMain)
+    if (bSaveMain && F)
         FS.w_close(F);
 
     if (!bUndo)
