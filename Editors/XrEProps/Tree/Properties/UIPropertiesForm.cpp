@@ -154,7 +154,10 @@ PropItem *UIPropertiesForm::FindItem(const char *name)
 
 void UIPropertiesForm::DrawEditText()
 {
-	if (ImGui::BeginPopupContextItem("EditText", 0))
+	ImGui::SetNextWindowSize(ImVec2(700, 450), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSizeConstraints(ImVec2(400, 250), ImVec2(1920, 1080));
+
+	if (ImGui::BeginPopupModal("EditText", nullptr, ImGuiWindowFlags_None))
 	{
 		R_ASSERT(m_EditTextValueData);
 		ImGui::BeginGroup();
@@ -162,22 +165,22 @@ void UIPropertiesForm::DrawEditText()
 		if (ImGui::Button("Ok"))
 		{
 			auto OnOkSuccessful = [&]()
-			{
-				xr_delete(m_EditTextValueData);
-				xr_delete(m_EditTextValueInitial);
-				Modified();
-				ImGui::CloseCurrentPopup();
-			};
+				{
+					xr_delete(m_EditTextValueData);
+					xr_delete(m_EditTextValueInitial);
+					Modified();
+					ImGui::CloseCurrentPopup();
+				};
 
 			auto OnOkFailed = [&]()
-			{
-				if (!m_EditTextValueData || !m_EditTextValueInitial)
-					return;
+				{
+					if (!m_EditTextValueData || !m_EditTextValueInitial)
+						return;
 
-				// TSMP: close window on ok when nothing changed
-				if (!xr_strcmp(m_EditTextValueData, m_EditTextValueInitial))
-					OnOkSuccessful();
-			};
+					// TSMP: close window on ok when nothing changed
+					if (!xr_strcmp(m_EditTextValueData, m_EditTextValueInitial))
+						OnOkSuccessful();
+				};
 
 			if (dynamic_cast<CTextValue*>(m_EditTextValue->GetFrontValue()))
 			{
@@ -229,12 +232,12 @@ void UIPropertiesForm::DrawEditText()
 		if (ImGui::Button("Apply"))
 		{
 			auto OnApplySuccessful = [&]()
-			{
-				const char* newText = m_EditTextValueData;
-				xr_delete(m_EditTextValueInitial);
-				m_EditTextValueInitial = xr_strdup(newText ? newText : "");
-				Modified();
-			};
+				{
+					const char* newText = m_EditTextValueData;
+					xr_delete(m_EditTextValueInitial);
+					m_EditTextValueInitial = xr_strdup(newText ? newText : "");
+					Modified();
+				};
 
 			if (dynamic_cast<CTextValue*>(m_EditTextValue->GetFrontValue()))
 			{
@@ -279,7 +282,7 @@ void UIPropertiesForm::DrawEditText()
 			if (EFS.GetOpenName(0, "$import$", fn, false, NULL, 2))
 			{
 				xr_string buf;
-				IReader *F = FS.r_open(fn.c_str());
+				IReader* F = FS.r_open(fn.c_str());
 				F->r_stringZ(buf);
 				xr_delete(m_EditTextValueData);
 				m_EditTextValueData = xr_strdup(buf.c_str());
@@ -313,7 +316,10 @@ void UIPropertiesForm::DrawEditText()
 
 		if (m_EditTextValueData)
 		{
-			ImGui::InputTextMultiline("##text", m_EditTextValueData, m_EditTextValueDataSize, ImVec2(500, 200),
+			ImVec2 avail_size = ImGui::GetContentRegionAvail();
+			if (avail_size.y < 100.0f) avail_size.y = 300.0f;
+
+			ImGui::InputTextMultiline("##text", m_EditTextValueData, m_EditTextValueDataSize, avail_size,
 				ImGuiInputTextFlags_CallbackResize, [](ImGuiInputTextCallbackData* data) -> int
 				{
 					return reinterpret_cast<UIPropertiesForm*>(data->UserData)->DrawEditText_Callback(data);

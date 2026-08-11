@@ -33,13 +33,14 @@ void UIImageEditorForm::Draw()
         m_TextureRemove->Release();
         m_TextureRemove = nullptr;
     }
-    ImGui::BeginChild("Left", ImVec2(200, 400), true);
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+    ImGui::BeginChild("Left", ImVec2(avail.x * 0.3f, avail.y - 60), true);
     {
         m_ItemList->Draw();
     }
     ImGui::EndChild();
     ImGui::SameLine();
-    ImGui::BeginChild("Right", ImVec2(300, 400));
+    ImGui::BeginChild("Right", ImVec2(avail.x * 0.7f, avail.y - 60), true);
     {
         if (m_Texture == nullptr)
         {
@@ -95,7 +96,7 @@ void UIImageEditorForm::Update()
     {
         if (!Form->IsClosed())
         {
-            if (ImGui::BeginPopupModal("ImageEditor", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize, true))
+            if (ImGui::BeginPopupModal("ImageEditor", nullptr, ImGuiWindowFlags_None, true))
             {
                 Form->Draw();
                 ImGui::EndPopup();
@@ -207,8 +208,26 @@ void UIImageEditorForm::OnCubeMapBtnClick(ButtonValue *value, bool &bModif, bool
     }
 }
 
-void UIImageEditorForm::OnTypeChange(PropValue *prop)
+void UIImageEditorForm::OnTypeChange(PropValue* prop)
 {
+    RStringVec items;
+    if (m_ItemList->GetSelected(items) && !items.empty())
+    {
+        if (!m_THM_Current.empty())
+        {
+            PropItemVec props;
+            ETextureThumbnail* thm = m_THM_Current.back();
+            thm->FillProp(props, PropValue::TOnChange(this, &UIImageEditorForm::OnTypeChange));
+
+            if (thm->_Format().type == STextureParams::ttCubeMap)
+            {
+                ButtonValue* B = PHelper().CreateButton(props, "CubeMap\\Edit", "Make Small", 0);
+                B->OnBtnClickEvent.bind(this, &UIImageEditorForm::OnCubeMapBtnClick);
+            }
+
+            m_ItemProps->AssignItems(props);
+        }
+    }
 }
 
 void UIImageEditorForm::InitItemList()

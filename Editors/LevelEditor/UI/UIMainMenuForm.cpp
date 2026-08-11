@@ -8,13 +8,13 @@ UIMainMenuForm::UIMainMenuForm()
     Colors::LoadSettings();
     Colors::UpdateImGuiStyle();
 
-    // Инициализируем наш браузер
+    // ?????????????? ??? ???????
     m_ContentBrowser = xr_new<UIContentBrowser>();
 }
 
 UIMainMenuForm::~UIMainMenuForm()
 {
-    xr_delete(m_ContentBrowser); // Чистим память
+    xr_delete(m_ContentBrowser); // ?????? ??????
 }
 
 void UIMainMenuForm::Draw()
@@ -83,7 +83,7 @@ void UIMainMenuForm::Draw()
             ImGui::Separator();
             if (ImGui::BeginMenu("Open Recent", ""))
             {
-                for (auto &str : EPrefs->scene_recent_list)
+                for (auto& str : EPrefs->scene_recent_list)
                 {
                     if (ImGui::MenuItem(str.c_str(), ""))
                     {
@@ -221,7 +221,7 @@ void UIMainMenuForm::Draw()
 
                     for (; I != E; ++I)
                     {
-                        ETextureThumbnail *TH = xr_new<ETextureThumbnail>((*I).name.c_str(), false);
+                        ETextureThumbnail* TH = xr_new<ETextureThumbnail>((*I).name.c_str(), false);
                         TH->Load((*I).name.c_str(), _textures_);
                         TH->Save();
                         xr_delete(TH);
@@ -268,7 +268,7 @@ void UIMainMenuForm::Draw()
             {
                 if (ImGui::BeginMenu("Quality"))
                 {
-                    static bool selected[4] = {false, false, true, false};
+                    static bool selected[4] = { false, false, true, false };
                     if (ImGui::MenuItem("25%", "", &selected[0]))
                     {
                         selected[1] = selected[2] = selected[3] = false;
@@ -297,7 +297,7 @@ void UIMainMenuForm::Draw()
                 }
                 if (ImGui::BeginMenu("Fill Mode"))
                 {
-                    bool selected[3] = {EDevice.dwFillMode == D3DFILL_POINT, EDevice.dwFillMode == D3DFILL_WIREFRAME, EDevice.dwFillMode == D3DFILL_SOLID};
+                    bool selected[3] = { EDevice.dwFillMode == D3DFILL_POINT, EDevice.dwFillMode == D3DFILL_WIREFRAME, EDevice.dwFillMode == D3DFILL_SOLID };
                     if (ImGui::MenuItem("Point", "", &selected[0]))
                     {
                         EDevice.dwFillMode = D3DFILL_POINT;
@@ -317,7 +317,7 @@ void UIMainMenuForm::Draw()
                 }
                 if (ImGui::BeginMenu("Shader Mode"))
                 {
-                    bool selected[2] = {EDevice.dwShadeMode == D3DSHADE_FLAT, EDevice.dwShadeMode == D3DSHADE_GOURAUD};
+                    bool selected[2] = { EDevice.dwShadeMode == D3DSHADE_FLAT, EDevice.dwShadeMode == D3DSHADE_GOURAUD };
                     if (ImGui::MenuItem("Flat", "", &selected[0]))
                     {
                         EDevice.dwShadeMode = D3DSHADE_FLAT;

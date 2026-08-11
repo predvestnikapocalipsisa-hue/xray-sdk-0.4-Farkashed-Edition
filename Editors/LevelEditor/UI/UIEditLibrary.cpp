@@ -457,19 +457,11 @@ void UIEditLibrary::DrawRightBar()
 
 		m_Props->Draw();
 
-		// if (disabled)
+		// Весь функционал library editor был перенесен в actor editor
 		{
-			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-		}
-
-		if (ImGui::Button("Properties", ImVec2(-1, 0)))
-			OnPropertiesClick();
-
-		//if (disabled)
-		{
-			ImGui::PopItemFlag();
-			ImGui::PopStyleVar();
+			ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 192.0f);
+			ImGui::TextDisabled("All Library Editor functionality has been moved to the Actor Editor.");
+			ImGui::PopTextWrapPos();
 		}
 
 		// Make Thumbnail & Lod
