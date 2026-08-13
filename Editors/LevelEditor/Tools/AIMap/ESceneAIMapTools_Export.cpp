@@ -100,7 +100,7 @@ bool ESceneAIMapTool::Export(LPCSTR path)
         ELog.DlgMsg(
             mtInformation,
             "Warning. AI-Map contains %u nodes. "
-            "Original compiler/game can handle only %u nodes. "
+            "Original compiler/game can handle only %u nodes. To compile this number of nodes, you need to enable Extended AI Map in the AI map parameters."
             "Extra: %u nodes",
             nodesCount,
             defaultMaxNodesCount,
@@ -175,9 +175,11 @@ bool ESceneAIMapTool::Export(LPCSTR path)
 
     ELog.Msg(
         mtInformation,
-        "AIMap EXPORT: version=0x%04X, nodes=%u",
-        E_AIMAP_VERSION,
-        m_Nodes.size()
+        "AIMap: build.aimap exported. "
+        "Version: 0x%04X, Links: %s, Nodes: %u",
+        exportVersion,
+        extended ? "4 bytes" : "3 bytes",
+        nodesCount
     );
 
     return true;

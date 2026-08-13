@@ -153,7 +153,7 @@ void UIMainMenuForm::Draw()
             {
                 ExecCommand(COMMAND_MAKE_HOM);
             }
-            if (ImGui::MenuItem("Make ", ""))
+            if (ImGui::MenuItem("Make SOM", ""))
             {
                 ExecCommand(COMMAND_MAKE_SOM);
             }
