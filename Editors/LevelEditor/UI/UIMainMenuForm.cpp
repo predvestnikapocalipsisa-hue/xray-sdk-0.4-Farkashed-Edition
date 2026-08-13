@@ -483,6 +483,10 @@ void UIMainMenuForm::Draw()
                 {
                     ExecCommand(COMMAND_LOG_COMMANDS);
                 }
+                if (ImGui::MenuItem("SDK Version", ""))
+                {
+                    MessageBoxA(NULL, "Current SDK version: 3.2", "Information", MB_OK | MB_ICONINFORMATION);
+                }
             }
 
             ImGui::EndMenu();
