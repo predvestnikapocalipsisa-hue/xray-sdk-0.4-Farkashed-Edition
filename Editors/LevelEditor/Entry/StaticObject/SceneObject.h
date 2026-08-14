@@ -49,6 +49,7 @@ public:
 	// constructor/destructor methods
 	CSceneObject(LPVOID data, LPCSTR name);
 	virtual ~CSceneObject();
+	static void ResetMissingReferencePrompts();
 
 	virtual void Select(BOOL flag);
 	void Construct(LPVOID data);

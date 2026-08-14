@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <commdlg.h>
 
 #define SCENEOBJ_CURRENT_VERSION 0x0012
 
@@ -7,6 +8,74 @@
 #define SCENEOBJ_CHUNK_PLACEMENT 0x0904
 #define SCENEOBJ_CHUNK_FLAGS 0x0905
 #define SCENEOBJ_CHUNK_SURFACE 0x0906
+
+namespace
+{
+bool s_skip_missing_reference_prompts = false;
+
+bool ResolveMissingObjectReference(LPCSTR missing_reference, xr_string& replacement)
+{
+	if (s_skip_missing_reference_prompts)
+		return false;
+
+    if (Scene->GetSubstObjectName(missing_reference, replacement))
+    {
+        xr_string message = "Object [" + xr_string(missing_reference) + "] not found. Replace it with [" + replacement + "]?";
+        if (ELog.DlgMsg(mtConfirmation, mbYes | mbNo, message.c_str()) == mrYes)
+            return true;
+    }
+
+    g_DlgMsgBtnCaptions[2] = "No to all";
+    const int response = ELog.DlgMsg(mtConfirmation, mbYes | mbNo | mbCancel,
+        "Object '%s' was not found in the library. Specify a replacement object?", missing_reference);
+    if (response == mrCancel)
+    {
+        s_skip_missing_reference_prompts = true;
+        return false;
+    }
+    if (response != mrYes)
+        return false;
+
+    OPENFILENAMEA ofn;
+    char file_name[MAX_PATH] = {};
+    string_path objects_path;
+    FS.update_path(objects_path, _objects_, "");
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFile = file_name;
+    ofn.nMaxFile = sizeof(file_name);
+    ofn.lpstrFilter = "Library objects (*.object)\0*.object\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrInitialDir = objects_path;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if (!GetOpenFileNameA(&ofn))
+        return false;
+
+    // Scene references are relative to gamedata\\objects so a repaired level
+    // remains portable across SDK installations.
+    const char* objects_root = strstr(file_name, "objects\\");
+    if (!objects_root)
+    {
+        ELog.DlgMsg(mtError, "The replacement object must be inside gamedata\\objects.");
+        return false;
+    }
+
+    string_path relative_path;
+    xr_strcpy(relative_path, objects_root + strlen("objects\\"));
+    if (char* extension = strrchr(relative_path, '.'))
+        *extension = 0;
+
+    replacement = relative_path;
+    return true;
+}
+}
+
+void CSceneObject::ResetMissingReferencePrompts()
+{
+	s_skip_missing_reference_prompts = false;
+}
 
 bool CSceneObject::LoadLTX(CInifile &ini, LPCSTR sect_name)
 {
@@ -24,29 +93,12 @@ bool CSceneObject::LoadLTX(CInifile &ini, LPCSTR sect_name)
         {
             ELog.Msg(mtError, "CSceneObject: '%s' not found in library", ref_name.c_str());
             bRes = false;
-            int mr = mrNone;
-
-            xr_string _new_name;
-            bool b_found = Scene->GetSubstObjectName(ref_name.c_str(), _new_name);
-            if (b_found)
+            xr_string replacement;
+            if (ResolveMissingObjectReference(ref_name.c_str(), replacement))
             {
-                xr_string _message;
-                _message = "Object [" + ref_name + "] not found. Relace it with [" + _new_name + "] or select other from library?";
-                mr = ELog.DlgMsg(mtConfirmation, mbYes | mbNo, _message.c_str());
-                if (mrYes == mr)
-                {
-                    bRes = SetReference(_new_name.c_str());
-                }
-            }
-            if (!bRes)
-            {
-
-                /* if ( (mr==mrNone||mr==mrYes) && TfrmChoseItem::SelectItem(smObject,new_val,1))
-                 {
-                     bRes = SetReference(new_val);
-                     if(bRes)
-                         Scene->RegisterSubstObjectName(ref_name.c_str(), new_val);
-                 }*/
+                bRes = SetReference(replacement.c_str()) != nullptr;
+                if (bRes)
+                    Scene->RegisterSubstObjectName(ref_name.c_str(), replacement);
             }
 
             Scene->Modified();
@@ -178,19 +230,12 @@ bool CSceneObject::LoadStream(IReader &F)
         {
             ELog.Msg(mtError, "CSceneObject: '%s' not found in library", buf);
             bRes = false;
-            int mr = mrNone;
-
-            xr_string _new_name;
-            bool b_found = Scene->GetSubstObjectName(buf, _new_name);
-            if (b_found)
+            xr_string replacement;
+            if (ResolveMissingObjectReference(buf, replacement))
             {
-                xr_string _message;
-                _message = "Object [" + xr_string(buf) + "] not found. Relace it with [" + _new_name + "] or select other from library?";
-                mr = ELog.DlgMsg(mtConfirmation, mbYes | mbNo, _message.c_str());
-                if (mrYes == mr)
-                {
-                    bRes = SetReference(_new_name.c_str());
-                }
+                bRes = SetReference(replacement.c_str()) != nullptr;
+                if (bRes)
+                    Scene->RegisterSubstObjectName(buf, replacement);
             }
 
             Scene->Modified();

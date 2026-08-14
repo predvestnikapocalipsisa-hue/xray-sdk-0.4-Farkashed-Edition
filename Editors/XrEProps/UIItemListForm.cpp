@@ -4,6 +4,8 @@ UIItemListForm::UIItemListForm()
 {
 	m_Flags.zero();
 	m_UseMenuEdit = false;
+	m_edit_node = nullptr;
+	m_SelectionAnchor = nullptr;
 }
 
 UIItemListForm::~UIItemListForm()
@@ -30,6 +32,7 @@ void UIItemListForm::Draw()
 void UIItemListForm::ClearList()
 {
 	m_GeneralNode = Node();
+	m_SelectionAnchor = nullptr;
 
 	ClearSelectedItems();
 	for (ListItem *item : m_Items)
@@ -63,6 +66,7 @@ void UIItemListForm::RemoveSelectItem()
 void UIItemListForm::ClearSelected()
 {
 	ClearSelectedItems();
+	m_SelectionAnchor = nullptr;
 	if (!OnItemFocusedEvent.empty())
 		OnItemFocusedEvent(0);
 	if (m_Flags.test(fMultiSelect))
@@ -83,6 +87,7 @@ void UIItemListForm::SelectItem(const char *name)
 		N->Object->selected = true;
 		if (N)
 			m_SelectedItems.push_back(N->Object);
+		m_SelectionAnchor = N ? N->Object : nullptr;
 		if (!OnItemFocusedEvent.empty())
 			OnItemFocusedEvent(N->Object);
 		if (!OnItemsFocusedEvent.empty())
@@ -423,27 +428,52 @@ void UIItemListForm::DrawItem(Node *Node)
 	{
 		if (m_Flags.test(fMultiSelect))
 		{
-			if (!ImGui::GetIO().KeyCtrl)
+			const bool ctrl = ImGui::GetIO().KeyCtrl;
+			const bool shift = ImGui::GetIO().KeyShift;
+			if (shift && m_SelectionAnchor)
 			{
-				ClearSelectedItems();
-			}
-			if (Node->Object->selected)
-			{
-				Node->Object->selected = false;
-				auto p = std::find_if(m_SelectedItems.begin(), m_SelectedItems.end(), [&Node](ListItem *a)
-									  { return a == Node->Object; });
-				VERIFY(p != m_SelectedItems.end());
-				m_SelectedItems.erase(p);
+				if (!ctrl)
+					ClearSelectedItems();
+
+				auto anchor = std::find(m_Items.begin(), m_Items.end(), m_SelectionAnchor);
+				auto clicked = std::find(m_Items.begin(), m_Items.end(), Node->Object);
+				if (anchor != m_Items.end() && clicked != m_Items.end())
+				{
+					if (anchor > clicked)
+						std::swap(anchor, clicked);
+					for (; anchor != clicked + 1; ++anchor)
+					{
+						if (!(*anchor)->selected)
+						{
+							(*anchor)->selected = true;
+							m_SelectedItems.push_back(*anchor);
+						}
+					}
+				}
 			}
 			else
 			{
-				Node->Object->selected = true;
-				m_SelectedItems.push_back(Node->Object);
-				if (!OnItemFocusedEvent.empty())
-					OnItemFocusedEvent(Node->Object);
-				if (!OnItemsFocusedEvent.empty())
-					OnItemsFocusedEvent(m_SelectedItems);
+				if (!ctrl)
+					ClearSelectedItems();
+				if (Node->Object->selected && ctrl)
+				{
+					Node->Object->selected = false;
+					auto selected = std::find(m_SelectedItems.begin(), m_SelectedItems.end(), Node->Object);
+					if (selected != m_SelectedItems.end())
+						m_SelectedItems.erase(selected);
+				}
+				else if (!Node->Object->selected)
+				{
+					Node->Object->selected = true;
+					m_SelectedItems.push_back(Node->Object);
+				}
+				m_SelectionAnchor = Node->Object;
 			}
+
+			if (!OnItemFocusedEvent.empty())
+				OnItemFocusedEvent(Node->Object);
+			if (!OnItemsFocusedEvent.empty())
+				OnItemsFocusedEvent(m_SelectedItems);
 		}
 		else
 		{
@@ -492,7 +522,7 @@ bool UIItemListForm::IsFolderSelected(Node *Node)
 {
 	if (m_Flags.test(fMultiSelect))
 	{
-		return Node->Object->selected;
+		return Node->Object && Node->Object->selected;
 	}
 	else if (m_SelectedItems.size() && m_SelectedItems.back() == Node->Object)
 	{

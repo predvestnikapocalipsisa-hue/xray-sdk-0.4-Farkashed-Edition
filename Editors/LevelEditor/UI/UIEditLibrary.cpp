@@ -15,6 +15,7 @@ UIEditLibrary::UIEditLibrary()
 	}
 
 	m_ObjectList = xr_new<UIItemListForm>();
+	m_ObjectList->m_Flags.set(UIItemListForm::fMultiSelect, true);
 	InitObjects();
 	m_ObjectList->SetOnItemFocusedEvent(TOnILItemFocused(this, &UIEditLibrary::OnItemFocused));
 	m_Props = xr_new<UIPropertiesForm>();
@@ -44,11 +45,7 @@ void UIEditLibrary::OnItemFocused(ListItem *item)
 		}
 
 		if (m_Preview)
-		{
-			ListItemsVec vec;
-			vec.push_back(item);
-			SelectionToReference(&vec);
-		}
+			RefreshSelected();
 	}
 
 	// UpdateObjectProperties();
@@ -374,42 +371,41 @@ void UIEditLibrary::GenerateLOD(RStringVec &props, bool bHighQuality)
 
 void UIEditLibrary::MakeLOD(bool bHighQuality)
 {
-	//if (ebSave->Enabled)
-	//{
-	//	ELog.DlgMsg(mtError, "Save library changes before generating LOD.");
-	//	return;
-	//}
+	RStringVec selected_items;
+	m_ObjectList->GetSelected(selected_items);
+	if (selected_items.empty())
+		return;
+
+	if (selected_items.size() > 1)
+	{
+		GenerateLOD(selected_items, bHighQuality);
+		return;
+	}
 
 	int res = ELog.DlgMsg(mtConfirmation, TMsgDlgButtons() | mbYes | mbNo | mbCancel, "Do you want to select multiple objects?");
-
 	if (res == mrCancel)
 		return;
 
 	if (res == mrNo)
 	{
-		RStringVec sel_items;
-		sel_items.push_back(m_Selected->Key());
-		GenerateLOD(sel_items, bHighQuality);
+		GenerateLOD(selected_items, bHighQuality);
 		return;
 	}
 
 	R_ASSERT(res == mrYes);
 	UIChooseForm::SelectItem(smObject, 512, 0);
 	m_SelectLods = true;
-	m_HighQualityLod = true;
+	m_HighQualityLod = bHighQuality;
 	// answer is handled in DrawRightBar
 }
-
 void UIEditLibrary::OnMakeThmClick()
 {
 	U32Vec pixels;
 	ListItemsVec sel_items;
+	m_ObjectList->GetSelected(nullptr, sel_items, false);
 
-	if (!m_Selected)
+	if (sel_items.empty())
 		return;
-
-	sel_items.push_back(m_Selected);
-	//m_Items->GetSelected(NULL, sel_items, false);
 	ListItemsIt it = sel_items.begin();
 	ListItemsIt it_e = sel_items.end();
 
@@ -560,18 +556,9 @@ void UIEditLibrary::OnPreviewClick()
 
 void UIEditLibrary::RefreshSelected()
 {
-	bool mt = false;
-
 	if (m_Preview)
 	{
-		if (m_Selected)
-		{
-			ListItemsVec vec;
-			vec.push_back(m_Selected);
-			mt = SelectionToReference(&vec);
-		}
-		else
-			mt = SelectionToReference(nullptr);
+		SelectionToReference(nullptr);
 	}
 
 	//ebMakeThm->Enabled = !bReadOnly && mt;
@@ -585,10 +572,10 @@ bool UIEditLibrary::SelectionToReference(ListItemsVec *props)
 	RStringVec sel_strings;
 	ListItemsVec sel_items;
 
-	if(props)
+	if (props)
 		sel_items = *props;
-	// else
-	// m_Items->GetSelected(NULL, sel_items, false /*true*/);	
+	else
+		m_ObjectList->GetSelected(nullptr, sel_items, false);
 
 	ListItemsIt it = sel_items.begin();
 	ListItemsIt it_e = sel_items.end();

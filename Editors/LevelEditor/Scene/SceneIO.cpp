@@ -832,6 +832,7 @@ bool EScene::OnLoadAppendObject(CCustomObject *O)
 //----------------------------------------------------
 bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
 {
+	CSceneObject::ResetMissingReferencePrompts();
     DWORD version = 0;
     if (!map_name || (0 == map_name[0]))
         return false;
@@ -922,6 +923,7 @@ bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
 
 bool EScene::Load(LPCSTR map_name, bool bUndo)
 {
+	CSceneObject::ResetMissingReferencePrompts();
     u32 version = 0;
 
     if (!map_name || (0 == map_name[0]))

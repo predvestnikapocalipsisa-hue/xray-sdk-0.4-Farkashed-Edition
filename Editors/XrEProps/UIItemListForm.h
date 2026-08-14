@@ -36,6 +36,7 @@ private:
 	string4096 m_edit_name;
 	string4096 m_edit_path;
 	Node *m_edit_node;
+	ListItem *m_SelectionAnchor;
 
 public:
 	IC void SetOnItemsFocusedEvent(TOnILItemsFocused e) { OnItemsFocusedEvent = e; }
