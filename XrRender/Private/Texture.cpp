@@ -306,10 +306,8 @@ ID3DBaseTexture* CRender::texture_load(LPCSTR fRName, u32& ret_msize)
 
 
 #ifdef _EDITOR
-	if (strstr(Core.Params, "-dbg_log"))
-		ELog.Msg(mtError, "Can't find texture '%s'", fname);
+	ELog.Msg(mtError, "! Can't find texture '%s'", fname);
 #else
-	//Debug.fatal(DEBUG_INFO,"Can't find texture '%s'",fname);
 	Msg("! Can't find texture '%s'", fname);
 #endif
 	return 0;
