@@ -33,6 +33,10 @@ private:
     void OnItemFocused(ListItem* item);
     void DrawBreadcrumb();
     void DrawTileGridCustom();
+    void LoadUserState();
+    void SaveUserState();
+    static const char* UserCfgPath() { return "content_browser.ltx"; }
+
 
     UIItemListForm* m_ObjectList;
     UITileToolHelper  m_FolderHelper;

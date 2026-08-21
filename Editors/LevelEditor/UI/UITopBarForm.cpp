@@ -78,6 +78,20 @@ UITopBarForm::UITopBarForm()
 	m_t##Name = EDevice.Resources->_CreateTexture("ed\\bar\\" #Name); \
 	m_b##Name = false;
 #include "UITopBarForm_ButtonList.h"
+		
+		int selCount = Scene->SelectionCount(true, OBJCLASS_DUMMY);
+		if (selCount > 0)
+		{
+			xr_string text;
+			text.sprintf("Selected: %d", selCount);
+			float textWidth = ImGui::CalcTextSize(text.c_str()).x;
+			float availableWidth = ImGui::GetContentRegionAvail().x;
+			if (availableWidth > textWidth + 10.0f)
+			{
+				ImGui::SameLine(ImGui::GetWindowWidth() - textWidth - 10.0f);
+				ImGui::Text("%s", text.c_str());
+			}
+		}
 	RefreshBar();
 }
 
@@ -155,6 +169,20 @@ void UITopBarForm::Draw()
 	ImGui::SameLine();                                                   \
 	ImGui::PopStyleColor(1);
 #include "UITopBarForm_ButtonList.h"
+		
+		int selCount = Scene->SelectionCount(true, OBJCLASS_DUMMY);
+		if (selCount > 0)
+		{
+			xr_string text;
+			text.sprintf("Selected: %d", selCount);
+			float textWidth = ImGui::CalcTextSize(text.c_str()).x;
+			float availableWidth = ImGui::GetContentRegionAvail().x;
+			if (availableWidth > textWidth + 10.0f)
+			{
+				ImGui::SameLine(ImGui::GetWindowWidth() - textWidth - 10.0f);
+				ImGui::Text("%s", text.c_str());
+			}
+		}
 	}
 	ImGui::End();
 	ImGui::PopStyleVar(5);

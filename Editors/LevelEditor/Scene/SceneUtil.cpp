@@ -66,25 +66,42 @@ bool EScene::FindDuplicateName()
 
 void EScene::GenObjectName(ObjClassID cls_id, char *buffer, const char *pref)
 {
+    xr_string base_name = "";
+    if (pref) {
+        base_name = pref;
+        if (base_name.length() == 0) {
+            ESceneCustomOTool* ot = GetOTool(cls_id);
+            VERIFY(ot);
+            base_name = ot->ClassName();
+        } else {
+            size_t last_underscore = base_name.find_last_of('_');
+            if (last_underscore != xr_string::npos && last_underscore < base_name.length() - 1) {
+                bool is_num = true;
+                for (size_t k = last_underscore + 1; k < base_name.length(); ++k) {
+                    if (!isdigit(base_name[k])) {
+                        is_num = false;
+                        break;
+                    }
+                }
+                if (is_num) {
+                    base_name = base_name.substr(0, last_underscore);
+                }
+            }
+        }
+    }
+
     for (int i = 0; true; i++)
     {
         bool result;
         xr_string temp;
-        if (pref)
+        if (!base_name.empty())
         {
             if (i == 0)
             {
-                if (*pref == '\0')
-                {
-                    ESceneCustomOTool* ot = GetOTool(cls_id);
-                    VERIFY(ot);
-                    pref = ot->ClassName();
-                }
-                                             
-                temp = pref;                     
+                temp = base_name;                     
             }
             else            
-                temp.sprintf("%s_%02d", pref, i - 1);            
+                temp.sprintf("%s_%02d", base_name.c_str(), i - 1);            
         }
         else        
             temp.sprintf("%02d", i);        
@@ -97,7 +114,4 @@ void EScene::GenObjectName(ObjClassID cls_id, char *buffer, const char *pref)
             return;
         }
     }
-    /*ESceneCustomOTool* ot = GetOTool(cls_id); VERIFY(ot);
-    xr_string result	= FHelper.GenerateName(pref&&pref[0]?pref:ot->ClassName(),4,fastdelegate::bind<TFindObjectByName>(this,&EScene::FindObjectByNameCB),true,true);
-    strcpy				(buffer,result.c_str());*/
 }

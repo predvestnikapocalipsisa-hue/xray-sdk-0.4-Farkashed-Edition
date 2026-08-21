@@ -51,11 +51,11 @@ void CEditableObject::FillBasicProps(LPCSTR pref, PropItemVec &items)
     PHelper().CreateCaption(items, PrepareKey(pref, "Version\\Modif Name"), m_ModifName.c_str());
     PHelper().CreateCaption(items, PrepareKey(pref, "Version\\Creation Time"), ct.c_str());
     PHelper().CreateCaption(items, PrepareKey(pref, "Version\\Modified Time"), mt.c_str());
-    V = PHelper().CreateVector(items, PrepareKey(pref, "Transform\\Position"), &t_vPosition, -10000, 10000, 0.01, 2);
+    V = PHelper().CreateVector(items, PrepareKey(pref, "Transform\\Position"), &t_vPosition, -10000, 10000, 0.0001f, 4);
     V->OnChangeEvent.bind(this, &CEditableObject::OnChangeTransform);
-    V = PHelper().CreateAngle3(items, PrepareKey(pref, "Transform\\Rotation"), &t_vRotate, -10000, 10000, 0.1, 1);
+    V = PHelper().CreateAngle3(items, PrepareKey(pref, "Transform\\Rotation"), &t_vRotate, -10000, 10000, 0.0001f, 4);
     V->OnChangeEvent.bind(this, &CEditableObject::OnChangeTransform);
-    V = PHelper().CreateVector(items, PrepareKey(pref, "Transform\\Scale"), &t_vScale, 0.01, 10000, 0.01, 2);
+    V = PHelper().CreateVector(items, PrepareKey(pref, "Transform\\Scale"), &t_vScale, 0.01, 10000, 0.0001f, 4);
     V->OnChangeEvent.bind(this, &CEditableObject::OnChangeTransform);
     V = PHelper().CreateCaption(items, PrepareKey(pref, "Transform\\BBox Min"), shared_str().printf("{%3.2f, %3.2f, %3.2f}", VPUSH(GetBox().min)));
     V = PHelper().CreateCaption(items, PrepareKey(pref, "Transform\\BBox Max"), shared_str().printf("{%3.2f, %3.2f, %3.2f}", VPUSH(GetBox().max)));

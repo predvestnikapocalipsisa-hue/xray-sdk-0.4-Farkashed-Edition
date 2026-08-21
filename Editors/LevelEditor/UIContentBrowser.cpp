@@ -19,6 +19,10 @@ UIContentBrowser::UIContentBrowser()
     m_SearchBuf[0] = 0;
     m_ObjectList = xr_new<UIItemListForm>();
     m_Props = xr_new<UIPropertiesForm>();
+
+    // Сначала читаем сохраненное состояние из файла!
+    LoadUserState();
+
     m_ObjectList->SetOnItemFocusedEvent(
         TOnILItemFocused(this, &UIContentBrowser::OnItemFocused));
     Refresh();
@@ -29,6 +33,10 @@ UIContentBrowser::~UIContentBrowser()
     if (m_RemoveTexture) m_RemoveTexture->Release();
     if (m_RealTexture)   m_RealTexture->Release();
     m_FolderHelper.ReleaseThumbnails();
+
+    // Сохраняем актуальное состояние при закрытии/удалении окна
+    SaveUserState();
+
     xr_delete(m_Props);
     xr_delete(m_ObjectList);
 }
@@ -310,6 +318,30 @@ void UIContentBrowser::DrawTileGridCustom()
         else            col = 0;
     }
     ImGui::PopStyleVar();
+}
+
+void UIContentBrowser::LoadUserState()
+{
+    string_path fn;
+    if (!FS.exist("$app_data_root$", UserCfgPath()))
+        return;
+    FS.update_path(fn, "$app_data_root$", UserCfgPath());
+
+    CInifile ini(fn, true);
+    if (!ini.section_exist("state"))
+        return;
+
+    m_bVisible = ini.r_bool("state", "visible");
+}
+
+void UIContentBrowser::SaveUserState()
+{
+    string_path fn;
+    FS.update_path(fn, "$app_data_root$", UserCfgPath());
+
+    CInifile ini(fn, false, false, true);
+    ini.w_bool("state", "visible", m_bVisible);
+    ini.save_as(fn);
 }
 
 // ── main Draw ─────────────────────────────────────────────────────────────────

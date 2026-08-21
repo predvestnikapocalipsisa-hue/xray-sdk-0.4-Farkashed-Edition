@@ -327,7 +327,7 @@ void CSceneObject::SaveStream(IWriter &F)
 
     if (m_Flags.test(flUseSurface) && !Core.SocSdk)
     {
-        F.open_chunk(SCENEOBJ_CHUNK_FLAGS);
+        F.open_chunk(SCENEOBJ_CHUNK_SURFACE);
         F.w_u32(m_Surfaces.size());
 
         for (SurfaceIt sf_it = m_Surfaces.begin(); sf_it != m_Surfaces.end(); ++sf_it)

@@ -632,6 +632,20 @@ public:
         inc.set(increment, increment, increment);
         dec = decimal;
     };
+    bool ApplyValue(const Fvector &_val)
+    {
+        Fvector val = _val;
+        clamp(val, lim_mn, lim_mx);
+
+        // Property edits must retain every entered decimal place. Fvector::similar()
+        // uses EPS_L (0.001), which discards smaller coordinate changes.
+        if (value->x != val.x || value->y != val.y || value->z != val.z)
+        {
+            *value = val;
+            return true;
+        }
+        return false;
+    }
 };
 //------------------------------------------------------------------------------
 
