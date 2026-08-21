@@ -323,9 +323,9 @@ void UIContentBrowser::DrawTileGridCustom()
 void UIContentBrowser::LoadUserState()
 {
     string_path fn;
-    if (!FS.exist("$app_data_root$", UserCfgPath()))
+    if (!FS.exist("$sdk_root$", UserCfgPath()))
         return;
-    FS.update_path(fn, "$app_data_root$", UserCfgPath());
+    FS.update_path(fn, "$sdk_root$", UserCfgPath());
 
     CInifile ini(fn, true);
     if (!ini.section_exist("state"))
@@ -337,7 +337,7 @@ void UIContentBrowser::LoadUserState()
 void UIContentBrowser::SaveUserState()
 {
     string_path fn;
-    FS.update_path(fn, "$app_data_root$", UserCfgPath());
+    FS.update_path(fn, "$sdk_root$", UserCfgPath());
 
     CInifile ini(fn, false, false, true);
     ini.w_bool("state", "visible", m_bVisible);
