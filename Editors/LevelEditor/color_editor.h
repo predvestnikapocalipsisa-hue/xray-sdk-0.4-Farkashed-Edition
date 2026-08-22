@@ -362,7 +362,6 @@ inline void Render()
 
         ImGui::SameLine(0, 12);
         ImGui::PushStyleColor(ImGuiCol_Text, WithAlpha(ToImVec4(s_textDisabled), 0.85f));
-        ImGui::TextUnformatted("XrEUI Theme Manager v3.5");
         ImGui::PopStyleColor();
 
         // Right-aligned active theme badge
