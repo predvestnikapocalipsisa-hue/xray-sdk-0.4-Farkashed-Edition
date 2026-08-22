@@ -1,6 +1,6 @@
 
+<img width="2000" height="2000" alt="FARKASHED EDITION" src="https://github.com/user-attachments/assets/234ec900-ea99-4240-918e-222514056bb2" />
 
-<img width="2560" height="1020" alt="ui_sdk_overlay" src="https://github.com/user-attachments/assets/98dcf195-0a44-410d-9f5c-e9fb53fa8aa9" />
 
 
 ### X-Ray SDK 0.4 Farkashed Edition
