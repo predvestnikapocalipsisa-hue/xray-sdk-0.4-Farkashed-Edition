@@ -282,12 +282,15 @@ int CImageManager::CreateMergedTexture(const RStringVec &_names, LPCSTR dest_nam
     // all right. make texture.
     xr_string fn = ChangeFileExt(dest_name, ".dds");
     STextureParams tp;
+    ZeroMemory(&tp, sizeof(tp));           // явно зануляем ВСЁ, включая fade_color/fade_amount/fade_delay
     tp.width = dest_width;
     tp.height = dest_height;
     tp.fmt = fmt;
     tp.type = STextureParams::ttImage;
-    tp.mip_filter = STextureParams::kMIPFilterAdvanced;
-    tp.flags.assign(STextureParams::flDitherColor);
+    tp.mip_filter = STextureParams::kMIPFilterTriangle;   // обычный, надёжный nvtt-фильтр вместо кастомной advanced-ветки
+    tp.flags.zero();
+    tp.flags.set(STextureParams::flGenerateMipMaps, TRUE);
+    tp.flags.set(STextureParams::flDitherColor, TRUE);
     MakeGameTexture(fn.c_str(), dest_pixels.data(), tp);
     return 1;
 }

@@ -8,9 +8,6 @@ bool sort_fog_vol(EFogVolume *fv1, EFogVolume *fv2)
 BOOL SceneBuilder::BuildGame()
 {
     SExportStreams F;
-    F.envmodif.stream.open_chunk(F.envmodif.chunk++);
-    F.envmodif.stream.w_u32(u32(SPAWNPOINT_VERSION));
-    F.envmodif.stream.close_chunk();
 
     if (!Scene->ExportGame(&F))
         return FALSE;

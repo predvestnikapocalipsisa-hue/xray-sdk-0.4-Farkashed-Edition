@@ -76,8 +76,7 @@ CDetailManager::CDetailManager()
 }
 
 CDetailManager::~CDetailManager()
-{
-}
+{}
 
 #ifndef _EDITOR
 
@@ -230,11 +229,12 @@ void CDetailManager::UpdateVisibleM()
 					continue;
 				}
 #endif
-				// FIX: убрана проверка (RDEVICE.dwFrame > S.frame).
-				// ќригинальна€ логика обновл€ла r_items только раз в 15-30 кадров,
-				// но soft_Render/hw_Render_dump вызывает clear_not_free() каждый кадр Ч
-				// в результате между обновлени€ми слота m_visibles оставалс€ пустым
-				// и объекты пропадали. “еперь r_items заполн€ютс€ каждый кадр.
+				// ѕересчитываем (и, что важно, чистим) r_items только раз в
+				// 15-30 кадров на слот, как и было изначально задумано.
+				//  –»“»„Ќќ: clear_not_free() должен быть внутри этого гейта,
+				// а не выполн€тьс€ каждый кадр - иначе на кадрах между
+				// пересчЄтами массив остаЄтс€ пуст (трава "мигает"/пропадает).
+				if (RDEVICE.dwFrame > S.frame)
 				{
 					float dist_sq = EYE.distance_to_sqr(S.vis.sphere.P);
 					if (dist_sq > fade_limit)
@@ -243,8 +243,6 @@ void CDetailManager::UpdateVisibleM()
 					float alpha_i = 1.f - alpha;
 					float dist_sq_rcp = 1.f / dist_sq;
 
-					// ќбновл€ем frame только если действительно пересчитываем Ч
-					// оставл€ем дл€ совместимости, но не блокируем рендер
 					S.frame = RDEVICE.dwFrame + Random.randI(15, 30);
 
 					for (int sp_id = 0; sp_id < dm_obj_in_slot; sp_id++)
@@ -349,7 +347,7 @@ void CDetailManager::MT_CALC()
 	MT.Enter();
 	if (m_frame_calc != RDEVICE.dwFrame)
 	{
-		// FIX: убрано условие (m_frame_rendered + 1) == RDEVICE.dwFrame.
+		if ((m_frame_rendered + 1) == RDEVICE.dwFrame)
 		{
 			Fvector EYE = RDEVICE.vCameraPosition_saved;
 
