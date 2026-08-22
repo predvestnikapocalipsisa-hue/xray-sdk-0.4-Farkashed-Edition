@@ -125,14 +125,14 @@ void UIRenderForm::Draw()
 
 		if (sdk_overlay_texture)
 		{
-			const float overlay_aspect = 2560.f / 1020.f;
-			const float margin = 18.f;
+			const float overlay_aspect = 256.f / 256.f;
+			const float margin = 12.f; // Чуть уменьшили отступ от края
 
-			const float max_width = _min(280.f, canvas_size.x * 0.2f);
-			const float max_height = canvas_size.y * 0.15f;
+			// Уменьшаем размер рамки на экране
+			const float overlay_width = 80.f;
+			const float overlay_height = overlay_width / overlay_aspect; // Вычислится автоматически
 
-			const float overlay_width = _min(max_width, max_height * overlay_aspect);
-			const ImVec2 overlay_size = { overlay_width, overlay_width / overlay_aspect };
+			const ImVec2 overlay_size = { overlay_width, overlay_height };
 			const ImVec2 overlay_pos =
 			{
 				canvas_pos.x + canvas_size.x - overlay_size.x - margin,
