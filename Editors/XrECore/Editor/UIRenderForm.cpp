@@ -115,6 +115,34 @@ void UIRenderForm::Draw()
 		}
 
 		draw_list->AddImage(UI->RT->pSurface, canvas_pos, ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y));
+
+		static void* sdk_overlay_texture = nullptr;
+		if (!sdk_overlay_texture)
+		{
+			u32 mem = 0;
+			sdk_overlay_texture = RImplementation.texture_load("ui\\ui_sdk_overlay", mem);
+		}
+
+		if (sdk_overlay_texture)
+		{
+			const float overlay_aspect = 2560.f / 1020.f;
+			const float margin = 18.f;
+
+			const float max_width = _min(153.3f, canvas_size.x * 0.106f);
+			const float max_height = canvas_size.y * 0.08f;
+
+			const float overlay_width = _min(max_width, max_height * overlay_aspect);
+			const ImVec2 overlay_size = { overlay_width, overlay_width / overlay_aspect };
+			const ImVec2 overlay_pos =
+			{
+				canvas_pos.x + canvas_size.x - overlay_size.x - margin,
+				canvas_pos.y + canvas_size.y - overlay_size.y - margin
+			};
+
+			draw_list->AddImage((ImTextureID)sdk_overlay_texture, overlay_pos,
+				ImVec2(overlay_pos.x + overlay_size.x, overlay_pos.y + overlay_size.y),
+				ImVec2(0.f, 0.f), ImVec2(1.f, 1.f), IM_COL32(255, 255, 255, 185));
+		}
 	}
 	ImGui::End();
 }
