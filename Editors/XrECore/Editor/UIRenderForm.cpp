@@ -128,7 +128,6 @@ void UIRenderForm::Draw()
 			const float overlay_aspect = 2560.f / 1020.f;
 			const float margin = 18.f;
 
-			// Увеличили лимиты, чтобы картинка была четче (примерно в 1.5 раза больше предыдущего варианта)
 			const float max_width = _min(280.f, canvas_size.x * 0.2f);
 			const float max_height = canvas_size.y * 0.15f;
 
