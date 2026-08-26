@@ -49,7 +49,7 @@ static const char* GetTopBarTooltip(const char* name)
 		{"ViewT",      "Top view"},
 		{"ViewX",      "Reset view"},
 
-		{"GenTHM",     "Generate .thm files for terrain textures"},
+		{"RunInGame",  "Play in editor"},
 	};
 	auto it = tooltips.find(name);
 	return it != tooltips.end() ? it->second : nullptr;
@@ -267,6 +267,40 @@ void UITopBarForm::ClickZoom()
 	ExecCommand(COMMAND_ZOOM_EXTENTS, FALSE);
 }
 
+void UITopBarForm::ClickRunInGame()
+{
+	shared_str original_name = Scene->m_LevelOp.m_FNLevelPath;
+	Scene->m_LevelOp.m_FNLevelPath = "ingame";
+	ExecCommand(COMMAND_SAVE);
+	Scene->m_LevelOp.m_FNLevelPath = original_name;
+	string_path full_map_path;
+	FS.update_path(full_map_path, "$maps$", "ingame.level");
+
+	string_path sdk_root_path;
+	FS.update_path(sdk_root_path, "$sdk_root$", "");
+
+	std::string bat_path = std::string(sdk_root_path) + "ingame.bat";
+	std::string map_path = full_map_path;
+
+	bool hideAIMap = !Scene->GetTool(OBJCLASS_AIMAP) || !Scene->GetTool(OBJCLASS_AIMAP)->m_EditFlags.is(ESceneToolBase::flVisible);
+	bool hideSectors = !Scene->GetTool(OBJCLASS_SECTOR) || !Scene->GetTool(OBJCLASS_SECTOR)->m_EditFlags.is(ESceneToolBase::flVisible);
+	bool hidePortals = !Scene->GetTool(OBJCLASS_PORTAL) || !Scene->GetTool(OBJCLASS_PORTAL)->m_EditFlags.is(ESceneToolBase::flVisible);
+	bool hideDetails = !Scene->GetTool(OBJCLASS_DO) || !Scene->GetTool(OBJCLASS_DO)->m_EditFlags.is(ESceneToolBase::flVisible);
+	bool hideSpawn = !Scene->GetTool(OBJCLASS_SPAWNPOINT) || !Scene->GetTool(OBJCLASS_SPAWNPOINT)->m_EditFlags.is(ESceneToolBase::flVisible);
+	bool hideSceneObj = !Scene->GetTool(OBJCLASS_SCENEOBJECT) || !Scene->GetTool(OBJCLASS_SCENEOBJECT)->m_EditFlags.is(ESceneToolBase::flVisible);
+
+	std::string params = "\"" + map_path + "\"";
+
+	if (hideAIMap)    params += " -hide_aimap";
+	if (hideSectors)  params += " -hide_sectors";
+	if (hidePortals)  params += " -hide_portals";
+	if (hideDetails)  params += " -hide_details";
+	if (hideSpawn)    params += " -hide_spawn";
+	if (hideSceneObj) params += " -hide_sceneobj";
+
+	ShellExecuteA(NULL, "open", bat_path.c_str(), params.c_str(), sdk_root_path, SW_SHOW);
+}
+
 void UITopBarForm::ClickZoomSel()
 {
 	ExecCommand(COMMAND_ZOOM_EXTENTS, TRUE);
@@ -405,87 +439,4 @@ void UITopBarForm::ClickViewX()
 {
 	EDevice.m_Camera.ViewReset();
 	UI->RedrawScene();
-}
-
-void UITopBarForm::ClickGenTHM()
-{
-	ObjectList sel;
-	if (!Scene->GetQueryObjects(sel, OBJCLASS_SCENEOBJECT, 1, 1, -1) || sel.empty())
-	{
-		ELog.Msg(mtInformation, "GenTHM: No objects selected!");
-		return;
-	}
-
-	CSceneObject* obj = dynamic_cast<CSceneObject*>(sel.front());
-	if (!obj || obj->m_Surfaces.empty()) return;
-
-	string_path srcTHM;
-	FS.update_path(srcTHM, "$game_textures$", "ed\\template_terrain.thm");
-
-	if (!FS.exist(srcTHM))
-	{
-		ELog.DlgMsg(mtError, "Template not found: textures\\ed\\template_terrain.thm");
-		return;
-	}
-
-	bool some_files_exist = false;
-	for (CSurface* surf : obj->m_Surfaces)
-	{
-		shared_str texName = surf->m_Texture;
-		if (texName.size() && (strstr(texName.c_str(), "terrain\\") || strstr(texName.c_str(), "terrain/")))
-		{
-			string_path dstTHM;
-			strconcat(sizeof(dstTHM), dstTHM, texName.c_str(), ".thm");
-			FS.update_path(dstTHM, "$game_textures$", dstTHM);
-			if (FS.exist(dstTHM))
-			{
-				some_files_exist = true;
-				break;
-			}
-		}
-	}
-
-	bool overwrite_all = false;
-	if (some_files_exist)
-	{
-		overwrite_all = (mrYes == ELog.DlgMsg(mtConfirmation, mbYes | mbNo, "Some .thm files already exist. Overwrite them?"));
-	}
-
-	int created_count = 0;
-	for (CSurface* surf : obj->m_Surfaces)
-	{
-		shared_str texName = surf->m_Texture;
-
-		if (texName.size() && (strstr(texName.c_str(), "terrain\\") || strstr(texName.c_str(), "terrain/")))
-		{
-			string_path dstTHM;
-			strconcat(sizeof(dstTHM), dstTHM, texName.c_str(), ".thm");
-			FS.update_path(dstTHM, "$game_textures$", dstTHM);
-
-			if (FS.exist(dstTHM) && !overwrite_all)
-				continue;
-
-			IReader* R = FS.r_open(srcTHM);
-			if (R)
-			{
-				IWriter* W = FS.w_open(dstTHM);
-				if (W)
-				{
-					W->w(R->pointer(), R->length());
-					FS.w_close(W);
-					ELog.Msg(mtInformation, "GenTHM: %s '%s'",
-						FS.exist(dstTHM) ? "Updated" : "Created", texName.c_str());
-					created_count++;
-				}
-				FS.r_close(R);
-			}
-		}
-	}
-
-	if (created_count > 0)
-		ELog.Msg(mtInformation, "GenTHM: Done! Processed %d files.", created_count);
-	else if (!some_files_exist)
-		ELog.Msg(mtError, "GenTHM: No 'terrain\\' textures found!");
-
-	m_timeGenTHM = EDevice.dwTimeGlobal;
 }
