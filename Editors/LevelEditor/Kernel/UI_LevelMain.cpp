@@ -296,6 +296,25 @@ CCommandVar CommandSave(CCommandVar p1, CCommandVar p2)
     return TRUE;
 }
 
+CCommandVar CommandSaveForIngame(CCommandVar p1, CCommandVar p2)
+{
+    if (Scene->locked())
+    {
+        ELog.DlgMsg(mtError, "Scene sharing violation");
+        return FALSE;
+    }
+
+    xr_string temp_fn = xr_string(p1);
+    if (temp_fn.empty())
+        return FALSE;
+
+    xr_strlwr(temp_fn);
+    UI->SetStatus("Level saving...");
+    Scene->Save(temp_fn.c_str(), false, false);
+    UI->ResetStatus();
+    return TRUE;
+}
+
 CCommandVar CommandClear(CCommandVar p1, CCommandVar p2)
 {
     if (!Scene->locked())
@@ -998,6 +1017,7 @@ void CLevelMain::RegisterCommands()
     REGISTER_CMD_S(COMMAND_LOAD_LEVEL_PART, CommandLoadLevelPart);
     REGISTER_CMD_S(COMMAND_UNLOAD_LEVEL_PART, CommandUnloadLevelPart);
     REGISTER_CMD_SE(COMMAND_LOAD, "File\\Load Level", CommandLoad, true);
+    REGISTER_CMD_S(COMMAND_SAVE_INGAME, CommandSaveForIngame);
     REGISTER_SUB_CMD_SE(COMMAND_SAVE, "File", CommandSave, true);
     APPEND_SUB_CMD("Save", 0, 0);
     APPEND_SUB_CMD("Save As", 0, 1);

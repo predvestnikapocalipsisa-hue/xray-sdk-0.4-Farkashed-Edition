@@ -269,28 +269,42 @@ void UITopBarForm::ClickZoom()
 
 void UITopBarForm::ClickRunInGame()
 {
-	shared_str original_name = Scene->m_LevelOp.m_FNLevelPath;
-	Scene->m_LevelOp.m_FNLevelPath = "ingame";
-	ExecCommand(COMMAND_SAVE);
-	Scene->m_LevelOp.m_FNLevelPath = original_name;
+	// —начала получаем полный путь через алиас $maps$
 	string_path full_map_path;
 	FS.update_path(full_map_path, "$maps$", "ingame.level");
 
-	string_path sdk_root_path;
-	FS.update_path(sdk_root_path, "$sdk_root$", "");
+	// —охран€ем именно по полному пути, а не относительным именем
+	ExecCommand(COMMAND_SAVE_INGAME, xr_string(full_map_path));
 
-	std::string bat_path = std::string(sdk_root_path) + "ingame.bat";
+	char module_path[MAX_PATH];
+	GetModuleFileNameA(NULL, module_path, MAX_PATH);
+	std::string exe_path(module_path);
+	std::string exe_dir = exe_path.substr(0, exe_path.find_last_of("\\/"));
+	std::string sdk_root_path = exe_dir.substr(0, exe_dir.find_last_of("\\/")) + "\\";
+
+	std::string bat_path = sdk_root_path + "ingame.bat";
 	std::string map_path = full_map_path;
 
-	bool hideAIMap = !Scene->GetTool(OBJCLASS_AIMAP) || !Scene->GetTool(OBJCLASS_AIMAP)->m_EditFlags.is(ESceneToolBase::flVisible);
-	bool hideSectors = !Scene->GetTool(OBJCLASS_SECTOR) || !Scene->GetTool(OBJCLASS_SECTOR)->m_EditFlags.is(ESceneToolBase::flVisible);
-	bool hidePortals = !Scene->GetTool(OBJCLASS_PORTAL) || !Scene->GetTool(OBJCLASS_PORTAL)->m_EditFlags.is(ESceneToolBase::flVisible);
-	bool hideDetails = !Scene->GetTool(OBJCLASS_DO) || !Scene->GetTool(OBJCLASS_DO)->m_EditFlags.is(ESceneToolBase::flVisible);
-	bool hideSpawn = !Scene->GetTool(OBJCLASS_SPAWNPOINT) || !Scene->GetTool(OBJCLASS_SPAWNPOINT)->m_EditFlags.is(ESceneToolBase::flVisible);
-	bool hideSceneObj = !Scene->GetTool(OBJCLASS_SCENEOBJECT) || !Scene->GetTool(OBJCLASS_SCENEOBJECT)->m_EditFlags.is(ESceneToolBase::flVisible);
+	bool hideAIMap =
+		!Scene->GetTool(OBJCLASS_AIMAP) ||
+		!Scene->GetTool(OBJCLASS_AIMAP)->IsVisible();
+	bool hideSectors =
+		!Scene->GetTool(OBJCLASS_SECTOR) ||
+		!Scene->GetTool(OBJCLASS_SECTOR)->IsVisible();
+	bool hidePortals =
+		!Scene->GetTool(OBJCLASS_PORTAL) ||
+		!Scene->GetTool(OBJCLASS_PORTAL)->IsVisible();
+	bool hideDetails =
+		!Scene->GetTool(OBJCLASS_DO) ||
+		!Scene->GetTool(OBJCLASS_DO)->IsVisible();
+	bool hideSpawn =
+		!Scene->GetTool(OBJCLASS_SPAWNPOINT) ||
+		!Scene->GetTool(OBJCLASS_SPAWNPOINT)->IsVisible();
+	bool hideSceneObj =
+		!Scene->GetTool(OBJCLASS_SCENEOBJECT) ||
+		!Scene->GetTool(OBJCLASS_SCENEOBJECT)->IsVisible();
 
 	std::string params = "\"" + map_path + "\"";
-
 	if (hideAIMap)    params += " -hide_aimap";
 	if (hideSectors)  params += " -hide_sectors";
 	if (hidePortals)  params += " -hide_portals";
@@ -298,7 +312,14 @@ void UITopBarForm::ClickRunInGame()
 	if (hideSpawn)    params += " -hide_spawn";
 	if (hideSceneObj) params += " -hide_sceneobj";
 
-	ShellExecuteA(NULL, "open", bat_path.c_str(), params.c_str(), sdk_root_path, SW_SHOW);
+	ShellExecuteA(
+		NULL,
+		"open",
+		bat_path.c_str(),
+		params.c_str(),
+		sdk_root_path.c_str(),
+		SW_SHOW
+	);
 }
 
 void UITopBarForm::ClickZoomSel()
