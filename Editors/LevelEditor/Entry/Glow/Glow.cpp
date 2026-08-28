@@ -186,9 +186,8 @@ void CGlow::OnTextureExplorerClick(ButtonValue* B, bool& bDataModified, bool& bS
 
             m_TexName = relative_path;
 
-            // пересоздать шейдер с новой текстурой
-            ShaderChange(nullptr);
-
+            OnDeviceDestroy();
+            OnDeviceCreate();   
             bDataModified = true;
             Msg("~ [Glow] Texture set to: %s", relative_path);
         }
