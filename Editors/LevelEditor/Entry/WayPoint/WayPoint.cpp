@@ -1,5 +1,5 @@
 #include "stdafx.h"
-
+#include "../../Entry/CustomObject.h"
 #define WAYPOINT_SIZE 1.5f
 #define WAYPOINT_RADIUS WAYPOINT_SIZE * .5f
 
@@ -449,6 +449,7 @@ void CWayObject::RemoveSelectedPoints()
             m_WayPoints.erase(it);
             i--;
         }
+    InvalidateBox();                      
 }
 
 int CWayObject::GetSelectedPoints(WPVec &lst)
@@ -467,25 +468,21 @@ CWayPoint *CWayObject::GetFirstSelected()
     return 0;
 }
 
-CWayPoint *CWayObject::AppendWayPoint()
+CWayPoint* CWayObject::AppendWayPoint()
 {
     for (WPIt it = m_WayPoints.begin(); it != m_WayPoints.end(); it++)
         (*it)->Select(0);
     string_path buffer;
     {
-        const char *pref = "wp";
+        const char* pref = "wp";
         for (int i = 0; true; i++)
         {
             bool result;
             xr_string temp;
             if (i == 0)
-            {
                 temp = pref;
-            }
             else
-            {
                 temp.sprintf("%s_%02d", pref, i - 1);
-            }
             FindWPByName(temp.c_str(), result);
             if (!result)
             {
@@ -496,6 +493,7 @@ CWayPoint *CWayObject::AppendWayPoint()
     }
     m_WayPoints.push_back(xr_new<CWayPoint>(buffer));
     m_WayPoints.back()->m_bSelected = true;
+    InvalidateBox();                   
     return m_WayPoints.back();
 }
 
@@ -553,9 +551,15 @@ bool CWayObject::FrustumSelect(int flag, const CFrustum &frustum)
         return inherited::FrustumSelect(flag, frustum);
 }
 
-bool CWayObject::GetBox(Fbox &box)
+bool CWayObject::GetBox(Fbox& box)
 {
     box.invalidate();
+    if (m_WayPoints.empty())
+    {
+        box.set(0, 0, 0, 0, 0, 0);
+        return false;
+    }
+
     for (WPVec::const_iterator it = m_WayPoints.begin(); it != m_WayPoints.end(); it++)
         box.modify((*it)->m_vPosition);
 
@@ -567,11 +571,11 @@ bool CWayObject::GetBox(Fbox &box)
     return true;
 }
 
-void CWayObject::MoveTo(const Fvector &pos, const Fvector &up)
+void CWayObject::MoveTo(const Fvector& pos, const Fvector& up)
 {
     if (IsPointMode())
     {
-        CWayPoint *sel_point = 0;
+        CWayPoint* sel_point = 0;
         for (WPIt it = m_WayPoints.begin(); it != m_WayPoints.end(); it++)
             if ((*it)->m_bSelected)
             {
@@ -595,9 +599,10 @@ void CWayObject::MoveTo(const Fvector &pos, const Fvector &up)
                 (*it)->m_vPosition.add(diff);
         }
     }
+    InvalidateBox();                    
 }
 
-void CWayObject::Move(Fvector &amount)
+void CWayObject::Move(Fvector& amount)
 {
     if (IsPointMode())
     {
@@ -610,6 +615,7 @@ void CWayObject::Move(Fvector &amount)
         for (WPIt it = m_WayPoints.begin(); it != m_WayPoints.end(); it++)
             (*it)->m_vPosition.add(amount);
     }
+    InvalidateBox();                     
 }
 
 void CWayObject::Render(int priority, bool strictB2F)
@@ -640,7 +646,7 @@ bool CWayObject::RayPick(float &distance, const Fvector &S, const Fvector &D, SR
     return bPick;
 }
 
-bool CWayObject::FrustumPick(const CFrustum &frustum)
+bool CWayObject::FrustumPick(const CFrustum& frustum)
 {
     for (WPIt it = m_WayPoints.begin(); it != m_WayPoints.end(); it++)
         if ((*it)->FrustumPick(frustum))
@@ -711,6 +717,8 @@ bool CWayObject::LoadLTX(CInifile &ini, LPCSTR sect_name)
     }
 
     m_Type = EWayType(ini.r_u32(sect_name, "type"));
+
+    InvalidateBox();
 
     return true;
 }
@@ -801,6 +809,8 @@ bool CWayObject::LoadStream(IReader &F)
 
     R_ASSERT(F.find_chunk(WAYOBJECT_CHUNK_TYPE));
     m_Type = EWayType(F.r_u32());
+
+    InvalidateBox();
 
     return true;
 }

@@ -109,6 +109,7 @@ public:
 
     void OnMotionCurrentFrameChange(PropValue *value);
     void OnMotionCameraViewChange(PropValue *value);
+    void InvalidateBox() { m_bBoxDirty = true; }
 
 public:
     LPCSTR GetName() const { return *FName; }
