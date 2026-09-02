@@ -351,7 +351,8 @@ CCommandVar CommandDestroy(CCommandVar p1, CCommandVar p2)
 }
 CCommandVar CommandQuit(CCommandVar p1, CCommandVar p2)
 {
-    if (UI->IsModified())
+    // Do not set the quit flag until the save/discard/cancel check succeeds.
+    if (u32(ExecCommand(COMMAND_EXIT)) != 0)
         UI->Quit();
     return TRUE;
 }

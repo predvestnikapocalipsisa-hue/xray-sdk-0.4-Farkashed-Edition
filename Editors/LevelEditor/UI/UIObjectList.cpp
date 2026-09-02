@@ -139,7 +139,8 @@ void UIObjectList::DrawObjects()
                         DrawObject(obj, grp->GetName());
 
                         ImGui::PushID(grp->GetName());
-                        if (ImGui::TreeNode(grp->GetName()))
+                        const xr_string utf8GroupName = XrUIManager::ConvertCP1251ToUTF8(grp->GetName());
+                        if (ImGui::TreeNode(utf8GroupName.c_str()))
                         {
                             ObjectList grp_lst;
                             grp->GetObjects(grp_lst);
@@ -163,9 +164,19 @@ void UIObjectList::DrawObjects()
 void UIObjectList::DrawObject(CCustomObject *obj, const char *name)
 {
     const char* display_name = name ? name : obj->GetName();
+    const xr_string filter = XrUIManager::ConvertUTF8ToCP1251(m_Filter);
 
-    if (m_Filter[0] && !strstr(display_name, m_Filter))
-        return;
+    if (!filter.empty())
+    {
+        xr_string filter_lower = filter;
+        CharLowerBuffA(&filter_lower[0], (DWORD)filter_lower.size());
+
+        xr_string name_lower = display_name;
+        CharLowerBuffA(&name_lower[0], (DWORD)name_lower.size());
+
+        if (strstr(name_lower.c_str(), filter_lower.c_str()) == nullptr)
+            return;
+    }
 
     m_VisibleRefs.push_back(obj);
 
@@ -173,7 +184,8 @@ void UIObjectList::DrawObject(CCustomObject *obj, const char *name)
     if (obj->Selected()) Flags |= ImGuiTreeNodeFlags_Bullet;
     if (m_SelectedObject == obj) Flags |= ImGuiTreeNodeFlags_Selected;
 
-    ImGui::TreeNodeEx(display_name, Flags);
+    const xr_string utf8DisplayName = XrUIManager::ConvertCP1251ToUTF8(display_name);
+    ImGui::TreeNodeEx(utf8DisplayName.c_str(), Flags);
 
     if (m_ScrollToSelected && m_SelectedObject == obj)
     {

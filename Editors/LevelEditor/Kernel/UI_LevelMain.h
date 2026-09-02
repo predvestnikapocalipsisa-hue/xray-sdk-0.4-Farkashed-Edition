@@ -75,7 +75,6 @@ class CLevelMain : public TUI
     typedef TUI inherited;
 
     virtual void RealUpdateScene();
-    virtual void RealQuit();
 
 public:
     C3DCursor *m_Cursor;
@@ -85,6 +84,8 @@ public:
     virtual ~CLevelMain();
 
     virtual LPSTR GetCaption();
+
+    virtual void RealQuit();
 
     virtual void ResetStatus();
     virtual void SetStatus(LPCSTR s, bool bOutLog = true);

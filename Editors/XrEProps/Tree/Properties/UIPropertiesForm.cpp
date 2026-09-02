@@ -184,7 +184,7 @@ void UIPropertiesForm::DrawEditText()
 
 			if (dynamic_cast<CTextValue*>(m_EditTextValue->GetFrontValue()))
 			{
-				xr_string out = m_EditTextValueData;
+				xr_string out = XrUIManager::ConvertUTF8ToCP1251(m_EditTextValueData);
 
 				if (m_EditTextValue->AfterEdit<CTextValue, xr_string>(out))
 				{
@@ -194,7 +194,7 @@ void UIPropertiesForm::DrawEditText()
 			}
 			else if (dynamic_cast<RTextValue*>(m_EditTextValue->GetFrontValue()))
 			{
-				shared_str out = m_EditTextValueData;
+				shared_str out = XrUIManager::ConvertUTF8ToCP1251(m_EditTextValueData).c_str();
 
 				if (m_EditTextValue->AfterEdit<RTextValue, shared_str>(out))
 				{
@@ -204,7 +204,7 @@ void UIPropertiesForm::DrawEditText()
 			}
 			else if (dynamic_cast<STextValue*>(m_EditTextValue->GetFrontValue()))
 			{
-				xr_string out = m_EditTextValueData;
+				xr_string out = XrUIManager::ConvertUTF8ToCP1251(m_EditTextValueData);
 
 				if (m_EditTextValue->AfterEdit<STextValue, xr_string>(out))
 				{
@@ -241,7 +241,7 @@ void UIPropertiesForm::DrawEditText()
 
 			if (dynamic_cast<CTextValue*>(m_EditTextValue->GetFrontValue()))
 			{
-				xr_string out = m_EditTextValueData;
+				xr_string out = XrUIManager::ConvertUTF8ToCP1251(m_EditTextValueData);
 
 				if (m_EditTextValue->AfterEdit<CTextValue, xr_string>(out))
 				{
@@ -251,7 +251,7 @@ void UIPropertiesForm::DrawEditText()
 			}
 			else if (dynamic_cast<RTextValue*>(m_EditTextValue->GetFrontValue()))
 			{
-				shared_str out = m_EditTextValueData;
+				shared_str out = XrUIManager::ConvertUTF8ToCP1251(m_EditTextValueData).c_str();
 
 				if (m_EditTextValue->AfterEdit<RTextValue, shared_str>(out))
 				{
@@ -261,7 +261,7 @@ void UIPropertiesForm::DrawEditText()
 			}
 			else if (dynamic_cast<STextValue*>(m_EditTextValue->GetFrontValue()))
 			{
-				xr_string out = m_EditTextValueData;
+				xr_string out = XrUIManager::ConvertUTF8ToCP1251(m_EditTextValueData);
 
 				if (m_EditTextValue->AfterEdit<STextValue, xr_string>(out))
 				{

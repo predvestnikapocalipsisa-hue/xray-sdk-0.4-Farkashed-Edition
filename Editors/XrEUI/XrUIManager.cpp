@@ -2,6 +2,8 @@
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
 #include "./discord_rpc.h"
+#include <string>
+#include <vector>
 
 void InitDiscord() {
     DiscordEventHandlers handlers;
@@ -31,15 +33,26 @@ static void UpdateDiscordStatus() {
 
 #define USE_OLD_STYLE 1
 
-
-static const char* GetClipboardTextFn_Custom(void* user_data) {
+static const char* GetClipboardTextFn_Custom(void* user_data)
+{
     static std::string clipboard_str;
     if (!OpenClipboard(NULL)) return NULL;
-    HANDLE hData = GetClipboardData(CF_TEXT);
-    if (hData != NULL) {
-        char* pszText = (char*)GlobalLock(hData);
-        if (pszText) clipboard_str = pszText;
-        GlobalUnlock(hData);
+
+    HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+    if (hData != NULL)
+    {
+        wchar_t* pwszText = (wchar_t*)GlobalLock(hData);
+        if (pwszText)
+        {
+            int size_needed = WideCharToMultiByte(CP_UTF8, 0, pwszText, -1, NULL, 0, NULL, NULL);
+            if (size_needed > 0)
+            {
+                std::vector<char> buf(size_needed);
+                WideCharToMultiByte(CP_UTF8, 0, pwszText, -1, buf.data(), size_needed, NULL, NULL);
+                clipboard_str.assign(buf.data());
+            }
+            GlobalUnlock(hData);
+        }
     }
     CloseClipboard();
     return clipboard_str.c_str();
@@ -67,10 +80,10 @@ static void SetClipboardTextFn_Custom(void* user_data, const char* text) {
 xr_string XrUIManager::ConvertCP1251ToUTF8(const char* str)
 {
     if (!str || !str[0]) return "";
-    int wlen = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
+    int wlen = MultiByteToWideChar(1251, 0, str, -1, NULL, 0);
     if (wlen <= 0) return "";
     xr_vector<wchar_t> wstr(wlen);
-    MultiByteToWideChar(CP_ACP, 0, str, -1, wstr.data(), wlen);
+    MultiByteToWideChar(1251, 0, str, -1, wstr.data(), wlen);
     int ulen = WideCharToMultiByte(CP_UTF8, 0, wstr.data(), -1, NULL, 0, NULL, NULL);
     if (ulen <= 0) return "";
     xr_vector<char> ustr(ulen);
@@ -78,21 +91,31 @@ xr_string XrUIManager::ConvertCP1251ToUTF8(const char* str)
     return xr_string(ustr.data());
 }
 
-XrUIManager::XrUIManager()
+xr_string XrUIManager::ConvertUTF8ToCP1251(const char* str)
 {
+    if (!str || !str[0]) return "";
+    int wlen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, -1, NULL, 0);
+    if (wlen <= 0) return "";
+    xr_vector<wchar_t> wstr(wlen);
+    MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, -1, wstr.data(), wlen);
+    int len = WideCharToMultiByte(1251, WC_NO_BEST_FIT_CHARS, wstr.data(), -1, NULL, 0, NULL, NULL);
+    if (len <= 0) return "";
+    xr_vector<char> result(len);
+    WideCharToMultiByte(1251, WC_NO_BEST_FIT_CHARS, wstr.data(), -1, result.data(), len, NULL, NULL);
+    return xr_string(result.data());
 }
 
+XrUIManager::XrUIManager()
+{}
+
 XrUIManager::~XrUIManager()
-{
-}
+{}
 
 inline void Style()
 {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
 
-    /// 0 = FLAT APPEARENCE
-    /// 1 = MORE "3D" LOOK
     int is3D = 0;
 
     colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -180,9 +203,8 @@ inline void Style()
 
 void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* ini_path)
 {
-
     InitDiscord();
-    UpdateDiscordStatus(); 
+    UpdateDiscordStatus();
     Discord_RunCallbacks();
 
     IMGUI_CHECKVERSION();
@@ -195,26 +217,16 @@ void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* in
 
     xr_strcpy(m_name_ini, ini_path);
     io.IniFilename = m_name_ini;
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-    static const ImWchar ranges[] = {
-        0x0020, 0x00FF,
-        0x0400, 0x052F,
-        0,
-    };
-
-    // Посмотрим как оно выглядит, люди с плохим зрением 100 проц заценят.
-    ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\tahoma.ttf", 16.0f, NULL, ranges);
-    if (font) {
+    ImFont* font = io.Fonts->AddFontFromFileTTF(
+        "C:\\Windows\\Fonts\\tahoma.ttf", 16.0f, NULL,
+        io.Fonts->GetGlyphRangesCyrillic());
+    if (font)
         io.FontDefault = font;
-    }
 
-    // Setup Dear ImGui style
     ImGui::StyleColorsClassic();
 
 #ifndef USE_OLD_STYLE
@@ -246,8 +258,7 @@ void XrUIManager::ResetEnd()
 }
 
 void XrUIManager::OnDrawUI()
-{
-}
+{}
 
 void XrUIManager::ApplyShortCut(DWORD Key)
 {
@@ -343,12 +354,11 @@ void XrUIManager::Push(XrUI* ui, bool need_deleted)
 
 void XrUIManager::Draw()
 {
-
     Discord_RunCallbacks();
 
     static uint32_t last_discord_update = 0;
     uint32_t current_time = GetTickCount();
-    if (current_time - last_discord_update > 5000) { // Обновляем раз в 5 секунд
+    if (current_time - last_discord_update > 5000) {
         UpdateDiscordStatus();
         last_discord_update = current_time;
     }
@@ -356,7 +366,6 @@ void XrUIManager::Draw()
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
-    // ImGui::DockSpaceOverViewport();
 
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -373,12 +382,12 @@ void XrUIManager::Draw()
         ImGuiID dockMain = ImGui::GetID("MyDockspace");
 
         m_MenuBarHeight = ImGui::GetWindowBarHeight();
-        // Save off menu bar height for later.
 
         ImGui::DockSpace(dockMain);
         ImGui::End();
         ImGui::PopStyleVar(4);
     }
+
     for (XrUI* ui : m_UIArray)
     {
         ui->Draw();
@@ -388,6 +397,7 @@ void XrUIManager::Draw()
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+
     for (size_t i = m_UIArray.size(); i > 0; i--)
     {
         if (m_UIArray[i - 1]->IsClosed())
@@ -404,63 +414,8 @@ void XrUIManager::Draw()
     }
 }
 
-static bool ImGui_ImplWin32_UpdateMouseCursor()
-{
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange)
-        return false;
-
-    ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
-    if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
-    {
-        // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
-        ::SetCursor(NULL);
-    }
-    else
-    {
-        // Show OS mouse cursor
-        LPTSTR win32_cursor = IDC_ARROW;
-        switch (imgui_cursor)
-        {
-        case ImGuiMouseCursor_Arrow:
-            win32_cursor = IDC_ARROW;
-            break;
-        case ImGuiMouseCursor_TextInput:
-            win32_cursor = IDC_IBEAM;
-            break;
-        case ImGuiMouseCursor_ResizeAll:
-            win32_cursor = IDC_SIZEALL;
-            break;
-        case ImGuiMouseCursor_ResizeEW:
-            win32_cursor = IDC_SIZEWE;
-            break;
-        case ImGuiMouseCursor_ResizeNS:
-            win32_cursor = IDC_SIZENS;
-            break;
-        case ImGuiMouseCursor_ResizeNESW:
-            win32_cursor = IDC_SIZENESW;
-            break;
-        case ImGuiMouseCursor_ResizeNWSE:
-            win32_cursor = IDC_SIZENWSE;
-            break;
-        case ImGuiMouseCursor_Hand:
-            win32_cursor = IDC_HAND;
-            break;
-        case ImGuiMouseCursor_NotAllowed:
-            win32_cursor = IDC_NO;
-            break;
-        }
-        ::SetCursor(::LoadCursor(NULL, win32_cursor));
-    }
-    return true;
-}
-#ifndef WM_MOUSEHWHEEL
-#define WM_MOUSEHWHEEL 0x020E
-#endif
-#ifndef DBT_DEVNODES_CHANGED
-#define DBT_DEVNODES_CHANGED 0x0007
-#endif
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 LRESULT XrUIManager::WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
@@ -482,15 +437,23 @@ LRESULT XrUIManager::WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         }
         break;
     case WM_CHAR:
-    {
-        wchar_t wch;
-        MultiByteToWideChar(CP_ACP, 0, (char*)&wParam, 1, &wch, 1);
-        ImGui::GetIO().AddInputCharacterUTF16(wch);
+        if (wParam > 0 && wParam < 0x10000)
+        {
+            wchar_t wch = 0;
+            if (wParam >= 0x80 && wParam <= 0xFF)
+            {
+                char ch = (char)wParam;
+                if (MultiByteToWideChar(1251, 0, &ch, 1, &wch, 1) > 0)
+                {
+                    ImGui::GetIO().AddInputCharacter(wch);
+                    return 0;
+                }
+            }
+            ImGui::GetIO().AddInputCharacterUTF16((unsigned short)wParam);
+        }
         return 0;
-    }
     default:
         break;
     }
     return ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
-    ;
 }

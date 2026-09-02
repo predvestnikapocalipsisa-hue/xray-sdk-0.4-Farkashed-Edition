@@ -194,11 +194,13 @@ bool UISceneTabBar::Draw()
         {
             SceneTab& tab = s_tabs[i];
 
-            char label[256];
+            const xr_string utf8DisplayName = XrUIManager::ConvertCP1251ToUTF8(tab.displayName.c_str());
+            const xr_string utf8FilePath = XrUIManager::ConvertCP1251ToUTF8(tab.filePath.c_str());
+            char label[512];
             if (tab.isModified)
-                _snprintf(label, sizeof(label), "\xE2\x97\x8F %s##stab%d", tab.displayName.c_str(), i);
+                _snprintf(label, sizeof(label), "\xE2\x97\x8F %s##stab%d", utf8DisplayName.c_str(), i);
             else
-                _snprintf(label, sizeof(label), "%s##stab%d", tab.displayName.c_str(), i);
+                _snprintf(label, sizeof(label), "%s##stab%d", utf8DisplayName.c_str(), i);
 
             ImGuiTabItemFlags itemFlags = ImGuiTabItemFlags_None;
             if (i == s_activeIdx)
@@ -208,7 +210,7 @@ bool UISceneTabBar::Draw()
             bool tabVisible = ImGui::BeginTabItem(label, &tabOpen, itemFlags);
 
             if (ImGui::IsItemHovered() && !tab.filePath.empty())
-                ImGui::SetTooltip("%s", tab.filePath.c_str());
+                ImGui::SetTooltip("%s", utf8FilePath.c_str());
 
             if (tabVisible)
                 ImGui::EndTabItem();

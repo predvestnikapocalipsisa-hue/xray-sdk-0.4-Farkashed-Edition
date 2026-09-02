@@ -253,7 +253,18 @@ bool UIChooseFormItem::CheckFilter()
 
 	if (Object)
 	{
-		if (Form->m_Filter.PassFilter(Object->name.c_str()))
+		xr_string filter_cp1251 = XrUIManager::ConvertUTF8ToCP1251(Form->m_Filter.InputBuf);
+		if (!filter_cp1251.empty())
+			CharLowerBuffA(&filter_cp1251[0], (DWORD)filter_cp1251.size());
+		xr_string filter_utf8_lower = XrUIManager::ConvertCP1251ToUTF8(filter_cp1251.c_str());
+
+		xr_string name_cp1251 = Object->name.c_str();
+		if (!name_cp1251.empty())
+			CharLowerBuffA(&name_cp1251[0], (DWORD)name_cp1251.size());
+		xr_string name_utf8_lower = XrUIManager::ConvertCP1251ToUTF8(name_cp1251.c_str());
+
+		ImGuiTextFilter temp_filter(filter_utf8_lower.c_str());
+		if (temp_filter.PassFilter(name_utf8_lower.c_str()))
 			return true;
 	}
 	else

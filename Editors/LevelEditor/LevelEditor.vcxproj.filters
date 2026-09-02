@@ -807,6 +807,9 @@
     <ClInclude Include="Uitiletoolhelper.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="UI\converter_menu.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\IconLE.ico">

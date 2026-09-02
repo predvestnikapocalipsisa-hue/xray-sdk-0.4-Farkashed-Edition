@@ -285,7 +285,7 @@ void CLevelTool::OnPropsModified()
 
 bool CLevelTool::IfModified()
 {
-    return false;
+    return Scene->IfModified();
 }
 
 void CLevelTool::ZoomObject(BOOL bSelectedOnly)

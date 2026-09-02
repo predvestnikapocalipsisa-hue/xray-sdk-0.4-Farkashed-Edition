@@ -156,7 +156,8 @@ private:
 
             if (m_IconFolder) { ImGui::Image(m_IconFolder, ImVec2(14, 14)); ImGui::SameLine(0, 4); }
 
-            bool open = ImGui::TreeNodeEx(folder.c_str(), flags, "%s", label);
+            const xr_string utf8Label = XrUIManager::ConvertCP1251ToUTF8(label);
+            bool open = ImGui::TreeNodeEx(folder.c_str(), flags, "%s", utf8Label.c_str());
             if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
                 m_CurrentPath = folder.c_str();
             if (open) { DrawFolderNode(folder, depth + 1); ImGui::TreePop(); }

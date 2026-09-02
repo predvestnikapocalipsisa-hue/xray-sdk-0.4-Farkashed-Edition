@@ -2,19 +2,21 @@
 #include "../LevelEditor/color_editor.h"
 #include "UISceneTabBar.h"
 #include "UIContentBrowser.h" 
+#include "converter_menu.h"
 
 UIMainMenuForm::UIMainMenuForm()
 {
     Colors::LoadSettings();
     Colors::UpdateImGuiStyle();
 
-    // ?????????????? ??? ???????
+    ConverterMenu::Close();
+
     m_ContentBrowser = xr_new<UIContentBrowser>();
 }
 
 UIMainMenuForm::~UIMainMenuForm()
 {
-    xr_delete(m_ContentBrowser); // ?????? ??????
+    xr_delete(m_ContentBrowser);
 }
 
 void UIMainMenuForm::Draw()
@@ -433,6 +435,7 @@ void UIMainMenuForm::Draw()
             ImGui::EndMenu();
         }
         Colors::Render();
+        ConverterMenu::Draw();
         Colors::UpdateImGuiStyle();
         if (ImGui::BeginMenu("Windows"))
         {
@@ -454,6 +457,17 @@ void UIMainMenuForm::Draw()
                         Colors::Enable();
                     else
                         Colors::Disable();
+                }
+            }
+
+            {
+                bool selected = ConverterMenu::IsOpen();
+                if (ImGui::MenuItem("Converter", "", &selected))
+                {
+                    if (selected)
+                        ConverterMenu::Open();
+                    else
+                        ConverterMenu::Close();
                 }
             }
 
@@ -485,7 +499,7 @@ void UIMainMenuForm::Draw()
                 }
                 if (ImGui::MenuItem("SDK Version", ""))
                 {
-                    MessageBoxA(NULL, "Current SDK version: 3.8", "Information", MB_OK | MB_ICONINFORMATION);
+                    MessageBoxA(NULL, "Current SDK version: 3.9", "Information", MB_OK | MB_ICONINFORMATION);
                 }
             }
 

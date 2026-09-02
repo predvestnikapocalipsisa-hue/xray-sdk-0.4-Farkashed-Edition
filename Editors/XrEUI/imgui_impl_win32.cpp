@@ -872,7 +872,19 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
     case WM_CHAR:
         // You can also use ToAscii()+GetKeyboardState() to retrieve characters.
         if (wParam > 0 && wParam < 0x10000)
+        {
+            wchar_t wch = 0;
+            if (wParam >= 0x80 && wParam <= 0xFF)
+            {
+                char ch = (char)wParam;
+                if (MultiByteToWideChar(1251, 0, &ch, 1, &wch, 1) > 0)
+                {
+                    io.AddInputCharacter(wch);
+                    return 0;
+                }
+            }
             io.AddInputCharacterUTF16((unsigned short)wParam);
+        }
         return 0;
     case WM_SETCURSOR:
         if (LOWORD(lParam) == HTCLIENT && ImGui_ImplWin32_UpdateMouseCursor())

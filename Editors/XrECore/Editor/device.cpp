@@ -517,6 +517,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	break;
+	case WM_CLOSE:
+		// Do not let DefWindowProc destroy the window after the user cancels.
+		ExecCommand(COMMAND_QUIT);
+		return 0;
 	}
 	if (UI && UI->WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;

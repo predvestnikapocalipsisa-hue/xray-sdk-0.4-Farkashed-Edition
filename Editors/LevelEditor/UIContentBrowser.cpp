@@ -49,6 +49,17 @@ void UIContentBrowser::SetMode(EContentBrowserMode mode)
     Refresh();
 }
 
+static xr_string UTF8ToLower(const char* str)
+{
+    if (!str || !str[0]) return "";
+
+    // Используем конвертацию через CP1251 для безопасного tolower с поддержкой кириллицы
+    xr_string cp1251 = XrUIManager::ConvertUTF8ToCP1251(str);
+    if (!cp1251.empty())
+        CharLowerBuffA(&cp1251[0], (DWORD)cp1251.size());
+    return XrUIManager::ConvertCP1251ToUTF8(cp1251.c_str());
+}
+
 // ── Refresh ───────────────────────────────────────────────────────────────────
 void UIContentBrowser::Refresh()
 {
@@ -174,10 +185,11 @@ void UIContentBrowser::DrawBreadcrumb()
             if (j > 0) subPath += "\\"; subPath += parts[j];
         }
 
+        const xr_string utf8Part = XrUIManager::ConvertCP1251ToUTF8(parts[i].c_str());
         if (i == parts.size() - 1)
-            ImGui::TextUnformatted(parts[i].c_str());
+            ImGui::TextUnformatted(utf8Part.c_str());
         else
-            if (ImGui::SmallButton(parts[i].c_str()))
+            if (ImGui::SmallButton(utf8Part.c_str()))
                 m_FolderHelper.m_CurrentPath = subPath.c_str();
         ImGui::SameLine(0, 2);
     }
@@ -217,14 +229,21 @@ void UIContentBrowser::DrawTileGridCustom()
             if (strchr(name + plen + 1, '\\') != nullptr) continue;
         }
 
+        // ── Корректный поиск с поддержкой кириллицы UTF-8 ────────────────────
         if (doSearch)
         {
             const char* lbl = strrchr(name, '\\');
             lbl = lbl ? lbl + 1 : name;
-            xr_string s(lbl), q(m_SearchBuf);
-            std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-            std::transform(q.begin(), q.end(), q.begin(), ::tolower);
-            if (s.find(q) == xr_string::npos) continue;
+
+            // Конвертируем имя предмета из CP1251 в UTF-8
+            xr_string nameUtf8 = XrUIManager::ConvertCP1251ToUTF8(lbl);
+
+            // Переводим обе строки в lower case с поддержкой UTF-8 кириллицы
+            xr_string s = UTF8ToLower(nameUtf8.c_str());
+            xr_string q = UTF8ToLower(m_SearchBuf); // m_SearchBuf приходит от ImGui уже в UTF-8
+
+            if (s.find(q) == xr_string::npos)
+                continue;
         }
 
         const ListItemsVec& sel = m_ObjectList->m_SelectedItems;
@@ -302,13 +321,14 @@ void UIContentBrowser::DrawTileGridCustom()
                 float ty = iMax.y + 3.f;
                 dl->PushClipRect(ImVec2(cursor.x + tilePad, ty),
                     ImVec2(cursor.x + cellW - tilePad, ty + labelH), true);
+                const xr_string utf8Display = XrUIManager::ConvertCP1251ToUTF8(disp);
                 dl->AddText(ImGui::GetFont(), 11.f,
-                    ImVec2(cursor.x + tilePad, ty), tc, disp);
+                    ImVec2(cursor.x + tilePad, ty), tc, utf8Display.c_str());
                 dl->PopClipRect();
             }
         }
 
-        if (hovered && key) ImGui::SetTooltip("%s", key);
+        if (hovered && key) { const xr_string utf8Key = XrUIManager::ConvertCP1251ToUTF8(key); ImGui::SetTooltip("%s", utf8Key.c_str()); }
 
         if (clicked)
             m_ObjectList->SelectItem(key);
@@ -414,7 +434,8 @@ void UIContentBrowser::Draw()
             ImGui::Separator();
             const char* k = *m_CurrentItem;
             const char* disp = strrchr(k, '\\');
-            ImGui::TextWrapped("%s", disp ? disp + 1 : k);
+            const xr_string utf8Display = XrUIManager::ConvertCP1251ToUTF8(disp ? disp + 1 : k);
+            ImGui::TextWrapped("%s", utf8Display.c_str());
             ImGui::Separator();
             m_Props->Draw();
         }

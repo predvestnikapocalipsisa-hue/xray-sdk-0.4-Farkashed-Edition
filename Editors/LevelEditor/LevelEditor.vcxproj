@@ -233,6 +233,7 @@
     <ClInclude Include="Tools\WayPoint\ESceneWayTools.h" />
     <ClInclude Include="UIContentBrowser.h" />
     <ClInclude Include="Uitiletoolhelper.h" />
+    <ClInclude Include="UI\converter_menu.h" />
     <ClInclude Include="UI\Tools\UIAIMapTool.h" />
     <ClInclude Include="UI\Tools\UIDOTool.h" />
     <ClInclude Include="UI\Tools\UIFogVolTool.h" />
