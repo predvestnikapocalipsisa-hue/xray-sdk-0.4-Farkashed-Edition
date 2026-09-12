@@ -1,5 +1,6 @@
 #pragma once
-#include <vector> 
+#include <vector>
+#include <string>
 
 class CCustomObject;
 
@@ -37,4 +38,10 @@ private:
     CCustomObject* m_AnchorObject;               
     std::vector<CCustomObject*> m_VisibleRefs;   
     string_path m_Filter;
+
+    // Spawn category filter (active only when OBJCLASS_SPAWNPOINT is selected)
+    int         m_SpawnCategoryIdx;              // 0 = All
+    std::vector<std::string> m_SpawnCategories;  // cached list of unique $spawn values
+    void RebuildSpawnCategories();               // refresh m_SpawnCategories from scene
+    bool PassesSpawnCategoryFilter(CCustomObject* obj) const;
 };

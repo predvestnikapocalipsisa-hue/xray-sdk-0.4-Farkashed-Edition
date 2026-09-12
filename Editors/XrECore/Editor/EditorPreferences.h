@@ -72,6 +72,7 @@ protected:
     void OnKeyboardCommonFileClick(ButtonValue *value, bool &bModif, bool &bSafe);
     void OnClose();
     void ApplyValues();
+    void OnModified();
 
     virtual void Load(CInifile *);
     virtual void Save(CInifile *);

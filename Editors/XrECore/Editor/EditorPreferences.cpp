@@ -78,6 +78,12 @@ void CCustomPreferences::OnClose()
 }
 //---------------------------------------------------------------------------
 
+void CCustomPreferences::OnModified()
+{
+    ApplyValues();
+}
+//---------------------------------------------------------------------------
+
 void CheckValidate(ShortcutValue *, const xr_shortcut &new_val, bool &result)
 {
     {
@@ -153,7 +159,7 @@ void CCustomPreferences::FillProp(PropItemVec &props)
     PHelper().CreateU32(props, "Scene\\Common\\Undo Level", &scene_undo_level, 0, 125);
     PHelper().CreateFloat(props, "Scene\\Grid\\Cell Size", &grid_cell_size, 0.1f, 10.f);
     PHelper().CreateU32(props, "Scene\\Grid\\Cell Count", &grid_cell_count, 10, 1000);
-    PHelper().CreateFloat(props, "Scene\\RadiusRender", &EDevice.RadiusRender, 10.f, 100000.f);
+    PHelper().CreateFloat(props, "Scene\\Render Distance", &EDevice.RadiusRender, 10.f, 100000.f);
 
     PHelper().CreateBOOL(props, "Tools\\Box Pick\\Limited Depth", &bp_lim_depth);
     PHelper().CreateBOOL(props, "Tools\\Box Pick\\Back Face Culling", &bp_cull);
@@ -404,6 +410,7 @@ void CCustomPreferences::OnCreate()
 {
     Load();
     m_ItemProps = xr_new<UIPropertiesForm>();
+    m_ItemProps->SetModifiedEvent(TOnModifiedEvent(this, &CCustomPreferences::OnModified));
     // m_ItemProps 		= TProperties::CreateModalForm("Editor Preferences",false,0,0,TOnCloseEvent(this,&CCustomPreferences::OnClose),TProperties::plItemFolders|TProperties::plFullSort); //TProperties::plFullExpand TProperties::plFullSort TProperties::plNoClearStore|TProperties::plFolderStore|
 }
 //---------------------------------------------------------------------------

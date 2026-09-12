@@ -8,6 +8,9 @@ UISpawnTool::UISpawnTool()
     m_SpawnList->SetOnItemFocusedEvent(TOnILItemFocused(this, &UISpawnTool::OnItemFocused));
     RefreshList();
     m_AttachObject = false;
+    m_AutoShape = false;
+    m_AutoShapeIsSphere = true;
+    m_AutoShapeSize = 3.0f;
 }
 
 UISpawnTool::~UISpawnTool()
@@ -80,6 +83,31 @@ void UISpawnTool::Draw()
                 }
             }
         }
+        ImGui::Separator();
+
+        // --- Auto-shape block ---
+        ImGui::Checkbox("Auto Shape", &m_AutoShape);
+        if (m_AutoShape)
+        {
+            ImGui::Indent();
+
+            bool isSphere = m_AutoShapeIsSphere;
+            if (ImGui::RadioButton("Sphere##ashape", isSphere))
+                m_AutoShapeIsSphere = true;
+            ImGui::SameLine();
+            if (ImGui::RadioButton("Box##ashape", !isSphere))
+                m_AutoShapeIsSphere = false;
+
+            ImGui::SetNextItemWidth(-1);
+            if (m_AutoShapeIsSphere)
+                ImGui::DragFloat("##ashape_size", &m_AutoShapeSize, 0.1f, 0.1f, 100.f, "Radius: %.2f");
+            else
+                ImGui::DragFloat("##ashape_size", &m_AutoShapeSize, 0.1f, 0.1f, 100.f, "Half-size: %.2f");
+
+            ImGui::Unindent();
+        }
+        // --- end Auto-shape ---
+
         ImGui::Separator();
         ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
         ImGui::TreePop();
@@ -174,7 +202,6 @@ void UISpawnTool::RefreshList()
             if (caption.size())
             {
                 ListItem *I = LHelper().CreateItem(items, caption.c_str(), 0, ListItem::flDrawThumbnail, (LPVOID) * (*it)->Name);
-                // m_caption_to_sect[caption] = sect;
             }
         }
     }

@@ -7,7 +7,8 @@ UIObjectList::UIObjectList()
     m_Mode = M_Visible;
     m_Filter[0] = 0;
     m_SelectedObject = nullptr;
-    m_AnchorObject = nullptr; 
+    m_AnchorObject = nullptr;
+    m_SpawnCategoryIdx = 0;
 }
 
 UIObjectList::~UIObjectList()
@@ -46,7 +47,70 @@ void UIObjectList::Draw()
         if (ImGui::RadioButton("All", m_Mode == M_All)) m_Mode = M_All;
         if (ImGui::RadioButton("Visible Only", m_Mode == M_Visible)) m_Mode = M_Visible;
         if (ImGui::RadioButton("Invisible Only", m_Mode == M_Inbvisible)) m_Mode = M_Inbvisible;
-        
+
+        // Spawn category filter — visible only when Spawn class is selected
+        ObjClassID cur_cls = LTools ? LTools->CurrentClassID() : OBJCLASS_DUMMY;
+        if (cur_cls == OBJCLASS_SPAWNPOINT)
+        {
+            ImGui::Separator();
+            ImGui::TextUnformatted("Spawn filter:");
+
+            RebuildSpawnCategories();
+
+            // Build c-string list for Combo
+            // We use a local vector of pointers valid for this frame
+            std::vector<const char*> items_cstr;
+            items_cstr.reserve(m_SpawnCategories.size());
+            for (const auto& s : m_SpawnCategories)
+                items_cstr.push_back(s.c_str());
+
+            // Clamp index in case categories changed
+            if (m_SpawnCategoryIdx >= (int)items_cstr.size())
+                m_SpawnCategoryIdx = 0;
+
+            ImGui::SetNextItemWidth(-1);
+            ImGui::Combo("##spawn_cat", &m_SpawnCategoryIdx,
+                items_cstr.data(), (int)items_cstr.size());
+
+            // Auto-shape controls
+            ESceneCustomOTool* spawn_tool = dynamic_cast<ESceneCustomOTool*>(Scene->GetOTool(OBJCLASS_SPAWNPOINT));
+            UISpawnTool* ui_spawn = spawn_tool ? dynamic_cast<UISpawnTool*>(spawn_tool->pForm) : nullptr;
+            if (ui_spawn)
+            {
+                ImGui::Separator();
+                bool autoShape = ui_spawn->IsAutoShape();
+                if (ImGui::Checkbox("Auto Shape", &autoShape))
+                {
+                    ui_spawn->SetAutoShape(autoShape);
+                }
+
+                if (autoShape)
+                {
+                    ImGui::Indent();
+                    bool isSphere = ui_spawn->IsAutoShapeSphere();
+                    if (ImGui::RadioButton("Sphere##objlist_ashape", isSphere))
+                        ui_spawn->SetAutoShapeSphere(true);
+                    ImGui::SameLine();
+                    if (ImGui::RadioButton("Box##objlist_ashape", !isSphere))
+                        ui_spawn->SetAutoShapeSphere(false);
+
+                    float shapeSize = ui_spawn->GetAutoShapeSize();
+                    ImGui::SetNextItemWidth(-1);
+                    if (ui_spawn->IsAutoShapeSphere())
+                    {
+                        if (ImGui::DragFloat("##objlist_ashape_size", &shapeSize, 0.1f, 0.1f, 100.f, "Radius: %.2f"))
+                            ui_spawn->SetAutoShapeSize(shapeSize);
+                    }
+                    else
+                    {
+                        if (ImGui::DragFloat("##objlist_ashape_size", &shapeSize, 0.1f, 0.1f, 100.f, "Half-size: %.2f"))
+                            ui_spawn->SetAutoShapeSize(shapeSize);
+                    }
+                    ImGui::Unindent();
+                }
+            }
+        }
+
         ImGui::Separator();
         if (ImGui::Button("Show Selected", ImVec2(-1, 0)))
         {
@@ -133,6 +197,10 @@ void UIObjectList::DrawObjects()
                     if (m_Mode == M_Visible && !obj->Visible()) continue;
                     if (m_Mode == M_Inbvisible && obj->Visible()) continue;
 
+                    // Spawn category filter
+                    if (it->first == OBJCLASS_SPAWNPOINT && !PassesSpawnCategoryFilter(obj))
+                        continue;
+
                     if (OBJCLASS_GROUP == it->first)
                     {
                         CGroupObject* grp = (CGroupObject*)obj;
@@ -159,6 +227,60 @@ void UIObjectList::DrawObjects()
             }
         }
     }
+}
+
+void UIObjectList::RebuildSpawnCategories()
+{
+    // Collect unique $spawn category strings from all spawn objects in scene.
+    // We rebuild every frame — the list is usually tiny so the cost is negligible.
+    std::vector<std::string> cats;
+    cats.push_back("All");
+
+    ESceneCustomOTool* spawn_tool = dynamic_cast<ESceneCustomOTool*>(Scene->GetOTool(OBJCLASS_SPAWNPOINT));
+    if (spawn_tool)
+    {
+        ObjectList& lst = spawn_tool->GetObjects();
+        for (CCustomObject* obj : lst)
+        {
+            CSpawnPoint* sp = dynamic_cast<CSpawnPoint*>(obj);
+            if (!sp) continue;
+            LPCSTR ref = sp->RefName();
+            if (!ref || !ref[0]) continue;
+            if (!pSettings->line_exist(ref, "$spawn")) continue;
+
+            LPCSTR spawn_cat = pSettings->r_string(ref, "$spawn");
+            if (!spawn_cat || !spawn_cat[0]) continue;
+
+            std::string cat_str(spawn_cat);
+            if (std::find(cats.begin(), cats.end(), cat_str) == cats.end())
+                cats.push_back(cat_str);
+        }
+    }
+
+    // If categories changed — reset index to 0 (All)
+    if (cats != m_SpawnCategories)
+    {
+        m_SpawnCategories = std::move(cats);
+        m_SpawnCategoryIdx = 0;
+    }
+}
+
+bool UIObjectList::PassesSpawnCategoryFilter(CCustomObject* obj) const
+{
+    // Index 0 means "All" — no filtering
+    if (m_SpawnCategoryIdx == 0) return true;
+    if (m_SpawnCategories.empty() || m_SpawnCategoryIdx >= (int)m_SpawnCategories.size()) return true;
+
+    CSpawnPoint* sp = dynamic_cast<CSpawnPoint*>(obj);
+    if (!sp) return true;
+    LPCSTR ref = sp->RefName();
+    if (!ref || !ref[0]) return false;
+    if (!pSettings->line_exist(ref, "$spawn")) return false;
+
+    LPCSTR spawn_cat = pSettings->r_string(ref, "$spawn");
+    if (!spawn_cat) return false;
+
+    return (m_SpawnCategories[m_SpawnCategoryIdx] == spawn_cat);
 }
 
 void UIObjectList::DrawObject(CCustomObject *obj, const char *name)
