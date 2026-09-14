@@ -53,7 +53,12 @@ bool TUI_ControlWayPointAdd::Start(TShiftState Shift)
             if (last_wp)
                 last_wp->AddSingleLink(wp);
         }
+        if (frame->IsAutoFlag())
+        {
+            wp->SetFlag(0x1);
+        }
         Scene->UndoSave();
+        ExecCommand(COMMAND_UPDATE_PROPERTIES); 
     }
     if (!(Shift & ssAlt))
         ResetActionToSelect();

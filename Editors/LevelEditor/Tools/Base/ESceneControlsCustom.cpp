@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-// Флаг активной трансформации — подавляет Modified()/UPDATE_CAPTION во время движения мыши
+// Р¤Р»Р°Рі Р°РєС‚РёРІРЅРѕР№ С‚СЂР°РЅСЃС„РѕСЂРјР°С†РёРё вЂ” РїРѕРґР°РІР»СЏРµС‚ Modified()/UPDATE_CAPTION РІРѕ РІСЂРµРјСЏ РґРІРёР¶РµРЅРёСЏ РјС‹С€Рё
 static bool s_transformInProgress = false;
 
 bool IsTransformInProgress() { return s_transformInProgress; }
@@ -255,7 +255,7 @@ bool TUI_CustomControl::MovingStart(TShiftState Shift)
         m_MovingReminder.set(0, 0, 0);
     }
 
-    // начало трансформации — подавляем Modified() во время движения
+    // РЅР°С‡Р°Р»Рѕ С‚СЂР°РЅСЃС„РѕСЂРјР°С†РёРё вЂ” РїРѕРґР°РІР»СЏРµРј Modified() РІРѕ РІСЂРµРјСЏ РґРІРёР¶РµРЅРёСЏ
     s_transformInProgress = true;
     return true;
 }
@@ -274,11 +274,11 @@ bool TUI_CustomControl::DefaultMovingProcess(TShiftState Shift, Fvector& amount)
             CHECK_SNAP(m_MovingReminder.z, amount.z, Tools->m_MoveSnap);
         }
 
-        if (!(etAxisX == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()))
+        if (!(etAxisX == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()) && !(etAxisXY == Tools->GetAxis()) && !(etAxisCAM == Tools->GetAxis()))
             amount.x = 0.f;
-        if (!(etAxisZ == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()))
+        if (!(etAxisZ == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()) && !(etAxisYZ == Tools->GetAxis()) && !(etAxisCAM == Tools->GetAxis()))
             amount.z = 0.f;
-        if (!(etAxisY == Tools->GetAxis()))
+        if (!(etAxisY == Tools->GetAxis()) && !(etAxisXY == Tools->GetAxis()) && !(etAxisYZ == Tools->GetAxis()) && !(etAxisCAM == Tools->GetAxis()))
             amount.y = 0.f;
 
         return (amount.square_magnitude() > EPS_S);
@@ -295,7 +295,6 @@ void TUI_CustomControl::MovingProcess(TShiftState _Shift)
         if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
             for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
                 (*_F)->Move(amount);
-        // только редрав сцены, без UPDATE_PROPERTIES и UPDATE_CAPTION
         UI->RedrawScene();
     }
 }
@@ -304,7 +303,6 @@ bool TUI_CustomControl::MovingEnd(TShiftState _Shift)
 {
     s_transformInProgress = false;
     Scene->UndoSave();
-    // один раз обновляем UI после завершения перемещения
     ExecCommand(COMMAND_UPDATE_PROPERTIES);
     ExecCommand(COMMAND_UPDATE_CAPTION);
     return true;
@@ -332,6 +330,10 @@ bool TUI_CustomControl::RotateStart(TShiftState Shift)
         m_RotateVector.set(0, 1, 0);
     else if (etAxisZ == Tools->GetAxis())
         m_RotateVector.set(0, 0, 1);
+    else if (etAxisCAM == Tools->GetAxis())
+        m_RotateVector.set(EDevice.m_Camera.GetDirection());
+    else
+        m_RotateVector.set(0, 1, 0);
     m_fRotateSnapAngle = 0;
 
     s_transformInProgress = true;
@@ -397,13 +399,13 @@ void TUI_CustomControl::ScaleProcess(TShiftState _Shift)
     Fvector amount;
     amount.set(dy, dy, dy);
 
-    if (Tools->GetSettings(etfNUScale))
+    if (Tools->GetSettings(etfNUScale) && Tools->GetAxis() != etAxisCAM)
     {
-        if (!(etAxisX == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()))
+        if (!(etAxisX == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()) && !(etAxisXY == Tools->GetAxis()))
             amount.x = 0.f;
-        if (!(etAxisZ == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()))
+        if (!(etAxisZ == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()) && !(etAxisYZ == Tools->GetAxis()))
             amount.z = 0.f;
-        if (!(etAxisY == Tools->GetAxis()))
+        if (!(etAxisY == Tools->GetAxis()) && !(etAxisXY == Tools->GetAxis()) && !(etAxisYZ == Tools->GetAxis()))
             amount.y = 0.f;
     }
 

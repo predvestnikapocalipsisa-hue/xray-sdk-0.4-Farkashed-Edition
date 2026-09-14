@@ -6,9 +6,11 @@ public:
 	virtual ~UIWayTool();
 	virtual void Draw();
 	IC bool IsAutoLink() const { return m_AutoLink; }
+	IC bool IsAutoFlag() const { return m_AutoFlag; }
 	IC void SetWayMode(bool mode) { m_WayMode = mode; }
 
 private:
 	bool m_WayMode;
 	bool m_AutoLink;
+	bool m_AutoFlag;
 };

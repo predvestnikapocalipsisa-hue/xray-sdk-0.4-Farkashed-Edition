@@ -9,6 +9,7 @@
 #define CUSTOMOBJECT_CHUNK_NAME 0xF907
 #define CUSTOMOBJECT_CHUNK_MOTION_PARAM 0xF908
 #define CUSTOMOBJECT_CHUNK_CREATION_TIME 0xF909
+#define CUSTOMOBJECT_CHUNK_SELECTION 0xF90A
 
 enum class SocFlags : u32
 {
@@ -256,6 +257,11 @@ bool CCustomObject::LoadStream(IReader& F)
 	{
 		m_dwCreationTime = (time_t)F.r_u32();
 	}
+
+	if (F.find_chunk(CUSTOMOBJECT_CHUNK_SELECTION))
+	{
+		Select(F.r_u8() != 0);
+	}
 	else
 	{
 		m_dwCreationTime = 0;
@@ -323,6 +329,13 @@ void CCustomObject::SaveStream(IWriter& F)
 	{
 		F.open_chunk(CUSTOMOBJECT_CHUNK_CREATION_TIME);
 		F.w_u32((u32)m_dwCreationTime);
+		F.close_chunk();
+	}
+
+	if (m_RT_Flags.is(flRT_Selected))
+	{
+		F.open_chunk(CUSTOMOBJECT_CHUNK_SELECTION);
+		F.w_u8(1);
 		F.close_chunk();
 	}
 }

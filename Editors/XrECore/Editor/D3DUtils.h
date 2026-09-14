@@ -151,6 +151,8 @@ public:
     virtual void DrawPlane(const Fvector &center, const Fvector2 &scale, const Fvector &rotate, u32 clr_s, u32 clr_w, BOOL bCull, BOOL bSolid, BOOL bWire);
     virtual void DrawPlane(const Fvector &p, const Fvector &n, const Fvector2 &scale, u32 clr_s, u32 clr_w, BOOL bCull, BOOL bSolid, BOOL bWire);
     virtual void DrawRectangle(const Fvector &o, const Fvector &u, const Fvector &v, u32 clr_s, u32 clr_w, BOOL bSolid, BOOL bWire);
+    virtual void DrawCircle(const Fvector &center, const Fvector &N, float radius, u32 clr, BOOL bSolid = FALSE, int segments = 48);
+    virtual void DrawCircleSector(const Fvector &center, const Fvector &N, const Fvector &dirFrom, float angleRad, float radius, u32 clr_solid, u32 clr_wire, int segments = 32);
 
     virtual void DrawGrid();
     virtual void DrawPivot(const Fvector &pos, float sz = 5.f);

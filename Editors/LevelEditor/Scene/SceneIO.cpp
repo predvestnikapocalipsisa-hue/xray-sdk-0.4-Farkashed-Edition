@@ -480,65 +480,35 @@ bool EScene::LoadToolLTX(ObjClassID clsid, LPCSTR fn)
     return res;
 }
 
-void EScene::Save(LPCSTR map_name, bool bUndo, bool bForceSaveAll)
+void EScene::SaveStream(IWriter& F, bool bUndo, bool bForceSaveAll)
 {
-    if (!Core.SocSdk)
+    F.open_chunk(CHUNK_VERSION);
+    F.w_u32(CURRENT_FILE_VERSION);
+    F.close_chunk();
 
-        VERIFY(map_name);
+    F.open_chunk(CHUNK_LEVELOP);
+    m_LevelOp.Save(F);
+    F.close_chunk();
 
-    CTimer T;
-    T.Start();
-    xr_string full_name = map_name;
-    xr_string part_prefix;
+    F.open_chunk(CHUNK_TOOLS_GUID);
+    F.w(&m_GUID, sizeof(m_GUID));
+    F.close_chunk();
 
-    bool bSaveMain = true;
+    F.open_chunk(CHUNK_LEVEL_TAG);
+    F.w_stringZ(m_OwnerName);
+    F.w(&m_CreateTime, sizeof(m_CreateTime));
+    F.close_chunk();
 
-    if (!bUndo)
-    {
-        if (bSaveMain)
-        {
-            EFS.MarkFile(full_name.c_str(), true);
-        }
+    F.open_chunk(CHUNK_CAMERA);
+    F.w_fvector3(EDevice.m_Camera.GetHPB());
+    F.w_fvector3(EDevice.m_Camera.GetPosition());
+    F.close_chunk();
 
-        part_prefix = LevelPartPath(full_name.c_str());
-    }
-
-    IWriter* F = 0;
-
-    if (bSaveMain)
-    {
-        F = FS.w_open(full_name.c_str());
-        R_ASSERT(F);
-
-        F->open_chunk(CHUNK_VERSION);
-        F->w_u32(CURRENT_FILE_VERSION);
-        F->close_chunk();
-
-        F->open_chunk(CHUNK_LEVELOP);
-        m_LevelOp.Save(*F);
-        F->close_chunk();
-
-        F->open_chunk(CHUNK_TOOLS_GUID);
-        F->w(&m_GUID, sizeof(m_GUID));
-        F->close_chunk();
-
-        F->open_chunk(CHUNK_LEVEL_TAG);
-        F->w_stringZ(m_OwnerName);
-        F->w(&m_CreateTime, sizeof(m_CreateTime));
-        F->close_chunk();
-
-        F->open_chunk(CHUNK_CAMERA);
-        F->w_fvector3(EDevice.m_Camera.GetHPB());
-        F->w_fvector3(EDevice.m_Camera.GetPosition());
-        F->close_chunk();
-
-        F->open_chunk(CHUNK_SNAPOBJECTS);
-        F->w_u32(m_ESO_SnapObjects.size());
-        for (ObjectIt _F = m_ESO_SnapObjects.begin(); _F != m_ESO_SnapObjects.end(); ++_F)
-            F->w_stringZ((*_F)->GetName());
-        F->close_chunk();
-    }
-
+    F.open_chunk(CHUNK_SNAPOBJECTS);
+    F.w_u32(m_ESO_SnapObjects.size());
+    for (ObjectIt _F = m_ESO_SnapObjects.begin(); _F != m_ESO_SnapObjects.end(); ++_F)
+        F.w_stringZ((*_F)->GetName());
+    F.close_chunk();
 
     m_SaveCache.clear();
     SceneToolsMapPairIt _I = m_SceneTools.begin();
@@ -555,24 +525,63 @@ void EScene::Save(LPCSTR map_name, bool bUndo, bool bForceSaveAll)
                     if (_I->second->IsNeedSave())
                     {
                         _I->second->SaveStream(m_SaveCache);
-                        if (F)
-                        {
-                            F->open_chunk(CHUNK_TOOLS_DATA + _I->first);
-                            F->w(m_SaveCache.pointer(), m_SaveCache.size());
-                            F->close_chunk();
-                        }
+                        F.open_chunk(CHUNK_TOOLS_DATA + _I->first);
+                        F.w(m_SaveCache.pointer(), m_SaveCache.size());
+                        F.close_chunk();
                     }
                 }
             }
-            else
+            m_SaveCache.clear();
+        }
+    }
+}
+
+void EScene::Save(LPCSTR map_name, bool bUndo, bool bForceSaveAll)
+{
+    if (!Core.SocSdk)
+        VERIFY(map_name);
+
+    CTimer T;
+    T.Start();
+    xr_string full_name = map_name;
+    xr_string part_prefix;
+
+    bool bSaveMain = true;
+
+    if (!bUndo)
+    {
+        if (bSaveMain)
+        {
+            EFS.MarkFile(full_name.c_str(), true);
+        }
+        part_prefix = LevelPartPath(full_name.c_str());
+    }
+
+    IWriter* F = 0;
+
+    if (bSaveMain)
+    {
+        F = FS.w_open(full_name.c_str());
+        R_ASSERT(F);
+
+        SaveStream(*F, bUndo, bForceSaveAll);
+    }
+
+    if (!bUndo)
+    {
+        m_SaveCache.clear();
+        SceneToolsMapPairIt _I = m_SceneTools.begin();
+        SceneToolsMapPairIt _E = m_SceneTools.end();
+
+        for (; _I != _E; ++_I)
+        {
+            if ((_I->first != OBJCLASS_DUMMY) && _I->second)
             {
                 if (_I->second->IsEnabled() && _I->second->IsEditable() &&
                     (_I->second->IsChanged() || bForceSaveAll))
                 {
                     xr_string part_name = part_prefix + _I->second->ClassName() + ".part";
-
                     _I->second->SaveStream(m_SaveCache);
-
                     EFS.MarkFile(part_name.c_str(), true);
 
                     IWriter* FF = FS.w_open(part_name.c_str());
@@ -593,8 +602,8 @@ void EScene::Save(LPCSTR map_name, bool bUndo, bool bForceSaveAll)
                         Msg("!Can't save level part '%s' - access denied.", _I->second->ClassName());
                     }
                 }
+                m_SaveCache.clear();
             }
-            m_SaveCache.clear();
         }
     }
 
@@ -920,16 +929,116 @@ bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
     return false;
 }
 
-bool EScene::Load(LPCSTR map_name, bool bUndo)
+bool EScene::LoadStream(IReader& F, bool bUndo)
 {
-	CSceneObject::ResetMissingReferencePrompts();
+    CSceneObject::ResetMissingReferencePrompts();
     u32 version = 0;
 
+    // Version
+    R_ASSERT(F.r_chunk(CHUNK_VERSION, &version));
+    if (version != CURRENT_FILE_VERSION)
+    {
+        ELog.DlgMsg(mtError, "EScene: unsupported file version. Can't load Level.");
+        UI->UpdateScene();
+        return false;
+    }
+
+    // Lev. ops.
+    IReader *LOP = F.open_chunk(CHUNK_LEVELOP);
+    if (LOP)
+    {
+        m_LevelOp.Read(*LOP);
+        LOP->close();
+    }
+    else
+    {
+        ELog.DlgMsg(mtError, "Skipping old version of level options.\nCheck level options after loading.");
+    }
+
+    if (F.find_chunk(CHUNK_CAMERA))
+    {
+        Fvector hpb, pos;
+        F.r_fvector3(hpb);
+        F.r_fvector3(pos);
+        EDevice.m_Camera.Set(hpb, pos);
+        EDevice.m_Camera.SetStyle(EDevice.m_Camera.GetStyle());
+    }
+
+    if (F.find_chunk(CHUNK_TOOLS_GUID))
+    {
+        F.r(&m_GUID, sizeof(m_GUID));
+    }
+
+    if (F.find_chunk(CHUNK_LEVEL_TAG))
+    {
+        F.r_stringZ(m_OwnerName);
+        F.r(&m_CreateTime, sizeof(m_CreateTime));
+    }
+    else
+    {
+        m_OwnerName = "";
+        m_CreateTime = 0;
+    }
+
+    DWORD obj_cnt = 0;
+
+    if (F.find_chunk(CHUNK_OBJECT_COUNT))
+        obj_cnt = F.r_u32();
+
+    SPBItem *pb = bUndo ? nullptr : UI->ProgressStart(obj_cnt, "Loading objects...");
+    ReadObjectsStream(F, CHUNK_OBJECT_LIST, TAppendObject(this, &EScene::OnLoadAppendObject), pb);
+    if (pb) UI->ProgressEnd(pb);
+
+    SceneToolsMapPairIt _I = m_SceneTools.begin();
+    SceneToolsMapPairIt _E = m_SceneTools.end();
+    for (; _I != _E; ++_I)
+    {
+        if (_I->second)
+        {
+            IReader *chunk = F.open_chunk(CHUNK_TOOLS_DATA + _I->first);
+            if (chunk)
+            {
+                _I->second->LoadStream(*chunk);
+                chunk->close();
+            }
+        }
+    }
+
+    // snap list
+    if (F.find_chunk(CHUNK_SNAPOBJECTS))
+    {
+        shared_str buf;
+        int cnt = F.r_u32();
+        if (cnt)
+        {
+            for (int i = 0; i < cnt; ++i)
+            {   
+                F.r_stringZ(buf);
+                CCustomObject *O = FindObjectByName(buf.c_str(), OBJCLASS_SCENEOBJECT);
+                if (!O)
+                    ELog.Msg(mtError, "EScene: Can't find snap object '%s'.", buf.c_str());
+                else
+                    m_ESO_SnapObjects.push_back(O);
+            }
+        }
+        UpdateSnapList();
+    }
+
+    UI->UpdateScene(true);
+    SynchronizeObjects();
+
+    if (!bUndo)
+        m_RTFlags.set(flRT_Unsaved | flRT_Modified, FALSE);
+
+    return true;
+}
+
+bool EScene::Load(LPCSTR map_name, bool bUndo)
+{
     if (!map_name || (0 == map_name[0]))
         return false;
 
-    xr_string full_name;
-    full_name = map_name;
+    xr_string full_name = map_name;
 
     ELog.Msg(mtInformation, "EScene: loading '%s'", map_name);
     if (FS.exist(full_name.c_str()))
@@ -937,121 +1046,33 @@ bool EScene::Load(LPCSTR map_name, bool bUndo)
         CTimer T;
         T.Start();
 
-        // read main level
         IReader *F = FS.r_open(full_name.c_str());
         VERIFY(F);
-        // Version
-        R_ASSERT(F->r_chunk(CHUNK_VERSION, &version));
-        if (version != CURRENT_FILE_VERSION)
-        {
-            ELog.DlgMsg(mtError, "EScene: unsupported file version. Can't load Level.");
-            UI->UpdateScene();
-            FS.r_close(F);
-            return false;
-        }
 
-        // Lev. ops.
-        IReader *LOP = F->open_chunk(CHUNK_LEVELOP);
-        if (LOP)
-        {
-            m_LevelOp.Read(*LOP);
-            LOP->close();
-        }
-        else
-        {
-            ELog.DlgMsg(mtError, "Skipping old version of level options.\nCheck level options after loading.");
-        }
+        bool bRes = LoadStream(*F, bUndo);
 
-        //
-        if (F->find_chunk(CHUNK_CAMERA))
+        if (!bUndo)
         {
-            Fvector hpb, pos;
-            F->r_fvector3(hpb);
-            F->r_fvector3(pos);
-            EDevice.m_Camera.Set(hpb, pos);
-            EDevice.m_Camera.SetStyle(EDevice.m_Camera.GetStyle());
-        }
-
-        if (F->find_chunk(CHUNK_TOOLS_GUID))
-        {
-            F->r(&m_GUID, sizeof(m_GUID));
-        }
-
-        if (F->find_chunk(CHUNK_LEVEL_TAG))
-        {
-            F->r_stringZ(m_OwnerName);
-            F->r(&m_CreateTime, sizeof(m_CreateTime));
-        }
-        else
-        {
-            m_OwnerName = "";
-            m_CreateTime = 0;
-        }
-
-        DWORD obj_cnt = 0;
-
-        if (F->find_chunk(CHUNK_OBJECT_COUNT))
-            obj_cnt = F->r_u32();
-
-        SPBItem *pb = UI->ProgressStart(obj_cnt, "Loading objects...");
-        ReadObjectsStream(*F, CHUNK_OBJECT_LIST, TAppendObject(this, &EScene::OnLoadAppendObject), pb);
-        UI->ProgressEnd(pb);
-
-        SceneToolsMapPairIt _I = m_SceneTools.begin();
-        SceneToolsMapPairIt _E = m_SceneTools.end();
-        for (; _I != _E; ++_I)
-        {
-            if (_I->second)
+            SceneToolsMapPairIt _I = m_SceneTools.begin();
+            SceneToolsMapPairIt _E = m_SceneTools.end();
+            for (; _I != _E; ++_I)
             {
-                IReader *chunk = F->open_chunk(CHUNK_TOOLS_DATA + _I->first);
-                if (chunk)
+                if (_I->second && _I->second->IsEnabled() && (_I->first != OBJCLASS_DUMMY))
                 {
-                    _I->second->LoadStream(*chunk);
-                    chunk->close();
-                }
-                else
-                {
-                    if (!bUndo && _I->second->IsEnabled() && (_I->first != OBJCLASS_DUMMY))
+                    IReader *chunk = F ? F->open_chunk(CHUNK_TOOLS_DATA + _I->first) : nullptr;
+                    if (!chunk)
                     {
                         LoadLevelPart(_I->second, LevelPartName(map_name, _I->first).c_str());
                     }
+                    if (chunk) chunk->close();
                 }
             }
         }
-
-        // snap list
-        if (F->find_chunk(CHUNK_SNAPOBJECTS))
-        {
-            shared_str buf;
-            int cnt = F->r_u32();
-            if (cnt)
-            {
-                for (int i = 0; i < cnt; ++i)
-                {
-                    F->r_stringZ(buf);
-                    CCustomObject *O = FindObjectByName(buf.c_str(), OBJCLASS_SCENEOBJECT);
-                    if (!O)
-                        ELog.Msg(mtError, "EScene: Can't find snap object '%s'.", buf.c_str());
-
-                    else
-                        m_ESO_SnapObjects.push_back(O);
-                }
-            }
-            UpdateSnapList();
-        }
-
-        Msg("EScene: %d objects loaded, %3.2f sec", ObjCount(), T.GetElapsed_sec());
-
-        UI->UpdateScene(true);
 
         FS.r_close(F);
 
-        SynchronizeObjects();
-
-        if (!bUndo)
-            m_RTFlags.set(flRT_Unsaved | flRT_Modified, FALSE);
-
-        return true;
+        Msg("EScene: %d objects loaded, %3.2f sec", ObjCount(), T.GetElapsed_sec());
+        return bRes;
     }
     else
     {
@@ -1060,9 +1081,6 @@ bool EScene::Load(LPCSTR map_name, bool bUndo)
     return false;
 }
 
-//---------------------------------------------------------------------------------------
-// copy/paste utils
-//---------------------------------------------------------------------------------------
 void EScene::SaveSelection(ObjClassID classfilter, LPCSTR fname)
 {
     VERIFY(fname);

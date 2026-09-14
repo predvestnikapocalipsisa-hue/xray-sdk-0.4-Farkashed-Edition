@@ -33,6 +33,8 @@ CToolCustom::CToolCustom()
     m_Action = etaSelect;
     m_Settings.assign(etfNormalAlign | etfGSnap | etfOSnap | etfMTSnap | etfVSnap | etfASnap | etfMSnap);
     m_Axis = etAxisZX;
+    m_HoverAxis = etAxisUndefined;
+    m_GizmoScale = 1.0f;
     fFogness = 0.9f;
     dwFogColor = 0xffffffff;
     m_pAxisMoveObject = NULL;
@@ -162,46 +164,30 @@ bool CToolCustom::MouseStart(TShiftState Shift)
     case etaRotate:
         m_RotateCenter.set(0, 0, 0);
         m_RotateVector.set(0, 0, 0);
+        m_fRotateSnapValue = 0.0f;
+        m_RotateAmount = 0.0f;
+
         if (etAxisX == m_Axis)
             m_RotateVector.set(1, 0, 0);
         else if (etAxisY == m_Axis)
             m_RotateVector.set(0, 1, 0);
         else if (etAxisZ == m_Axis)
             m_RotateVector.set(0, 0, 1);
-        m_fRotateSnapValue = 0;
-        m_RotateAmount = 0;
+        else if (etAxisCAM == m_Axis)
+            m_RotateVector.set(EDevice.m_Camera.GetDirection());
         break;
     case etaScale:
         m_ScaleAmount.set(0, 0, 0);
         break;
     }
 
-    if (m_Action == etaMove && m_pAxisMoveObject)
+    if (m_Action == etaMove || m_Action == etaRotate || m_Action == etaScale)
     {
-        Fmatrix inv_parent;
-        inv_parent.invert(m_axis_xform);
-        Fvector start_point, start_dir;
-        float dist;
-        SRayPickInfo pinfo;
-
-        start_point = UI->m_CurrentRStart;
-        start_dir = UI->m_CurrentRDir;
-        dist = 10000;
-        m_pAxisMoveObject->RayPick(dist, start_point, start_dir, inv_parent, &pinfo);
-        if (pinfo.e_mesh)
+        ETAxis picked = PickGizmo(UI->m_CurrentRStart, UI->m_CurrentRDir);
+        if (picked != etAxisUndefined)
         {
-            LPCSTR mn = pinfo.e_mesh->Name().c_str();
-            if (0 == stricmp(mn, "axis_x"))
-                SetAxis(etAxisX);
-            else if (0 == stricmp(mn, "axis_y"))
-                SetAxis(etAxisY);
-            else if (0 == stricmp(mn, "axis_z"))
-                SetAxis(etAxisZ);
-            else if (0 == stricmp(mn, "center"))
-                SetAxis(etAxisZX);
-            else
-                R_ASSERT2(0, "fix axis name");
-        };
+            SetAxis(picked);
+        }
     }
 
     return m_bHiddenMode;
@@ -227,6 +213,16 @@ bool CToolCustom::MouseEnd(TShiftState Shift)
 
 void CToolCustom::MouseMove(TShiftState Shift)
 {
+    if (!m_bHiddenMode && (m_Action == etaMove || m_Action == etaRotate || m_Action == etaScale))
+    {
+        ETAxis prevHover = m_HoverAxis;
+        m_HoverAxis = PickGizmo(UI->m_CurrentRStart, UI->m_CurrentRDir);
+        if (prevHover != m_HoverAxis)
+        {
+            UI->RedrawScene();
+        }
+    }
+
     switch (m_Action)
     {
     case etaSelect:
@@ -245,11 +241,11 @@ void CToolCustom::MouseMove(TShiftState Shift)
             CHECK_SNAP(m_MoveReminder.z, m_MovedAmount.z, m_MoveSnap);
         }
 
-        if (!(etAxisX == m_Axis) && !(etAxisZX == m_Axis))
+        if (!(etAxisX == m_Axis) && !(etAxisZX == m_Axis) && !(etAxisXY == m_Axis) && !(etAxisCAM == m_Axis))
             m_MovedAmount.x = 0.f;
-        if (!(etAxisZ == m_Axis) && !(etAxisZX == m_Axis))
+        if (!(etAxisZ == m_Axis) && !(etAxisZX == m_Axis) && !(etAxisYZ == m_Axis) && !(etAxisCAM == m_Axis))
             m_MovedAmount.z = 0.f;
-        if (!(etAxisY == m_Axis))
+        if (!(etAxisY == m_Axis) && !(etAxisXY == m_Axis) && !(etAxisYZ == m_Axis) && !(etAxisCAM == m_Axis))
             m_MovedAmount.y = 0.f;
     }
     break;
@@ -270,13 +266,13 @@ void CToolCustom::MouseMove(TShiftState Shift)
 
         m_ScaleAmount.set(dy, dy, dy);
 
-        if (m_Settings.is(etfNUScale))
+        if (m_Settings.is(etfNUScale) && m_Axis != etAxisCAM)
         {
-            if (!(etAxisX == m_Axis) && !(etAxisZX == m_Axis))
+            if (!(etAxisX == m_Axis) && !(etAxisZX == m_Axis) && !(etAxisXY == m_Axis))
                 m_ScaleAmount.x = 0.f;
-            if (!(etAxisZ == m_Axis) && !(etAxisZX == m_Axis))
+            if (!(etAxisZ == m_Axis) && !(etAxisZX == m_Axis) && !(etAxisYZ == m_Axis))
                 m_ScaleAmount.z = 0.f;
-            if (!(etAxisY == m_Axis))
+            if (!(etAxisY == m_Axis) && !(etAxisXY == m_Axis) && !(etAxisYZ == m_Axis))
                 m_ScaleAmount.y = 0.f;
         }
     }
@@ -360,42 +356,378 @@ void CToolCustom::Render()
     EDevice.SetRS(D3DRS_CULLMODE, D3DCULL_CCW);
     EDevice.ResetNearer();
 
-    if (m_pAxisMoveObject && GetSelectionPosition(m_axis_xform))
-    {
-        for (SurfaceIt s_it = m_pAxisMoveObject->Surfaces().begin(); s_it != m_pAxisMoveObject->Surfaces().end(); ++s_it)
-        {
-            EDevice.SetShader((*s_it)->_Shader());
-            RCache.set_xform_world(m_axis_xform);
+    EDevice.SetRS(D3DRS_CULLMODE, D3DCULL_CCW);
+    EDevice.ResetNearer();
 
-            for (int idx = 0; idx < m_pAxisMoveObject->Meshes().size(); ++idx)
+    RenderGizmo();
+}
+
+float CToolCustom::CalculateGizmoScale(const Fvector &pivot)
+{
+    float dist = EDevice.m_Camera.GetPosition().distance_to(pivot);
+    float scale = dist * 0.12f;
+    if (scale < 0.05f) scale = 0.05f;
+    return scale;
+}
+
+static float RayDistanceToSegment(const Fvector &rayStart, const Fvector &rayDir, const Fvector &p0, const Fvector &p1, Fvector &outClosestOnSegment)
+{
+    Fvector u = rayDir;
+    Fvector v = Fvector().sub(p1, p0);
+    Fvector w = Fvector().sub(rayStart, p0);
+    float a = u.dotproduct(u);
+    float b = u.dotproduct(v);
+    float c = v.dotproduct(v);
+    float d = u.dotproduct(w);
+    float e = v.dotproduct(w);
+    float D = a * c - b * b;
+    float sc, sN, sD = D;
+    float tc, tN, tD = D;
+
+    if (D < EPS_S)
+    {
+        sN = 0.0f;
+        sD = 1.0f;
+        tN = e;
+        tD = c;
+    }
+    else
+    {
+        sN = (b * e - c * d);
+        tN = (a * e - b * d);
+        if (sN < 0.0f)
+        {
+            sN = 0.0f;
+            tN = e;
+            tD = c;
+        }
+    }
+
+    if (tN < 0.0f)
+    {
+        tN = 0.0f;
+        if (-d < 0.0f)
+            sN = 0.0f;
+        else if (-d > a)
+            sN = sD;
+        else
+        {
+            sN = -d;
+            sD = a;
+        }
+    }
+    else if (tN > tD)
+    {
+        tN = tD;
+        if ((-d + b) < 0.0f)
+            sN = 0.0f;
+        else if ((-d + b) > a)
+            sN = sD;
+        else
+        {
+            sN = (-d + b);
+            sD = a;
+        }
+    }
+
+    sc = (abs(sN) < EPS_S ? 0.0f : sN / sD);
+    tc = (abs(tN) < EPS_S ? 0.0f : tN / tD);
+
+    Fvector dP = Fvector().sub(Fvector().mad(rayStart, u, sc), Fvector().mad(p0, v, tc));
+    outClosestOnSegment.mad(p0, v, tc);
+    return dP.magnitude();
+}
+
+static bool RayPlaneIntersection(const Fvector &rayStart, const Fvector &rayDir, const Fvector &planePoint, const Fvector &planeNormal, Fvector &outHit)
+{
+    float denom = planeNormal.dotproduct(rayDir);
+    if (abs(denom) > EPS_S)
+    {
+        float t = planeNormal.dotproduct(Fvector().sub(planePoint, rayStart)) / denom;
+        if (t >= 0.0f)
+        {
+            outHit.mad(rayStart, rayDir, t);
+            return true;
+        }
+    }
+    return false;
+}
+
+ETAxis CToolCustom::PickGizmo(const Fvector &start, const Fvector &dir)
+{
+    if (!GetSelectionPosition(m_axis_xform))
+        return etAxisUndefined;
+
+    Fvector center = m_axis_xform.c;
+    float scale = CalculateGizmoScale(center);
+
+    Fvector axisX = Fvector().set(scale, 0, 0);
+    Fvector axisY = Fvector().set(0, scale, 0);
+    Fvector axisZ = Fvector().set(0, 0, scale);
+
+    Fvector endX = Fvector().add(center, axisX);
+    Fvector endY = Fvector().add(center, axisY);
+    Fvector endZ = Fvector().add(center, axisZ);
+
+    float pickRadius = scale * 0.15f;
+    float bestDist = 1e9f;
+    ETAxis bestAxis = etAxisUndefined;
+
+    Fvector hitCam;
+    if (RayPlaneIntersection(start, dir, center, EDevice.m_Camera.GetDirection(), hitCam))
+    {
+        float d = hitCam.distance_to(center);
+        if (d <= pickRadius * 1.5f && d < bestDist)
+        {
+            bestDist = d;
+            bestAxis = etAxisCAM;
+        }
+    }
+
+    if (m_Action == etaMove || m_Action == etaScale)
+    {
+        float quadSize = scale * 0.4f;
+
+        Fvector hitZX;
+        if (RayPlaneIntersection(start, dir, center, Fvector().set(0, 1, 0), hitZX))
+        {
+            Fvector local = Fvector().sub(hitZX, center);
+            if (local.x >= 0.0f && local.x <= quadSize && local.z >= 0.0f && local.z <= quadSize)
             {
-                CEditableMesh *M = m_pAxisMoveObject->Meshes()[idx];
-                if ((m_Axis == idx) ||
-                    (idx == etAxisZX) ||
-                    (m_Axis == etAxisZX && (idx == etAxisX || idx == etAxisZ)) ||
-                    (m_Axis == etAxisUndefined))
-                    M->Render(m_axis_xform, *s_it);
+                float d = local.magnitude();
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    bestAxis = etAxisZX;
+                }
+            }
+        }
+
+        Fvector hitXY;
+        if (RayPlaneIntersection(start, dir, center, Fvector().set(0, 0, 1), hitXY))
+        {
+            Fvector local = Fvector().sub(hitXY, center);
+            if (local.x >= 0.0f && local.x <= quadSize && local.y >= 0.0f && local.y <= quadSize)
+            {
+                float d = local.magnitude();
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    bestAxis = etAxisXY;
+                }
+            }
+        }
+
+        Fvector hitYZ;
+        if (RayPlaneIntersection(start, dir, center, Fvector().set(1, 0, 0), hitYZ))
+        {
+            Fvector local = Fvector().sub(hitYZ, center);
+            if (local.y >= 0.0f && local.y <= quadSize && local.z >= 0.0f && local.z <= quadSize)
+            {
+                float d = local.magnitude();
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    bestAxis = etAxisYZ;
+                }
+            }
+        }
+
+        Fvector dummy;
+        float dX = RayDistanceToSegment(start, dir, center, endX, dummy);
+        if (dX <= pickRadius && dX < bestDist)
+        {
+            bestDist = dX;
+            bestAxis = etAxisX;
+        }
+
+        float dY = RayDistanceToSegment(start, dir, center, endY, dummy);
+        if (dY <= pickRadius && dY < bestDist)
+        {
+            bestDist = dY;
+            bestAxis = etAxisY;
+        }
+
+        float dZ = RayDistanceToSegment(start, dir, center, endZ, dummy);
+        if (dZ <= pickRadius && dZ < bestDist)
+        {
+            bestDist = dZ;
+            bestAxis = etAxisZ;
+        }
+    }
+    else if (m_Action == etaRotate)
+    {
+        float rRadius = scale * 2.0f;
+        float ringThick = scale * 0.15f;
+
+        Fvector hitX;
+        if (RayPlaneIntersection(start, dir, center, Fvector().set(1, 0, 0), hitX))
+        {
+            float d = abs(hitX.distance_to(center) - rRadius);
+            if (d <= ringThick && d < bestDist)
+            {
+                bestDist = d;
+                bestAxis = etAxisX;
+            }
+        }
+
+        Fvector hitY;
+        if (RayPlaneIntersection(start, dir, center, Fvector().set(0, 1, 0), hitY))
+        {
+            float d = abs(hitY.distance_to(center) - rRadius);
+            if (d <= ringThick && d < bestDist)
+            {
+                bestDist = d;
+                bestAxis = etAxisY;
+            }
+        }
+
+        Fvector hitZ;
+        if (RayPlaneIntersection(start, dir, center, Fvector().set(0, 0, 1), hitZ))
+        {
+            float d = abs(hitZ.distance_to(center) - rRadius);
+            if (d <= ringThick && d < bestDist)
+            {
+                bestDist = d;
+                bestAxis = etAxisZ;
+            }
+        }
+
+        float screenRadius = rRadius * 1.2f; // Совпадает с RenderGizmo
+        if (RayPlaneIntersection(start, dir, center, EDevice.m_Camera.GetDirection(), hitCam))
+        {
+            float d = abs(hitCam.distance_to(center) - screenRadius);
+            if (d <= ringThick && d < bestDist)
+            {
+                bestDist = d;
+                bestAxis = etAxisCAM;
             }
         }
     }
 
-    if (m_pAxisMoveObject && GetSelectionPosition(m_axis_xform))
-    {
-        for (SurfaceIt s_it = m_pAxisMoveObject->Surfaces().begin(); s_it != m_pAxisMoveObject->Surfaces().end(); ++s_it)
-        {
-            EDevice.SetShader((*s_it)->_Shader());
-            RCache.set_xform_world(m_axis_xform);
+    return bestAxis;
+}
 
-            for (int idx = 0; idx < m_pAxisMoveObject->Meshes().size(); ++idx)
-            {
-                CEditableMesh *M = m_pAxisMoveObject->Meshes()[idx];
-                if ((m_Axis == idx) ||
-                    (idx == etAxisZX) ||
-                    (m_Axis == etAxisZX && (idx == etAxisX || idx == etAxisZ)) ||
-                    (m_Axis == etAxisUndefined))
-                    M->Render(m_axis_xform, *s_it);
-            }
+void CToolCustom::RenderGizmo()
+{
+    if (!GetSelectionPosition(m_axis_xform))
+        return;
+
+    Fvector center = m_axis_xform.c;
+    m_GizmoScale = CalculateGizmoScale(center);
+    float scale = m_GizmoScale;
+
+    EDevice.RenderNearer(0.0001f);
+
+    ETAxis active = (m_bHiddenMode) ? m_Axis : m_HoverAxis;
+
+    u32 clrX = (active == etAxisX) ? 0xFFFFFF00 : 0xFFFF3333;
+    u32 clrY = (active == etAxisY) ? 0xFFFFFF00 : 0xFF33FF33;
+    u32 clrZ = (active == etAxisZ) ? 0xFFFFFF00 : 0xFF3388FF;
+    u32 clrZX = (active == etAxisZX) ? 0xFFFFFF00 : 0x6000FFFF;
+    u32 clrXY = (active == etAxisXY) ? 0xFFFFFF00 : 0x60FFFF00;
+    u32 clrYZ = (active == etAxisYZ) ? 0xFFFFFF00 : 0x60FF00FF;
+    u32 clrCam = (active == etAxisCAM) ? 0xFFFFFF00 : 0x80FFFFFF;
+
+    if (m_Action == etaMove)
+    {
+        Fvector endX = Fvector().add(center, Fvector().set(scale, 0, 0));
+        Fvector endY = Fvector().add(center, Fvector().set(0, scale, 0));
+        Fvector endZ = Fvector().add(center, Fvector().set(0, 0, scale));
+
+        DU_impl.DrawLine(center, endX, clrX);
+        DU_impl.DrawLine(center, endY, clrY);
+        DU_impl.DrawLine(center, endZ, clrZ);
+
+        float coneH = scale * 0.2f;
+        float coneR = scale * 0.05f;
+        DU_impl.DrawCone(Fidentity, endX, Fvector().set(1, 0, 0), coneH, coneR, clrX, clrX, TRUE, TRUE);
+        DU_impl.DrawCone(Fidentity, endY, Fvector().set(0, 1, 0), coneH, coneR, clrY, clrY, TRUE, TRUE);
+        DU_impl.DrawCone(Fidentity, endZ, Fvector().set(0, 0, 1), coneH, coneR, clrZ, clrZ, TRUE, TRUE);
+
+        float qSize = scale * 0.45f;
+        Fvector pZX_o = Fvector().add(center, Fvector().set(-qSize * 0.5f, 0, -qSize * 0.5f));
+        DU_impl.DrawRectangle(pZX_o, Fvector().set(qSize, 0, 0), Fvector().set(0, 0, qSize), clrZX, clrZX, TRUE, TRUE);
+
+        DU_impl.DrawRectangle(center, Fvector().set(qSize * 0.8f, 0, 0), Fvector().set(0, qSize * 0.8f, 0), clrXY, clrXY, TRUE, TRUE);
+        DU_impl.DrawRectangle(center, Fvector().set(0, qSize * 0.8f, 0), Fvector().set(0, 0, qSize * 0.8f), clrYZ, clrYZ, TRUE, TRUE);
+
+        //DU_impl.DrawPivot(center, scale * 10.0f);
+
+        if (m_bHiddenMode && m_MovedAmount.square_magnitude() > EPS_S)
+        {
+            string128 buf;
+            sprintf(buf, "Move: X: %.2fm  Y: %.2fm  Z: %.2fm", m_MovedAmount.x, m_MovedAmount.y, m_MovedAmount.z);
+            DU_impl.OutText(Fvector().add(center, Fvector().set(0, scale * 1.5f, 0)), buf, 0xFFFFFF00, 0xFF000000);
         }
     }
+    else if (m_Action == etaRotate)
+    {
+        float rRadius = scale * 2.0f;
+
+        DU_impl.DrawCircle(center, Fvector().set(1, 0, 0), rRadius, clrX, FALSE, 64);
+        DU_impl.DrawCircle(center, Fvector().set(0, 1, 0), rRadius, clrY, FALSE, 64);
+        DU_impl.DrawCircle(center, Fvector().set(0, 0, 1), rRadius, clrZ, FALSE, 64);
+        DU_impl.DrawCircle(center, EDevice.m_Camera.GetDirection(), rRadius * 1.2f, clrCam, FALSE, 64);
+
+        if (m_bHiddenMode && UI->IsMouseCaptured() && abs(m_RotateAmount) > EPS_S)
+        {
+            Fvector n = Fvector().set(0, 0, 0);
+            if (m_Axis == etAxisX)       n.set(1, 0, 0);
+            else if (m_Axis == etAxisY)  n.set(0, 1, 0);
+            else if (m_Axis == etAxisZ)  n.set(0, 0, 1);
+            else if (m_Axis == etAxisCAM) n.set(EDevice.m_Camera.GetDirection());
+
+            Fvector startDir;
+            if (m_Axis == etAxisY)
+                startDir.set(1, 0, 0);
+            else if (m_Axis == etAxisCAM)
+                startDir.set(EDevice.m_Camera.GetRight());
+            else
+                startDir.set(0, 1, 0);
+
+            float sectorRadius = (m_Axis == etAxisCAM) ? rRadius * 1.2f : rRadius;
+            DU_impl.DrawCircleSector(center, n, startDir, m_RotateAmount, sectorRadius, 0x40FFFF00, 0xFFFFFF00, 48);
+
+            string128 buf;
+            sprintf(buf, "Rotate: %.1f deg", rad2deg(m_RotateAmount));
+            DU_impl.OutText(Fvector().add(center, Fvector().set(0, scale * 2.3f, 0)), buf, 0xFFFFFF00, 0xFF000000);
+        }
+    }
+    else if (m_Action == etaScale)
+    {
+        Fvector endX = Fvector().add(center, Fvector().set(scale, 0, 0));
+        Fvector endY = Fvector().add(center, Fvector().set(0, scale, 0));
+        Fvector endZ = Fvector().add(center, Fvector().set(0, 0, scale));
+
+        DU_impl.DrawLine(center, endX, clrX);
+        DU_impl.DrawLine(center, endY, clrY);
+        DU_impl.DrawLine(center, endZ, clrZ);
+
+        float boxSz = scale * 0.08f;
+        Fvector bSize = Fvector().set(boxSz, boxSz, boxSz);
+        DU_impl.DrawBox(endX, bSize, TRUE, TRUE, clrX, clrX);
+        DU_impl.DrawBox(endY, bSize, TRUE, TRUE, clrY, clrY);
+        DU_impl.DrawBox(endZ, bSize, TRUE, TRUE, clrZ, clrZ);
+
+        float qSize = scale * 0.45f;
+        Fvector pZX_o = Fvector().add(center, Fvector().set(-qSize * 0.5f, 0, -qSize * 0.5f));
+        DU_impl.DrawRectangle(pZX_o, Fvector().set(qSize, 0, 0), Fvector().set(0, 0, qSize), clrZX, clrZX, TRUE, TRUE);
+
+        DU_impl.DrawRectangle(center, Fvector().set(qSize * 0.8f, 0, 0), Fvector().set(0, qSize * 0.8f, 0), clrXY, clrXY, TRUE, TRUE);
+        DU_impl.DrawRectangle(center, Fvector().set(0, qSize * 0.8f, 0), Fvector().set(0, 0, qSize * 0.8f), clrYZ, clrYZ, TRUE, TRUE);
+
+        Fvector uSize = Fvector().set(boxSz * 1.5f, boxSz * 1.5f, boxSz * 1.5f);
+        DU_impl.DrawBox(center, uSize, TRUE, TRUE, clrCam, clrCam);
+
+        if (m_bHiddenMode && m_ScaleAmount.square_magnitude() > EPS_S)
+        {
+            string128 buf;
+            sprintf(buf, "Scale: X: %.2f  Y: %.2f  Z: %.2f", 1.0f + m_ScaleAmount.x, 1.0f + m_ScaleAmount.y, 1.0f + m_ScaleAmount.z);
+            DU_impl.OutText(Fvector().add(center, Fvector().set(0, scale * 1.5f, 0)), buf, 0xFFFFFF00, 0xFF000000);
+        }
+    }
+
+    EDevice.ResetNearer();
 }
 //------------------------------------------------------------------------------

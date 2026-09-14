@@ -23,11 +23,14 @@ enum ETAction
 
 enum ETAxis
 {
-    etAxisY,
-    etAxisX,
-    etAxisZ,
-    etAxisZX,
-    etAxisUndefined,
+    etAxisY = 0,
+    etAxisX = 1,
+    etAxisZ = 2,
+    etAxisZX = 3,
+    etAxisXY = 4,
+    etAxisYZ = 5,
+    etAxisCAM = 6,
+    etAxisUndefined = 7
 };
 
 enum ETFlags
@@ -68,6 +71,15 @@ protected:
     Fvector m_RotateVector;
     float m_fRotateSnapValue;
     float m_RotateAmount;
+
+    struct SPlaneQuad
+    {
+        Fvector origin;
+        Fvector u;
+        Fvector v;
+    };
+
+    SPlaneQuad GetPlaneQuad(ETAxis axis, const Fvector& center, float scale) const;
 
 public:
     float m_MoveSnap;
@@ -239,6 +251,12 @@ public:
     CEditableObject *m_pAxisMoveObject;
     CEditableObject *m_pRotationGizmo;
     Fmatrix m_axis_xform;
+    ETAxis m_HoverAxis;
+    float m_GizmoScale;
+
+    float CalculateGizmoScale(const Fvector &pivot);
+    void RenderGizmo();
+    ETAxis PickGizmo(const Fvector &start, const Fvector &dir);
 
     virtual bool GetSelectionPosition(Fmatrix &result) = 0;
 };

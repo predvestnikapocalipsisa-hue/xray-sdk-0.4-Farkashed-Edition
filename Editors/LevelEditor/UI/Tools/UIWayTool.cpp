@@ -4,11 +4,11 @@ UIWayTool::UIWayTool()
 {
     m_WayMode = true;
     m_AutoLink = true;
+    m_AutoFlag = false;
 }
 
 UIWayTool::~UIWayTool()
-{
-}
+{}
 
 void UIWayTool::Draw()
 {
@@ -41,6 +41,9 @@ void UIWayTool::Draw()
             if (ImGui::Checkbox("Auto Link", &m_AutoLink))
             {
             }
+            if (ImGui::Checkbox("Auto Flag", &m_AutoFlag))
+            {
+            }
             ImGui::PushItemWidth(-1);
             float size = float(ImGui::CalcItemWidth());
             {
@@ -57,8 +60,8 @@ void UIWayTool::Draw()
                     // remove links
                     for (ObjectIt it = lst.begin(); it != lst.end(); it++)
                     {
-                        ((CWayObject *)(*it))->RemoveLink();
-                        bRes |= ((CWayObject *)(*it))->Add1Link();
+                        ((CWayObject*)(*it))->RemoveLink();
+                        bRes |= ((CWayObject*)(*it))->Add1Link();
                     }
                     if (bRes)
                         Scene->UndoSave();
@@ -70,7 +73,7 @@ void UIWayTool::Draw()
                     ObjectList lst;
                     int cnt = Scene->GetQueryObjects(lst, OBJCLASS_WAY, 1, 1, 0);
                     for (ObjectIt it = lst.begin(); it != lst.end(); it++)
-                        ((CWayObject *)(*it))->Convert1Link();
+                        ((CWayObject*)(*it))->Convert1Link();
                     if (cnt)
                         Scene->UndoSave();
                     ExecCommand(COMMAND_UPDATE_PROPERTIES);
@@ -87,7 +90,7 @@ void UIWayTool::Draw()
                     ObjectList lst;
                     Scene->GetQueryObjects(lst, OBJCLASS_WAY, 1, 1, 0);
                     for (ObjectIt it = lst.begin(); it != lst.end(); it++)
-                        bRes |= ((CWayObject *)(*it))->Add2Link();
+                        bRes |= ((CWayObject*)(*it))->Add2Link();
                     if (bRes)
                         Scene->UndoSave();
                     ExecCommand(COMMAND_UPDATE_PROPERTIES);
@@ -98,7 +101,7 @@ void UIWayTool::Draw()
                     ObjectList lst;
                     int cnt = Scene->GetQueryObjects(lst, OBJCLASS_WAY, 1, 1, 0);
                     for (ObjectIt it = lst.begin(); it != lst.end(); it++)
-                        ((CWayObject *)(*it))->Convert2Link();
+                        ((CWayObject*)(*it))->Convert2Link();
                     if (cnt)
                         Scene->UndoSave();
                     ExecCommand(COMMAND_UPDATE_PROPERTIES);
@@ -114,7 +117,7 @@ void UIWayTool::Draw()
                     ObjectList lst;
                     int cnt = Scene->GetQueryObjects(lst, OBJCLASS_WAY, 1, 1, 0);
                     for (ObjectIt it = lst.begin(); it != lst.end(); it++)
-                        ((CWayObject *)(*it))->InvertLink();
+                        ((CWayObject*)(*it))->InvertLink();
                     if (cnt)
                         Scene->UndoSave();
                     ExecCommand(COMMAND_UPDATE_PROPERTIES);
@@ -130,7 +133,7 @@ void UIWayTool::Draw()
                     ObjectList lst;
                     int cnt = Scene->GetQueryObjects(lst, OBJCLASS_WAY, 1, 1, 0);
                     for (ObjectIt it = lst.begin(); it != lst.end(); it++)
-                        ((CWayObject *)(*it))->RemoveLink();
+                        ((CWayObject*)(*it))->RemoveLink();
                     if (cnt)
                         Scene->UndoSave();
                     ExecCommand(COMMAND_UPDATE_PROPERTIES);

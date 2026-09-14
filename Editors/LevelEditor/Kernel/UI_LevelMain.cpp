@@ -548,8 +548,9 @@ CCommandVar CommandUndo(CCommandVar p1, CCommandVar p2)
             ELog.DlgMsg(mtInformation, "Undo buffer empty");
         else
         {
-            LTools->Reset();
-            ExecCommand(COMMAND_CHANGE_ACTION, etaSelect);
+            ExecCommand(COMMAND_UPDATE_PROPERTIES);
+            ExecCommand(COMMAND_UPDATE_CAPTION);
+            UI->RedrawScene();
             return TRUE;
         }
     }
@@ -568,8 +569,9 @@ CCommandVar CommandRedo(CCommandVar p1, CCommandVar p2)
             ELog.DlgMsg(mtInformation, "Redo buffer empty");
         else
         {
-            LTools->Reset();
-            ExecCommand(COMMAND_CHANGE_ACTION, etaSelect);
+            ExecCommand(COMMAND_UPDATE_PROPERTIES);
+            ExecCommand(COMMAND_UPDATE_CAPTION);
+            UI->RedrawScene();
             return TRUE;
         }
     }

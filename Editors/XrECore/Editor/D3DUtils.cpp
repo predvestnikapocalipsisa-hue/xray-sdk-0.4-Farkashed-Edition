@@ -21,7 +21,7 @@
 
 CDrawUtilities DU_impl;
 
-#define LINE_DIVISION 32 // не меньше 6!!!!!
+#define LINE_DIVISION 32 // РЅРµ РјРµРЅСЊС€Рµ 6!!!!!
 // for drawing sphere
 static Fvector circledef1[LINE_DIVISION];
 static Fvector circledef2[LINE_DIVISION];
@@ -1215,6 +1215,163 @@ void CDrawUtilities::DrawRectangle(const Fvector &o, const Fvector &u, const Fve
         pv++;
         Stream->Unlock(5, vs_L->vb_stride);
         DU_DRAW_DP(D3DPT_LINESTRIP, vs_L, vBase, 4);
+    }
+}
+
+static inline void GetPerpendicularVectors(const Fvector &N, Fvector &outU, Fvector &outV)
+{
+    Fvector norm = N;
+    if (norm.square_magnitude() < EPS_S)
+        norm.set(0, 1, 0);
+    else
+        norm.normalize();
+
+    Fvector basis;
+    if (abs(norm.x) < 0.9f)
+        basis.set(1, 0, 0);
+    else
+        basis.set(0, 1, 0);
+
+    outU.crossproduct(norm, basis).normalize();
+    outV.crossproduct(norm, outU).normalize();
+}
+
+void CDrawUtilities::DrawCircle(const Fvector &center, const Fvector &N, float radius, u32 clr, BOOL bSolid, int segments)
+{
+    Fvector normal = N;
+    if (normal.square_magnitude() < EPS_S)
+        normal.set(0, 1, 0);
+    else
+        normal.normalize();
+
+    Fvector u, v;
+    GetPerpendicularVectors(normal, u, v);
+    u.mul(radius);
+    v.mul(radius);
+
+    _VertexStream *Stream = &RCache.Vertex;
+    u32 vBase;
+
+    if (bSolid)
+    {
+        DU_DRAW_SH(EDevice.m_SelectionShader);
+        EDevice.SetRS(D3DRS_CULLMODE, D3DCULL_NONE);
+        int v_cnt = segments * 3;
+        FVF::L *pv = (FVF::L *)Stream->Lock(v_cnt, vs_L->vb_stride, vBase);
+        float step = PI_MUL_2 / (float)segments;
+        for (int i = 0; i < segments; i++)
+        {
+            float a0 = i * step;
+            float a1 = (i + 1) * step;
+
+            Fvector p0 = center;
+            Fvector p1;
+            p1.mad(center, u, _cos(a0));
+            p1.mad(p1, v, _sin(a0));
+
+            Fvector p2;
+            p2.mad(center, u, _cos(a1));
+            p2.mad(p2, v, _sin(a1));
+
+            pv->set(p0, clr); pv++;
+            pv->set(p1, clr); pv++;
+            pv->set(p2, clr); pv++;
+        }
+        Stream->Unlock(v_cnt, vs_L->vb_stride);
+        DU_DRAW_DP(D3DPT_TRIANGLELIST, vs_L, vBase, segments);
+    }
+    else
+    {
+        DU_DRAW_SH(EDevice.m_WireShader);
+        int v_cnt = segments + 1;
+        FVF::L *pv = (FVF::L *)Stream->Lock(v_cnt, vs_L->vb_stride, vBase);
+        float step = PI_MUL_2 / (float)segments;
+        for (int i = 0; i <= segments; i++)
+        {
+            float a = i * step;
+            Fvector p;
+            p.mad(center, u, _cos(a));
+            p.mad(p, v, _sin(a));
+            pv->set(p, clr);
+            pv++;
+        }
+        Stream->Unlock(v_cnt, vs_L->vb_stride);
+        DU_DRAW_DP(D3DPT_LINESTRIP, vs_L, vBase, segments);
+    }
+}
+
+void CDrawUtilities::DrawCircleSector(const Fvector &center, const Fvector &N, const Fvector &dirFrom, float angleRad, float radius, u32 clr_solid, u32 clr_wire, int segments)
+{
+    Fvector normal = N;
+    if (normal.square_magnitude() < EPS_S)
+        normal.set(0, 1, 0);
+    else
+        normal.normalize();
+
+    Fvector u = dirFrom;
+    Fvector v;
+    if (u.square_magnitude() < EPS_S)
+        GetPerpendicularVectors(normal, u, v);
+    else
+    {
+        u.normalize();
+        v.crossproduct(normal, u);
+        v.normalize();
+    }
+
+    u.mul(radius);
+    v.mul(radius);
+
+    _VertexStream *Stream = &RCache.Vertex;
+    u32 vBase;
+
+    if (clr_solid != 0)
+    {
+        DU_DRAW_SH(EDevice.m_SelectionShader);
+        EDevice.SetRS(D3DRS_CULLMODE, D3DCULL_NONE);
+        int v_cnt = segments * 3;
+        FVF::L *pv = (FVF::L *)Stream->Lock(v_cnt, vs_L->vb_stride, vBase);
+        float step = angleRad / (float)segments;
+        for (int i = 0; i < segments; i++)
+        {
+            float a0 = i * step;
+            float a1 = (i + 1) * step;
+
+            Fvector p0 = center;
+            Fvector p1;
+            p1.mad(center, u, _cos(a0));
+            p1.mad(p1, v, _sin(a0));
+
+            Fvector p2;
+            p2.mad(center, u, _cos(a1));
+            p2.mad(p2, v, _sin(a1));
+
+            pv->set(p0, clr_solid); pv++;
+            pv->set(p1, clr_solid); pv++;
+            pv->set(p2, clr_solid); pv++;
+        }
+        Stream->Unlock(v_cnt, vs_L->vb_stride);
+        DU_DRAW_DP(D3DPT_TRIANGLELIST, vs_L, vBase, segments);
+    }
+
+    if (clr_wire != 0)
+    {
+        DU_DRAW_SH(EDevice.m_WireShader);
+        int v_cnt = segments + 2;
+        FVF::L *pv = (FVF::L *)Stream->Lock(v_cnt, vs_L->vb_stride, vBase);
+        pv->set(center, clr_wire); pv++;
+        float step = angleRad / (float)segments;
+        for (int i = 0; i <= segments; i++)
+        {
+            float a = i * step;
+            Fvector p;
+            p.mad(center, u, _cos(a));
+            p.mad(p, v, _sin(a));
+            pv->set(p, clr_wire);
+            pv++;
+        }
+        Stream->Unlock(v_cnt, vs_L->vb_stride);
+        DU_DRAW_DP(D3DPT_LINESTRIP, vs_L, vBase, segments + 1);
     }
 }
 //----------------------------------------------------
