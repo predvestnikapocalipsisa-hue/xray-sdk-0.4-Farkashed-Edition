@@ -8,6 +8,7 @@
 #define CUSTOMOBJECT_CHUNK_FLAGS 0xF906
 #define CUSTOMOBJECT_CHUNK_NAME 0xF907
 #define CUSTOMOBJECT_CHUNK_MOTION_PARAM 0xF908
+#define CUSTOMOBJECT_CHUNK_CREATION_TIME 0xF909
 
 enum class SocFlags : u32
 {
@@ -37,6 +38,7 @@ void CCustomObject::EndBatchTransform(CCustomObject* obj)
 CCustomObject::CCustomObject(LPVOID data, LPCSTR name)
 {
 	save_id = 0;
+	m_dwCreationTime = time(NULL);
 	FClassID = OBJCLASS_DUMMY;
 
 	FParentTools = nullptr;
@@ -101,7 +103,7 @@ void CCustomObject::OnUpdateTransform()
 	FITransformRP.invert(FTransformRP);
 	FITransform.invert(FTransform);
 
-	// инвалидируем кэш bbox после пересчёта матриц
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ bbox пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 	m_bBoxDirty = true;
 
 	if (Motionable() && Visible() && Selected() && m_CO_Flags.is(flAutoKey))
@@ -182,6 +184,10 @@ bool CCustomObject::LoadLTX(CInifile& ini, LPCSTR sect_name)
 	m_CO_Flags.assign(ini.r_u32(sect_name, "co_flags"));
 
 	FName = ini.r_string(sect_name, "name");
+	if (ini.line_exist(sect_name, "creation_time"))
+		m_dwCreationTime = (time_t)ini.r_u32(sect_name, "creation_time");
+	else
+		m_dwCreationTime = 0;
 	FPosition = ini.r_fvector3(sect_name, "position");
 	VERIFY2(_valid(FPosition), sect_name);
 	FRotation = ini.r_fvector3(sect_name, "rotation");
@@ -246,6 +252,15 @@ bool CCustomObject::LoadStream(IReader& F)
 		AnimationUpdate(m_MotionParams->Frame());
 	}
 
+	if (F.find_chunk(CUSTOMOBJECT_CHUNK_CREATION_TIME))
+	{
+		m_dwCreationTime = (time_t)F.r_u32();
+	}
+	else
+	{
+		m_dwCreationTime = 0;
+	}
+
 	UpdateTransform();
 	return true;
 }
@@ -254,6 +269,8 @@ void CCustomObject::SaveLTX(CInifile& ini, LPCSTR sect_name)
 {
 	ini.w_u32(sect_name, "co_flags", m_CO_Flags.get());
 	ini.w_string(sect_name, "name", FName.c_str());
+	if (m_dwCreationTime != 0)
+		ini.w_u32(sect_name, "creation_time", (u32)m_dwCreationTime);
 
 	ini.w_fvector3(sect_name, "position", FPosition);
 	ini.w_fvector3(sect_name, "rotation", FRotation);
@@ -299,6 +316,13 @@ void CCustomObject::SaveStream(IWriter& F)
 
 		F.open_chunk(CUSTOMOBJECT_CHUNK_MOTION_PARAM);
 		F.w_float(m_MotionParams->t_current);
+		F.close_chunk();
+	}
+
+	if (m_dwCreationTime != 0)
+	{
+		F.open_chunk(CUSTOMOBJECT_CHUNK_CREATION_TIME);
+		F.w_u32((u32)m_dwCreationTime);
 		F.close_chunk();
 	}
 }

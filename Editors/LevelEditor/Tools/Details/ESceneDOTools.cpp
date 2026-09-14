@@ -16,6 +16,7 @@ enum
     DETMGR_CHUNK_SNAP_OBJECTS = 0x1004ul,
     DETMGR_CHUNK_DENSITY = 0x1005ul,
     DETMGR_CHUNK_FLAGS = 0x1006ul,
+    DETMGR_CHUNK_BASE_TRANSFORM = 0x1007ul,
 };
 
 EDetailManager::EDetailManager() : ESceneToolBase(OBJCLASS_DO)
@@ -107,10 +108,10 @@ void EDetailManager::OnRender(int priority, bool strictB2F)
                     u32 inactive = 0xff808080;
                     u32 selected = 0xffffffff;
 
-                    // FIX: увеличены дистанции + добавлен гистерезис для исключения мигания
-                    // на границе дальности видимости при движении камеры
-                    float dist_lim_in = 70.f * 70.f;   // порог появления (ближе)
-                    float dist_lim_out = 85.f * 85.f;   // порог исчезновения (дальше)
+                    // FIX: СѓРІРµР»РёС‡РµРЅС‹ РґРёСЃС‚Р°РЅС†РёРё + РґРѕР±Р°РІР»РµРЅ РіРёСЃС‚РµСЂРµР·РёСЃ РґР»СЏ РёСЃРєР»СЋС‡РµРЅРёСЏ РјРёРіР°РЅРёСЏ
+                    // РЅР° РіСЂР°РЅРёС†Рµ РґР°Р»СЊРЅРѕСЃС‚Рё РІРёРґРёРјРѕСЃС‚Рё РїСЂРё РґРІРёР¶РµРЅРёРё РєР°РјРµСЂС‹
+                    float dist_lim_in = 70.f * 70.f;   // РїРѕСЂРѕРі РїРѕСЏРІР»РµРЅРёСЏ (Р±Р»РёР¶Рµ)
+                    float dist_lim_out = 85.f * 85.f;   // РїРѕСЂРѕРі РёСЃС‡РµР·РЅРѕРІРµРЅРёСЏ (РґР°Р»СЊС€Рµ)
 
                     for (u32 z = 0; z < dtH.size_z; z++)
                     {
@@ -123,16 +124,16 @@ void EDetailManager::OnRender(int priority, bool strictB2F)
                             c.y = slot->r_ybase() + slot->r_yheight() * 0.5f;
                             float dist = EDevice.m_Camera.GetPosition().distance_to_sqr(c);
 
-                            // FIX: гистерезис — слот «включается» по dist_lim_in,
-                            // «выключается» по dist_lim_out, убирает мигание на границе
+                            // FIX: РіРёСЃС‚РµСЂРµР·РёСЃ вЂ” СЃР»РѕС‚ В«РІРєР»СЋС‡Р°РµС‚СЃСЏВ» РїРѕ dist_lim_in,
+                            // В«РІС‹РєР»СЋС‡Р°РµС‚СЃСЏВ» РїРѕ dist_lim_out, СѓР±РёСЂР°РµС‚ РјРёРіР°РЅРёРµ РЅР° РіСЂР°РЅРёС†Рµ
                             bool bWasVisible = (dist < dist_lim_out);
                             bool bShouldShow = (dist < dist_lim_in);
                             bool bVisible = bShouldShow || (bWasVisible && (dist < dist_lim_out));
 
-                            // FIX: используем testSphere с маской для точного frustum culling.
-                            // getMask() возвращает маску всех активных плоскостей frustum'а.
-                            // testSphere_dirty не трогаем — он нестабилен на границе,
-                            // поэтому гистерезис дистанции + точный testSphere решают проблему.
+                            // FIX: РёСЃРїРѕР»СЊР·СѓРµРј testSphere СЃ РјР°СЃРєРѕР№ РґР»СЏ С‚РѕС‡РЅРѕРіРѕ frustum culling.
+                            // getMask() РІРѕР·РІСЂР°С‰Р°РµС‚ РјР°СЃРєСѓ РІСЃРµС… Р°РєС‚РёРІРЅС‹С… РїР»РѕСЃРєРѕСЃС‚РµР№ frustum'Р°.
+                            // testSphere_dirty РЅРµ С‚СЂРѕРіР°РµРј вЂ” РѕРЅ РЅРµСЃС‚Р°Р±РёР»РµРЅ РЅР° РіСЂР°РЅРёС†Рµ,
+                            // РїРѕСЌС‚РѕРјСѓ РіРёСЃС‚РµСЂРµР·РёСЃ РґРёСЃС‚Р°РЅС†РёРё + С‚РѕС‡РЅС‹Р№ testSphere СЂРµС€Р°СЋС‚ РїСЂРѕР±Р»РµРјСѓ.
                             u32 mask = ::Render->ViewBase.getMask();
                             if (bVisible && (::Render->ViewBase.testSphere(c, DETAIL_SLOT_SIZE_2, mask) != fcvNone))
                             {
@@ -152,6 +153,18 @@ void EDetailManager::OnRender(int priority, bool strictB2F)
                     m_Base.Render(m_Flags.is(flBaseTextureBlended));
                 if (m_Flags.is(flObjectsDraw))
                     CDetailManager::Render();
+            }
+            if (LTools->GetAction() == etaAdd)
+            {
+                if (pForm)
+                {
+                    float rad = ((UIDOTool*)pForm)->GetBrushRadius();
+                    u32 clr = ((UIDOTool*)pForm)->GetBrushColor();
+                    LUI->m_Cursor->SetBrushRadius(rad);
+                    LUI->m_Cursor->SetColor(Fcolor().set(clr));
+                    LUI->m_Cursor->Style(csLasso);
+                    LUI->m_Cursor->Render();
+                }
             }
         }
     }
@@ -430,6 +443,12 @@ bool EDetailManager::LoadStream(IReader& F)
         }
     }
 
+    if (F.find_chunk(DETMGR_CHUNK_BASE_TRANSFORM))
+    {
+        F.r_fvector2(m_Base.m_Offset);
+        m_Base.m_Angle = F.r_float();
+    }
+
     InvalidateCache();
 
     return true;
@@ -473,6 +492,11 @@ void EDetailManager::SaveStream(IWriter& F)
     {
         F.open_chunk(DETMGR_CHUNK_BASE_TEXTURE);
         F.w_stringZ(m_Base.GetName());
+        F.close_chunk();
+
+        F.open_chunk(DETMGR_CHUNK_BASE_TRANSFORM);
+        F.w_fvector2(m_Base.m_Offset);
+        F.w_float(m_Base.m_Angle);
         F.close_chunk();
     }
     F.open_chunk(DETMGR_CHUNK_DENSITY);
@@ -615,8 +639,8 @@ bool EDetailManager::Export(LPCSTR path)
 
 void EDetailManager::OnDensityChange(PropValue* prop)
 {
-    // FIX: InvalidateCache вызывается только при реальном изменении плотности,
-    // не каждый кадр — чтобы не сбрасывать кеш видимости постоянно
+    // FIX: InvalidateCache РІС‹Р·С‹РІР°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РїСЂРё СЂРµР°Р»СЊРЅРѕРј РёР·РјРµРЅРµРЅРёРё РїР»РѕС‚РЅРѕСЃС‚Рё,
+    // РЅРµ РєР°Р¶РґС‹Р№ РєР°РґСЂ вЂ” С‡С‚РѕР±С‹ РЅРµ СЃР±СЂР°СЃС‹РІР°С‚СЊ РєРµС€ РІРёРґРёРјРѕСЃС‚Рё РїРѕСЃС‚РѕСЏРЅРЅРѕ
     InvalidateCache();
 }
 
@@ -684,10 +708,136 @@ void EDetailManager::OnBaseTextureCuttonClick(ButtonValue* B, bool& bModif, bool
         }
         else
         {
-            Msg("! [Detail Error] Файл должен находиться внутри gamedata\\textures\\!");
+            Msg("! [Detail Error] Р¤Р°Р№Р» РґРѕР»Р¶РµРЅ РЅР°С…РѕРґРёС‚СЊСЃСЏ РІРЅСѓС‚СЂРё gamedata\\textures\\!");
             Msg("! Path was: %s", ofn.lpstrFile);
         }
     }
+}
+
+void EDetailManager::OnBaseTransformChange(PropValue* prop)
+{
+    if (m_Base.Valid())
+    {
+        m_Base.CreateRMFromObjects(m_BBox, m_SnapObjects);
+        UI->RedrawScene();
+    }
+}
+
+bool EDetailManager::CreateNewBaseTexture(LPCSTR name, u32 width, u32 height, u32 fill_color)
+{
+    if (m_SnapObjects.empty())
+    {
+        ELog.DlgMsg(mtError, "Snap list is empty! Snap terrain objects first.");
+        return false;
+    }
+    if (!UpdateHeader())
+    {
+        ELog.DlgMsg(mtError, "Failed to compute bounding box from snap objects.");
+        return false;
+    }
+
+    if (!m_Base.CreateNew(name, width, height, fill_color))
+    {
+        ELog.DlgMsg(mtError, "Failed to create texture '%s'.", name);
+        return false;
+    }
+
+    m_BaseTextureProxy = name;
+    m_Base.CreateRMFromObjects(m_BBox, m_SnapObjects);
+    m_Base.CreateShader();
+    UI->RedrawScene();
+
+    ELog.DlgMsg(mtInformation, "Created vegetation map '%s' (%dx%d). Click 'Reinitialize All' to populate slots.", name, width, height);
+    return true;
+}
+
+bool EDetailManager::AutoGenerateBaseTexture(LPCSTR name, u32 width, u32 height, float max_slope_deg, u32 grass_color)
+{
+    if (m_SnapObjects.empty())
+    {
+        ELog.DlgMsg(mtError, "Snap list is empty! Add terrain objects to Snap List first.");
+        return false;
+    }
+    if (!UpdateHeader())
+    {
+        ELog.DlgMsg(mtError, "Failed to compute bounding box from snap objects.");
+        return false;
+    }
+
+    float box_w = m_BBox.max.x - m_BBox.min.x;
+    float box_h = m_BBox.max.z - m_BBox.min.z;
+    if (box_w < EPS_L) box_w = 1.0f;
+    if (box_h < EPS_L) box_h = 1.0f;
+
+    float cx = (m_BBox.min.x + m_BBox.max.x) * 0.5f;
+    float cz = (m_BBox.min.z + m_BBox.max.z) * 0.5f;
+
+    float max_cos = _cos(deg2rad(max_slope_deg));
+
+    U32Vec pixels(width * height, 0);
+
+    SPBItem* pb = UI->ProgressStart(height, "Generating vegetation map...");
+
+    float rad = deg2rad(-m_Base.m_Angle);
+    float cos_a = _cos(rad);
+    float sin_a = _sin(rad);
+
+    for (u32 v = 0; v < height; v++)
+    {
+        float norm_v = (height > 1) ? float(v) / float(height - 1) : 0.5f;
+        float rz = (0.5f - norm_v) * box_h;
+
+        for (u32 u = 0; u < width; u++)
+        {
+            float norm_u = (width > 1) ? float(u) / float(width - 1) : 0.5f;
+            float rx = (norm_u - 0.5f) * box_w;
+
+            float dx = rx * cos_a - rz * sin_a;
+            float dz = rx * sin_a + rz * cos_a;
+
+            float wx = dx + m_Base.m_Offset.x + cx;
+            float wz = dz + m_Base.m_Offset.y + cz;
+
+            Fvector start = { wx, m_BBox.max.y + 10.0f, wz };
+            Fvector dir = { 0.0f, -1.0f, 0.0f };
+
+            SRayPickInfo pinf;
+            if (Scene->RayPickObject(m_BBox.max.y - m_BBox.min.y + 20.0f, start, dir, OBJCLASS_SCENEOBJECT, &pinf, &m_SnapObjects))
+            {
+                if (pinf.e_obj && pinf.e_mesh && pinf.s_obj)
+                {
+                    Fvector verts[3];
+                    pinf.e_obj->GetFaceWorld(pinf.s_obj->_Transform(), pinf.e_mesh, pinf.inf.id, verts);
+                    Fvector normal;
+                    normal.mknormal(verts[0], verts[1], verts[2]);
+                    if (normal.y >= max_cos)
+                    {
+                        pixels[v * width + u] = grass_color;
+                    }
+                }
+            }
+        }
+        pb->Inc();
+    }
+    UI->ProgressEnd(pb);
+
+    m_Base.GetData() = pixels;
+    m_Base.SetSize(width, height);
+    m_Base.name = name;
+    m_BaseTextureProxy = name;
+
+    if (!m_Base.SaveImage())
+    {
+        ELog.DlgMsg(mtError, "Failed to save generated texture '%s'.", name);
+        return false;
+    }
+
+    m_Base.CreateRMFromObjects(m_BBox, m_SnapObjects);
+    m_Base.CreateShader();
+    UI->RedrawScene();
+
+    ELog.DlgMsg(mtInformation, "Vegetation map '%s' (%dx%d) generated! Click 'Reinitialize All' to populate slots.", name, width, height);
+    return true;
 }
 
 void EDetailManager::FillProp(LPCSTR pref, PropItemVec& items)
@@ -697,13 +847,16 @@ void EDetailManager::FillProp(LPCSTR pref, PropItemVec& items)
 
     PHelper().CreateFloat(items, PrepareKey(pref, "Objects per square"), &ps_r__Detail_density)->OnChangeEvent.bind(this, &EDetailManager::OnDensityChange);
 
-
     PHelper().CreateCaption(items, PrepareKey(pref, "Base Texture Path"), m_BaseTextureProxy.c_str());
 
     ButtonValue* B = PHelper().CreateButton(items, PrepareKey(pref, "Base Texture\\Browse"), "Open in Explorer...", 0);
     B->OnBtnClickEvent.bind(this, &EDetailManager::OnBaseTextureCuttonClick);
 
-    // Остальные флаги...
+    PHelper().CreateFloat(items, PrepareKey(pref, "Base Texture\\Offset X (m)"), &m_Base.m_Offset.x, -10000.f, 10000.f, 0.5f, 2)->OnChangeEvent.bind(this, &EDetailManager::OnBaseTransformChange);
+    PHelper().CreateFloat(items, PrepareKey(pref, "Base Texture\\Offset Z (m)"), &m_Base.m_Offset.y, -10000.f, 10000.f, 0.5f, 2)->OnChangeEvent.bind(this, &EDetailManager::OnBaseTransformChange);
+    PHelper().CreateFloat(items, PrepareKey(pref, "Base Texture\\Angle (deg)"), &m_Base.m_Angle, -360.f, 360.f, 1.f, 1)->OnChangeEvent.bind(this, &EDetailManager::OnBaseTransformChange);
+
+    // Common flags...
     PHelper().CreateFlag32(items, PrepareKey(pref, "Common\\Draw objects"), &m_Flags, flObjectsDraw);
     PHelper().CreateFlag32(items, PrepareKey(pref, "Common\\Draw base texture"), &m_Flags, flBaseTextureDraw);
     PHelper().CreateFlag32(items, PrepareKey(pref, "Common\\Base texture blended"), &m_Flags, flBaseTextureBlended);
@@ -723,4 +876,68 @@ bool EDetailManager::GetSummaryInfo(SSceneSummary* inf)
         inf->AppendTexture(surf->_Texture(), SSceneSummary::sttDO, 0, 0, "$DETAILS$");
     }
     return true;
+}
+
+void EDetailManager::PaintBrush(const Fvector &center_pt, float radius, u32 color)
+{
+    if (!m_Base.Valid()) return;
+
+    float box_w = m_BBox.max.x - m_BBox.min.x;
+    float box_h = m_BBox.max.z - m_BBox.min.z;
+    if (box_w < EPS_L) box_w = 1.0f;
+    if (box_h < EPS_L) box_h = 1.0f;
+
+    float cx = (m_BBox.min.x + m_BBox.max.x) * 0.5f;
+    float cz = (m_BBox.min.z + m_BBox.max.z) * 0.5f;
+
+    u32 w = m_Base.GetWidth();
+    u32 h = m_Base.GetHeight();
+
+    int center_u, center_v;
+    m_Base.GetPixelUV(center_pt.x, center_pt.z, center_u, center_v, m_BBox);
+
+    float max_r = _max(radius / box_w * w, radius / box_h * h) + 2.0f;
+    int min_u = _max(0, iFloor(center_u - max_r));
+    int max_u = _min((int)w - 1, iFloor(center_u + max_r));
+    int min_v = _max(0, iFloor(center_v - max_r));
+    int max_v = _min((int)h - 1, iFloor(center_v + max_r));
+
+    float rad_neg = deg2rad(-m_Base.m_Angle);
+    float cos_a = _cos(rad_neg);
+    float sin_a = _sin(rad_neg);
+
+    float radius_sq = radius * radius;
+    bool bChanged = false;
+
+    U32Vec &pixels = m_Base.GetData();
+
+    for (int v = min_v; v <= max_v; v++)
+    {
+        float norm_v = (h > 1) ? float(v) / float(h - 1) : 0.5f;
+        float rz = (0.5f - norm_v) * box_h;
+
+        for (int u = min_u; u <= max_u; u++)
+        {
+            float norm_u = (w > 1) ? float(u) / float(w - 1) : 0.5f;
+            float rx = (norm_u - 0.5f) * box_w;
+
+            float dx = rx * cos_a - rz * sin_a;
+            float dz = rx * sin_a + rz * cos_a;
+
+            float wx = dx + m_Base.m_Offset.x + cx;
+            float wz = dz + m_Base.m_Offset.y + cz;
+
+            float dist_sq = (wx - center_pt.x) * (wx - center_pt.x) + (wz - center_pt.z) * (wz - center_pt.z);
+            if (dist_sq <= radius_sq)
+            {
+                pixels[v * w + u] = color;
+                bChanged = true;
+            }
+        }
+    }
+
+    if (bChanged)
+    {
+        UI->RedrawScene();
+    }
 }

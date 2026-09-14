@@ -53,6 +53,7 @@ private:
 	virtual void IsItemClicked(Node *Node);
 	virtual bool IsFolderBullet(Node *Node);
 	virtual bool IsFolderSelected(Node *Node);
+	virtual const char* GetDisplayName(const char* name) override;
 
 private:
 	virtual void EventRenameNode(Node *Node, const char *old_path, const char *new_path);

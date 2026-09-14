@@ -260,10 +260,21 @@ void EDetailManager::GetSlotTCRect(Irect& rect, int sx, int sz)
 {
     Frect R;
     GetSlotRect(R, sx, sz);
-    rect.x1 = m_Base.GetPixelUFromX(R.x1, m_BBox);
-    rect.x2 = m_Base.GetPixelUFromX(R.x2, m_BBox);
-    rect.y2 = m_Base.GetPixelVFromZ(R.y1, m_BBox);
-    rect.y1 = m_Base.GetPixelVFromZ(R.y2, m_BBox);
+    int u0, v0, u1, v1, u2, v2, u3, v3;
+    m_Base.GetPixelUV(R.x1, R.y1, u0, v0, m_BBox);
+    m_Base.GetPixelUV(R.x2, R.y1, u1, v1, m_BBox);
+    m_Base.GetPixelUV(R.x1, R.y2, u2, v2, m_BBox);
+    m_Base.GetPixelUV(R.x2, R.y2, u3, v3, m_BBox);
+
+    rect.x1 = _min(_min(u0, u1), _min(u2, u3));
+    rect.x2 = _max(_max(u0, u1), _max(u2, u3));
+    rect.y1 = _min(_min(v0, v1), _min(v2, v3));
+    rect.y2 = _max(_max(v0, v1), _max(v2, v3));
+
+    if (rect.x1 < 0) rect.x1 = 0;
+    if (rect.y1 < 0) rect.y1 = 0;
+    if (rect.x2 >= (int)m_Base.GetWidth()) rect.x2 = (int)m_Base.GetWidth() - 1;
+    if (rect.y2 >= (int)m_Base.GetHeight()) rect.y2 = (int)m_Base.GetHeight() - 1;
 }
 
 void EDetailManager::CalcClosestCount(int part, const Fcolor& C, SIndexDistVec& best)

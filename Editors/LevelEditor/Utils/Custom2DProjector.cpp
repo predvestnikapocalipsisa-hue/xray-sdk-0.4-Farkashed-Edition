@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 // SBase
 #define MAX_BUF_SIZE 0xFFFF
@@ -8,6 +8,10 @@ CCustom2DProjector::CCustom2DProjector()
 	name = "";
 	shader_overlap = 0;
 	shader_blended = 0;
+	m_Offset.set(0.f, 0.f);
+	m_Angle = 0.f;
+	w = 0;
+	h = 0;
 }
 
 bool CCustom2DProjector::LoadImage(LPCSTR nm)
@@ -17,6 +21,52 @@ bool CCustom2DProjector::LoadImage(LPCSTR nm)
 	ImageLib.LoadTextureData(*name, data, w, h);
     Msg("! CCustom2DProjector::LoadImage: end, valid=%d", Valid()); FlushLog();
 	return Valid();
+}
+
+bool CCustom2DProjector::CreateNew(LPCSTR nm, u32 width, u32 height, u32 fill_color)
+{
+	Msg("! CCustom2DProjector::CreateNew: name='%s', %dx%d", nm, width, height); FlushLog();
+	name = nm;
+	w = width;
+	h = height;
+	data.assign(w * h, fill_color);
+
+	return SaveImage();
+}
+
+bool CCustom2DProjector::SaveImage()
+{
+	if (!Valid()) return false;
+
+	STextureParams tp;
+	ZeroMemory(&tp, sizeof(tp));
+	tp.width = w;
+	tp.height = h;
+	tp.fmt = STextureParams::tfDXT1;
+	tp.type = STextureParams::ttImage;
+	tp.mip_filter = STextureParams::kMIPFilterTriangle;
+	tp.flags.zero();
+	tp.flags.set(STextureParams::flGenerateMipMaps, TRUE);
+	tp.flags.set(STextureParams::flDitherColor, TRUE);
+
+	xr_string rel_name = EFS.ChangeFileExt(*name, "");
+	string_path fn;
+	FS.update_path(fn, "$game_textures$", EFS.ChangeFileExt(*name, ".dds").c_str());
+
+	if (ImageLib.MakeGameTexture(fn, data.data(), tp))
+	{
+		ETextureThumbnail* THM = (ETextureThumbnail*)ImageLib.CreateThumbnail(rel_name.c_str(), ECustomThumbnail::ETTexture);
+		if (THM)
+		{
+			THM->Save();
+			xr_delete(THM);
+		}
+		if (EDevice.Resources)
+			EDevice.Resources->Evict();
+		CreateShader();
+		return true;
+	}
+	return false;
 }
 
 void CCustom2DProjector::CreateRMFromObjects(const Fbox &box, ObjectList &lst)
@@ -40,8 +90,7 @@ void CCustom2DProjector::CreateRMFromObjects(const Fbox &box, ObjectList &lst)
 				for (int k = 0; k < 3; k++)
 				{
 					T.transform_tiny(v.p, (*m_it)->GetVertices()[(*m_it)->GetFaces()[f_id].pv[k].pindex]);
-					v.t.x = GetUFromX(v.p.x, box);
-					v.t.y = GetVFromZ(v.p.z, box);
+					GetUV(v.p.x, v.p.z, v.t.x, v.t.y, box);
 					mesh.push_back(v);
 				}
 			}

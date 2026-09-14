@@ -33,7 +33,13 @@ private:
         M_Visible,
         M_Inbvisible
     };
+    enum ESortMode
+    {
+        S_CreationOrder,
+        S_Alphabetical
+    };
     EMode m_Mode;
+    ESortMode m_SortMode;
     CCustomObject* m_SelectedObject;
     CCustomObject* m_AnchorObject;               
     std::vector<CCustomObject*> m_VisibleRefs;   

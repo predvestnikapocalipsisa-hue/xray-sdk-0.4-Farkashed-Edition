@@ -65,6 +65,12 @@ class EDetailManager : public CDetailManager,
 
     void OnDensityChange(PropValue *prop);
     void OnBaseTextureChange(PropValue *prop);
+    void OnBaseTransformChange(PropValue *prop);
+
+public:
+    bool CreateNewBaseTexture(LPCSTR name, u32 width, u32 height, u32 fill_color);
+    bool AutoGenerateBaseTexture(LPCSTR name, u32 width, u32 height, float max_slope_deg, u32 grass_color);
+    void PaintBrush(const Fvector &center_pt, float radius, u32 color);
 
 protected:
     // controls
@@ -145,6 +151,8 @@ public:
     // utils
     virtual bool GetSummaryInfo(SSceneSummary *inf);
     virtual void GetBBox(Fbox &bb, bool bSelOnly) {}
+    IC Fbox& GetBBox() { return m_BBox; }
+    IC const Fbox& GetBBox() const { return m_BBox; }
 
     // other
     bool UpdateHeader();

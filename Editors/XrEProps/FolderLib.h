@@ -340,7 +340,7 @@ public:
 			if (IsFolderSelected(N))
 				FolderFlags |= ImGuiTreeNodeFlags_Selected;
 
-			if (ImGui::TreeNodeEx(N->Name.c_str(), FolderFlags))
+			if (ImGui::TreeNodeEx(GetDisplayName(N->Name.c_str()), FolderFlags))
 			{
 				DrawAfterFolderNode(true, N);
 				if (ImGui::IsItemClicked() && N->Object)
@@ -377,6 +377,8 @@ public:
 				N->Selected = false;
 		}
 	}
+	// Override to convert CP1251 -> UTF-8 for ImGui display (e.g. return DX2U(name))
+	virtual const char* GetDisplayName(const char* name) { return name; }
 	virtual void DrawAfterFolderNode(bool is_open = false, Node *Node = 0) {}
 	virtual bool IsFolderBullet(Node *Node) { return false; }
 	virtual bool IsFolderSelected(Node *Node) { return false; }

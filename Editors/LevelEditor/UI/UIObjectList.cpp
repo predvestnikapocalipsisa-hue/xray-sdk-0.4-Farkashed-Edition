@@ -5,6 +5,7 @@ UIObjectList *UIObjectList::Form = nullptr;
 UIObjectList::UIObjectList()
 {
     m_Mode = M_Visible;
+    m_SortMode = S_CreationOrder;
     m_Filter[0] = 0;
     m_SelectedObject = nullptr;
     m_AnchorObject = nullptr;
@@ -47,6 +48,11 @@ void UIObjectList::Draw()
         if (ImGui::RadioButton("All", m_Mode == M_All)) m_Mode = M_All;
         if (ImGui::RadioButton("Visible Only", m_Mode == M_Visible)) m_Mode = M_Visible;
         if (ImGui::RadioButton("Invisible Only", m_Mode == M_Inbvisible)) m_Mode = M_Inbvisible;
+
+        ImGui::Separator();
+        ImGui::TextUnformatted("Sorting:");
+        if (ImGui::RadioButton("By Time", m_SortMode == S_CreationOrder)) m_SortMode = S_CreationOrder;
+        if (ImGui::RadioButton("Alphabetical", m_SortMode == S_Alphabetical)) m_SortMode = S_Alphabetical;
 
         // Spawn category filter — visible only when Spawn class is selected
         ObjClassID cur_cls = LTools ? LTools->CurrentClassID() : OBJCLASS_DUMMY;
@@ -185,7 +191,14 @@ void UIObjectList::DrawObjects()
         {
             if (it->first == OBJCLASS_DUMMY) continue;
 
-            ObjectList &lst = ot->GetObjects();
+            ObjectList lst = ot->GetObjects();
+            if (m_SortMode == S_Alphabetical)
+            {
+                lst.sort([](CCustomObject* a, CCustomObject* b) {
+                    return _stricmp(a->GetName(), b->GetName()) < 0;
+                });
+            }
+
             ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
             
             if (ImGui::TreeNode(it->second->ClassDesc()))
@@ -212,6 +225,12 @@ void UIObjectList::DrawObjects()
                         {
                             ObjectList grp_lst;
                             grp->GetObjects(grp_lst);
+                            if (m_SortMode == S_Alphabetical)
+                            {
+                                grp_lst.sort([](CCustomObject* a, CCustomObject* b) {
+                                    return _stricmp(a->GetName(), b->GetName()) < 0;
+                                });
+                            }
                             for (ObjectIt _G = grp_lst.begin(); _G != grp_lst.end(); _G++)
                                 DrawObject(*_G, nullptr);
                             ImGui::TreePop();

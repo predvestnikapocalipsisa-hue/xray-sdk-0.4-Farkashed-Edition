@@ -225,6 +225,17 @@ void CCustomObject::FillProp(LPCSTR pref, PropItemVec &items)
     EName = GetName();
     V = PHelper().CreateNameCB(items, PrepareKey(pref, "Name"), &EName, NULL, NULL, RTextValue::TOnAfterEditEvent(this, &CCustomObject::OnObjectNameAfterEdit));
     V->OnChangeEvent.bind(this, &CCustomObject::OnNameChange);
+
+    if (m_dwCreationTime != 0)
+    {
+        xr_string ct(_ctime32((__time32_t*)&m_dwCreationTime));
+        _Trim(ct);
+        PHelper().CreateCaption(items, PrepareKey(pref, "Version\\Creation Time"), ct.c_str());
+    }
+    else
+    {
+        PHelper().CreateCaption(items, PrepareKey(pref, "Version\\Creation Time"), "Unknown");
+    }
     EPosition = GetPosition();
     V = PHelper().CreateVector(items, PrepareKey(pref, "Transform\\Position"), &EPosition, -10000, 10000, 0.0001f, 4);
     V->OnChangeEvent.bind(this, &CCustomObject::OnNumChangePosition);

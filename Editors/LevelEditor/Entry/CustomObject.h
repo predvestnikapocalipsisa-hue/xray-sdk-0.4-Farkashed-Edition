@@ -85,6 +85,7 @@ public:
 public:
     shared_str FName;
     int save_id;
+    time_t m_dwCreationTime;
     // orientation
     Fvector FPosition;
     Fvector FScale;

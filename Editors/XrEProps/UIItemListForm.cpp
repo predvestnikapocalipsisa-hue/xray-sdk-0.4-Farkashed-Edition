@@ -392,6 +392,13 @@ void UIItemListForm::DrawAfterFolderNode(bool is_open, Node *Node)
 	}
 }
 
+const char* UIItemListForm::GetDisplayName(const char* name)
+{
+	static thread_local xr_string utf8_buf;
+	utf8_buf = XrUIManager::ConvertCP1251ToUTF8(name);
+	return utf8_buf.c_str();
+}
+
 void UIItemListForm::DrawItem(Node *Node)
 {
 	if (!Node->Object->Visible())
@@ -411,7 +418,7 @@ void UIItemListForm::DrawItem(Node *Node)
 	}
 	if (m_edit_node == Node)
 		Flags |= ImGuiTreeNodeFlags_Selected;
-	ImGui::TreeNodeEx(Node->Name.c_str(), Flags);
+	ImGui::TreeNodeEx(GetDisplayName(Node->Name.c_str()), Flags);
 
 	if (m_Flags.is(fMenuEdit))
 	{
