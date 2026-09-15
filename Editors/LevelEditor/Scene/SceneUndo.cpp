@@ -2,16 +2,8 @@
 
 void EScene::UndoClear()
 {
-	while (!m_RedoStack.empty())
-	{
-		unlink(m_RedoStack.back().m_FileName);
-		m_RedoStack.pop_back();
-	}
-	while (!m_UndoStack.empty())
-	{
-		unlink(m_UndoStack.back().m_FileName);
-		m_UndoStack.pop_back();
-	}
+	m_RedoStack.clear();
+	m_UndoStack.clear();
 }
 
 void EScene::UndoSave()
@@ -24,48 +16,45 @@ void EScene::UndoSave()
 	if (0 == EPrefs->scene_undo_level)
 		return;
 
+	CMemoryWriter undo_writer;          // отдельный буфер, не m_SaveCache!
+	SaveStream(undo_writer, true, true);
+
 	UndoItem item;
-	GetTempFileName(FS.get_path(_temp_)->m_Path, "undo", 0, item.m_FileName);
-
-	Save(item.m_FileName, true, true);
-	m_UndoStack.push_back(item);
-
-	while (!m_RedoStack.empty())
+	item.m_Size = undo_writer.size();
+	if (item.m_Size)
 	{
-		unlink(m_RedoStack.back().m_FileName);
-		m_RedoStack.pop_back();
+		item.m_Data = (u8*)xr_malloc(item.m_Size);
+		CopyMemory(item.m_Data, undo_writer.pointer(), item.m_Size);
 	}
+	undo_writer.free();
+
+	m_UndoStack.push_back(std::move(item));
+	m_RedoStack.clear();
 
 	if (m_UndoStack.size() > EPrefs->scene_undo_level)
-	{
-		unlink(m_UndoStack.front().m_FileName);
 		m_UndoStack.pop_front();
-	}
 }
 
 bool EScene::Undo()
 {
-	//	if( !m_UndoStack.empty() ){
 	if (m_UndoStack.size() > 1)
 	{
-		m_RedoStack.push_back(m_UndoStack.back());
+		m_RedoStack.push_back(std::move(m_UndoStack.back()));
 		m_UndoStack.pop_back();
 
 		if (m_RedoStack.size() > EPrefs->scene_undo_level)
-		{
-			unlink(m_RedoStack.front().m_FileName);
 			m_RedoStack.pop_front();
-		}
 
 		if (!m_UndoStack.empty())
 		{
 			Unload(TRUE);
-			Load(m_UndoStack.back().m_FileName, true);
+			UndoItem& item = m_UndoStack.back();
+			IReader r(item.m_Data, item.m_Size, 0);
+			LoadStream(r, true);
 		}
 
 		UI->UpdateScene();
 		Modified();
-
 		return true;
 	}
 	return false;
@@ -76,20 +65,18 @@ bool EScene::Redo()
 	if (!m_RedoStack.empty())
 	{
 		Unload(TRUE);
-		Load(m_RedoStack.back().m_FileName, true);
+		UndoItem& ritem = m_RedoStack.back();
+		IReader r(ritem.m_Data, ritem.m_Size, 0);
+		LoadStream(r, true);
 
-		m_UndoStack.push_back(m_RedoStack.back());
+		m_UndoStack.push_back(std::move(m_RedoStack.back()));
 		m_RedoStack.pop_back();
 
 		if (m_UndoStack.size() > EPrefs->scene_undo_level)
-		{
-			unlink(m_UndoStack.front().m_FileName);
 			m_UndoStack.pop_front();
-		}
 
 		UI->UpdateScene();
 		Modified();
-
 		return true;
 	}
 	return false;

@@ -31,7 +31,7 @@
 //------------------------------------------------------------------------------------------------
 // Level Options
 //------------------------------------------------------------------------------------------------
-void st_LevelOptions::SaveLTX(CInifile &ini)
+void st_LevelOptions::SaveLTX(CInifile& ini)
 {
     LPCSTR section = "level_options";
     ini.w_u32(section, "version", CURRENT_LEVELOP_VERSION);
@@ -54,7 +54,7 @@ void st_LevelOptions::SaveLTX(CInifile &ini)
     m_mapUsage.SaveLTX(ini, section);
 }
 
-void st_LevelOptions::Save(IWriter &F)
+void st_LevelOptions::Save(IWriter& F)
 {
     F.open_chunk(CHUNK_LO_VERSION);
 
@@ -111,7 +111,7 @@ void st_LevelOptions::Save(IWriter &F)
     F.close_chunk();
 }
 
-void st_LevelOptions::ReadLTX(CInifile &ini)
+void st_LevelOptions::ReadLTX(CInifile& ini)
 {
     LPCSTR section = "level_options";
 
@@ -157,7 +157,7 @@ void st_LevelOptions::ReadLTX(CInifile &ini)
     }
 }
 
-void st_LevelOptions::Read(IReader &F)
+void st_LevelOptions::Read(IReader& F)
 {
     R_ASSERT(F.find_chunk(CHUNK_LO_VERSION));
     DWORD vers = F.r_u32();
@@ -217,7 +217,7 @@ void st_LevelOptions::Read(IReader &F)
 //------------------------------------------------------------------------------------------------
 // Scene
 //------------------------------------------------------------------------------------------------
-BOOL EScene::LoadLevelPartLTX(ESceneToolBase *M, LPCSTR mn)
+BOOL EScene::LoadLevelPartLTX(ESceneToolBase* M, LPCSTR mn)
 {
     string_path map_name;
     strcpy(map_name, mn);
@@ -228,7 +228,7 @@ BOOL EScene::LoadLevelPartLTX(ESceneToolBase *M, LPCSTR mn)
     int fnidx = 0;
     while (FS.exist(map_name))
     {
-        IReader *R = FS.r_open(map_name);
+        IReader* R = FS.r_open(map_name);
         VERIFY(R);
         char ch;
         R->r(&ch, sizeof(ch));
@@ -261,7 +261,7 @@ BOOL EScene::LoadLevelPartLTX(ESceneToolBase *M, LPCSTR mn)
     return TRUE;
 }
 
-BOOL EScene::LoadLevelPart(ESceneToolBase *M, LPCSTR map_name)
+BOOL EScene::LoadLevelPart(ESceneToolBase* M, LPCSTR map_name)
 {
     if (!Core.SocSdk)
     {
@@ -274,7 +274,7 @@ BOOL EScene::LoadLevelPart(ESceneToolBase *M, LPCSTR map_name)
         // check locking
         M->m_EditFlags.set(ESceneToolBase::flReadonly, FALSE);
 
-        IReader *R = FS.r_open(map_name);
+        IReader* R = FS.r_open(map_name);
         VERIFY(R);
         // check level part GUID
         R_ASSERT(R->find_chunk(CHUNK_TOOLS_GUID));
@@ -287,7 +287,7 @@ BOOL EScene::LoadLevelPart(ESceneToolBase *M, LPCSTR map_name)
 
         }
         // read data
-        IReader *chunk = R->open_chunk(CHUNK_TOOLS_DATA + M->FClassID);
+        IReader* chunk = R->open_chunk(CHUNK_TOOLS_DATA + M->FClassID);
         if (chunk != NULL)
         {
             M->LoadStream(*chunk);
@@ -315,7 +315,7 @@ BOOL EScene::LoadLevelPart(LPCSTR map_name, ObjClassID cls)
         return FALSE;
 }
 
-BOOL EScene::UnloadLevelPart(ESceneToolBase *M)
+BOOL EScene::UnloadLevelPart(ESceneToolBase* M)
 {
     M->Clear();
     return TRUE;
@@ -417,7 +417,7 @@ void EScene::SaveLTX(LPCSTR map_name, bool bForUndo, bool bForceSaveAll)
 
                     EFS.MarkFile(part_name.c_str(), true);
 
-                    IWriter *FF = FS.w_open(part_name.c_str());
+                    IWriter* FF = FS.w_open(part_name.c_str());
                     R_ASSERT(FF);
                     FF->open_chunk(CHUNK_TOOLS_GUID);
                     FF->w(&m_GUID, sizeof(m_GUID));
@@ -444,7 +444,7 @@ void EScene::SaveLTX(LPCSTR map_name, bool bForUndo, bool bForceSaveAll)
 //--------------------------------------------------------------------------------------------------
 void EScene::SaveToolLTX(ObjClassID clsid, LPCSTR fn)
 {
-    ESceneToolBase *tool = GetTool(clsid);
+    ESceneToolBase* tool = GetTool(clsid);
     int fc = tool->SaveFileCount();
     if (fc == 1)
     {
@@ -474,7 +474,7 @@ void EScene::SaveToolLTX(ObjClassID clsid, LPCSTR fn)
 
 bool EScene::LoadToolLTX(ObjClassID clsid, LPCSTR fn)
 {
-    ESceneToolBase *tool = GetTool(clsid);
+    ESceneToolBase* tool = GetTool(clsid);
     tool->Clear(true);
     bool res = LoadLevelPartLTX(tool, fn);
     return res;
@@ -617,13 +617,13 @@ void EScene::Save(LPCSTR map_name, bool bUndo, bool bForceSaveAll)
     }
 }
 
-void EScene::SaveObjectLTX(CCustomObject *O, LPCSTR sect_name, CInifile &ini)
+void EScene::SaveObjectLTX(CCustomObject* O, LPCSTR sect_name, CInifile& ini)
 {
     ini.w_u32(sect_name, "clsid", O->FClassID);
     O->SaveLTX(ini, sect_name);
 }
 
-void EScene::SaveObjectStream(CCustomObject *O, IWriter &F)
+void EScene::SaveObjectStream(CCustomObject* O, IWriter& F)
 {
     F.open_chunk(CHUNK_OBJECT_CLASS);
     F.w_u32(O->FClassID);
@@ -634,7 +634,7 @@ void EScene::SaveObjectStream(CCustomObject *O, IWriter &F)
 }
 //--------------------------------------------------------------------------------------------------
 
-void EScene::SaveObjectsLTX(ObjectList &lst, LPCSTR sect_name_parent, LPCSTR sect_name_prefix, CInifile &ini)
+void EScene::SaveObjectsLTX(ObjectList& lst, LPCSTR sect_name_parent, LPCSTR sect_name_prefix, CInifile& ini)
 {
     u32 i = 0;
     string256 buff;
@@ -647,7 +647,7 @@ void EScene::SaveObjectsLTX(ObjectList &lst, LPCSTR sect_name_parent, LPCSTR sec
     ini.w_u32(sect_name_parent, buff, lst.size());
 }
 
-void EScene::SaveObjectsStream(ObjectList &lst, u32 chunk_id, IWriter &F)
+void EScene::SaveObjectsStream(ObjectList& lst, u32 chunk_id, IWriter& F)
 {
     F.open_chunk(chunk_id);
     int count = 0;
@@ -662,14 +662,14 @@ void EScene::SaveObjectsStream(ObjectList &lst, u32 chunk_id, IWriter &F)
 }
 //--------------------------------------------------------------------------------------------------
 
-bool EScene::ReadObjectStream(IReader &F, CCustomObject *&O)
+bool EScene::ReadObjectStream(IReader& F, CCustomObject*& O)
 {
     ObjClassID clsid = OBJCLASS_DUMMY;
     R_ASSERT(F.find_chunk(CHUNK_OBJECT_CLASS));
     clsid = ObjClassID(F.r_u32());
     O = GetOTool(clsid)->CreateObject(0, 0);
 
-    IReader *S = F.open_chunk(CHUNK_OBJECT_BODY);
+    IReader* S = F.open_chunk(CHUNK_OBJECT_BODY);
     R_ASSERT(S);
     bool bRes = O->LoadStream(*S);
     S->close();
@@ -680,7 +680,7 @@ bool EScene::ReadObjectStream(IReader &F, CCustomObject *&O)
     return bRes;
 }
 //----------------------------------------------------
-bool EScene::ReadObjectLTX(CInifile &ini, LPCSTR sect_name, CCustomObject *&O)
+bool EScene::ReadObjectLTX(CInifile& ini, LPCSTR sect_name, CCustomObject*& O)
 {
     ObjClassID clsid = OBJCLASS_DUMMY;
     clsid = ObjClassID(ini.r_u32(sect_name, "clsid"));
@@ -694,7 +694,7 @@ bool EScene::ReadObjectLTX(CInifile &ini, LPCSTR sect_name, CCustomObject *&O)
     return bRes;
 }
 
-bool EScene::ReadObjectsLTX(CInifile &ini, LPCSTR sect_name_parent, LPCSTR sect_name_prefix, TAppendObject on_append, SPBItem *pb)
+bool EScene::ReadObjectsLTX(CInifile& ini, LPCSTR sect_name_parent, LPCSTR sect_name_prefix, TAppendObject on_append, SPBItem* pb)
 {
     string128 buff;
     R_ASSERT(on_append);
@@ -705,12 +705,12 @@ bool EScene::ReadObjectsLTX(CInifile &ini, LPCSTR sect_name_parent, LPCSTR sect_
     for (u32 i = 0; i < count; ++i)
     {
         sprintf(buff, "%s_%s_%d", sect_name_parent, sect_name_prefix, i);
-        CCustomObject *obj = NULL;
+        CCustomObject* obj = NULL;
 
         if (ReadObjectLTX(ini, buff, obj))
         {
             LPCSTR obj_name = obj->GetName();
-            CCustomObject *existing = FindObjectByName(obj_name, obj->FClassID);
+            CCustomObject* existing = FindObjectByName(obj_name, obj->FClassID);
             if (existing)
             {
 
@@ -764,21 +764,21 @@ bool EScene::ReadObjectsLTX(CInifile &ini, LPCSTR sect_name_parent, LPCSTR sect_
     return bRes;
 }
 
-bool EScene::ReadObjectsStream(IReader &F, u32 chunk_id, TAppendObject on_append, SPBItem *pb)
+bool EScene::ReadObjectsStream(IReader& F, u32 chunk_id, TAppendObject on_append, SPBItem* pb)
 {
     R_ASSERT(on_append);
     bool bRes = true;
-    IReader *OBJ = F.open_chunk(chunk_id);
+    IReader* OBJ = F.open_chunk(chunk_id);
     if (OBJ)
     {
-        IReader *O = OBJ->open_chunk(0);
+        IReader* O = OBJ->open_chunk(0);
         for (int count = 1; O; ++count)
         {
-            CCustomObject *obj = NULL;
+            CCustomObject* obj = NULL;
             if (ReadObjectStream(*O, obj))
             {
                 LPCSTR obj_name = obj->GetName();
-                CCustomObject *existing = FindObjectByName(obj_name, obj->FClassID);
+                CCustomObject* existing = FindObjectByName(obj_name, obj->FClassID);
                 if (existing)
                 {
                     /*if(g_frmConflictLoadObject->m_result!=2 && g_frmConflictLoadObject->m_result!=4 && g_frmConflictLoadObject->m_result!=6)
@@ -831,7 +831,7 @@ bool EScene::ReadObjectsStream(IReader &F, u32 chunk_id, TAppendObject on_append
     return bRes;
 }
 
-bool EScene::OnLoadAppendObject(CCustomObject *O)
+bool EScene::OnLoadAppendObject(CCustomObject* O)
 {
     AppendObject(O, false);
     return true;
@@ -840,7 +840,7 @@ bool EScene::OnLoadAppendObject(CCustomObject *O)
 //----------------------------------------------------
 bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
 {
-	CSceneObject::ResetMissingReferencePrompts();
+    CSceneObject::ResetMissingReferencePrompts();
     DWORD version = 0;
     if (!map_name || (0 == map_name[0]))
         return false;
@@ -897,12 +897,12 @@ bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
 
         if (ini.section_exist("snap_objects"))
         {
-            CInifile::Sect &S = ini.r_section("snap_objects");
+            CInifile::Sect& S = ini.r_section("snap_objects");
             CInifile::SectCIt Si = S.Data.begin();
             CInifile::SectCIt Se = S.Data.end();
             for (; Si != Se; ++Si)
             {
-                CCustomObject *O = FindObjectByName(Si->first.c_str(), OBJCLASS_SCENEOBJECT);
+                CCustomObject* O = FindObjectByName(Si->first.c_str(), OBJCLASS_SCENEOBJECT);
                 if (!O)
                     ELog.Msg(mtError, "EScene: Can't find snap object '%s'.", Si->second.c_str());
                 else
@@ -944,7 +944,7 @@ bool EScene::LoadStream(IReader& F, bool bUndo)
     }
 
     // Lev. ops.
-    IReader *LOP = F.open_chunk(CHUNK_LEVELOP);
+    IReader* LOP = F.open_chunk(CHUNK_LEVELOP);
     if (LOP)
     {
         m_LevelOp.Read(*LOP);
@@ -985,7 +985,7 @@ bool EScene::LoadStream(IReader& F, bool bUndo)
     if (F.find_chunk(CHUNK_OBJECT_COUNT))
         obj_cnt = F.r_u32();
 
-    SPBItem *pb = bUndo ? nullptr : UI->ProgressStart(obj_cnt, "Loading objects...");
+    SPBItem* pb = bUndo ? nullptr : UI->ProgressStart(obj_cnt, "Loading objects...");
     ReadObjectsStream(F, CHUNK_OBJECT_LIST, TAppendObject(this, &EScene::OnLoadAppendObject), pb);
     if (pb) UI->ProgressEnd(pb);
 
@@ -995,7 +995,7 @@ bool EScene::LoadStream(IReader& F, bool bUndo)
     {
         if (_I->second)
         {
-            IReader *chunk = F.open_chunk(CHUNK_TOOLS_DATA + _I->first);
+            IReader* chunk = F.open_chunk(CHUNK_TOOLS_DATA + _I->first);
             if (chunk)
             {
                 _I->second->LoadStream(*chunk);
@@ -1012,9 +1012,9 @@ bool EScene::LoadStream(IReader& F, bool bUndo)
         if (cnt)
         {
             for (int i = 0; i < cnt; ++i)
-            {   
+            {
                 F.r_stringZ(buf);
-                CCustomObject *O = FindObjectByName(buf.c_str(), OBJCLASS_SCENEOBJECT);
+                CCustomObject* O = FindObjectByName(buf.c_str(), OBJCLASS_SCENEOBJECT);
                 if (!O)
                     ELog.Msg(mtError, "EScene: Can't find snap object '%s'.", buf.c_str());
                 else
@@ -1046,7 +1046,7 @@ bool EScene::Load(LPCSTR map_name, bool bUndo)
         CTimer T;
         T.Start();
 
-        IReader *F = FS.r_open(full_name.c_str());
+        IReader* F = FS.r_open(full_name.c_str());
         VERIFY(F);
 
         bool bRes = LoadStream(*F, bUndo);
@@ -1059,7 +1059,7 @@ bool EScene::Load(LPCSTR map_name, bool bUndo)
             {
                 if (_I->second && _I->second->IsEnabled() && (_I->first != OBJCLASS_DUMMY))
                 {
-                    IReader *chunk = F ? F->open_chunk(CHUNK_TOOLS_DATA + _I->first) : nullptr;
+                    IReader* chunk = F ? F->open_chunk(CHUNK_TOOLS_DATA + _I->first) : nullptr;
                     if (!chunk)
                     {
                         LoadLevelPart(_I->second, LevelPartName(map_name, _I->first).c_str());
@@ -1088,7 +1088,7 @@ void EScene::SaveSelection(ObjClassID classfilter, LPCSTR fname)
     xr_string full_name;
     full_name = fname;
 
-    IWriter *F = FS.w_open(full_name.c_str());
+    IWriter* F = FS.w_open(full_name.c_str());
     R_ASSERT(F);
 
     F->open_chunk(CHUNK_VERSION);
@@ -1112,7 +1112,7 @@ void EScene::SaveSelection(ObjClassID classfilter, LPCSTR fname)
     }
     else
     {
-        ESceneToolBase *mt = GetTool(classfilter);
+        ESceneToolBase* mt = GetTool(classfilter);
         VERIFY(mt);
         F->open_chunk(CHUNK_TOOLS_DATA + classfilter);
         mt->SaveSelection(m_SaveCache);
@@ -1125,7 +1125,7 @@ void EScene::SaveSelection(ObjClassID classfilter, LPCSTR fname)
 }
 
 //----------------------------------------------------
-bool EScene::OnLoadSelectionAppendObject(CCustomObject *obj)
+bool EScene::OnLoadSelectionAppendObject(CCustomObject* obj)
 {
     string256 buf;
     GenObjectName(obj->FClassID, buf, obj->GetName());
@@ -1153,7 +1153,7 @@ bool EScene::LoadSelection(LPCSTR fname)
     {
         SelectObjects(false);
 
-        IReader *F = FS.r_open(full_name.c_str());
+        IReader* F = FS.r_open(full_name.c_str());
 
         // Version
         R_ASSERT(F->r_chunk(CHUNK_VERSION, &version));
@@ -1177,7 +1177,7 @@ bool EScene::LoadSelection(LPCSTR fname)
         for (; _I != _E; _I++)
             if (_I->second && _I->second->IsEnabled() && _I->second->IsEditable())
             {
-                IReader *chunk = F->open_chunk(CHUNK_TOOLS_DATA + _I->first);
+                IReader* chunk = F->open_chunk(CHUNK_TOOLS_DATA + _I->first);
                 if (chunk)
                 {
                     _I->second->LoadSelection(*chunk);
@@ -1203,7 +1203,7 @@ struct SceneClipData
 void EScene::CopySelection(ObjClassID classfilter)
 {
     HGLOBAL hmem = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, sizeof(SceneClipData));
-    SceneClipData *sceneclipdata = (SceneClipData *)GlobalLock(hmem);
+    SceneClipData* sceneclipdata = (SceneClipData*)GlobalLock(hmem);
 
     sceneclipdata->m_ClassFilter = classfilter;
     GetTempFileName(FS.get_path(_temp_)->m_Path, "clip", 0, sceneclipdata->m_FileName);
@@ -1233,7 +1233,7 @@ void EScene::PasteSelection()
         HGLOBAL hmem = GetClipboardData(clipformat);
         if (hmem)
         {
-            SceneClipData *sceneclipdata = (SceneClipData *)GlobalLock(hmem);
+            SceneClipData* sceneclipdata = (SceneClipData*)GlobalLock(hmem);
             LoadSelection(sceneclipdata->m_FileName);
             GlobalUnlock(hmem);
         }
@@ -1332,7 +1332,7 @@ void EScene::LoadCompilerError(LPCSTR fn)
         }
     */
 
-    IReader *F = FS.r_open(fn);
+    IReader* F = FS.r_open(fn);
     Tools->ClearDebugDraw();
     Fvector pt[3];
     if (F->find_chunk(10))
@@ -1446,9 +1446,9 @@ void EScene::SaveCompilerError(LPCSTR fn)
             ini.w_bool	(sect,buff,Tools->m_DebugDraw.m_WireFaces[i].m);
         }
     */
-    IWriter *fs = FS.w_open(fn);
+    IWriter* fs = FS.w_open(fn);
     R_ASSERT(fs);
-    IWriter &err = *fs;
+    IWriter& err = *fs;
 
     // t-junction
     err.open_chunk(10);

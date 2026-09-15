@@ -386,8 +386,8 @@ void CEditorRenderDevice::FrameMove()
 	float fPreviousFrameTime = Timer.GetElapsed_sec();
 	Timer.Start();												// previous frame
 	fTimeDelta = 0.1f * fTimeDelta + 0.9f * fPreviousFrameTime; // smooth random system activity - worst case ~7% error
-	if (fTimeDelta > .1f)
-		fTimeDelta = .1f; // limit to 15fps minimum
+//	if (fTimeDelta > .1f)
+//		fTimeDelta = .1f; // limit to 15fps minimum
 
 	fTimeGlobal = TimerGlobal.GetElapsed_sec(); // float(qTime)*CPU::cycles2seconds;
 	dwTimeGlobal = TimerGlobal.GetElapsed_ms(); // u32((qTime*u64(1000))/CPU::cycles_per_second);
