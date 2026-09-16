@@ -91,6 +91,27 @@ void ESceneSectorTool::FillProp(LPCSTR pref, PropItemVec &items)
     PHelper().CreateFlag32(items, PrepareKey(pref, "Common\\Draw Solid"), &m_Flags, flDrawSolid);
     inherited::FillProp(pref, items);
 }
+
+//----------------------------------------------------
+
+void ESceneSectorTool::OnObjectAppend(CCustomObject* O)
+{
+
+    CSceneObject* obj = dynamic_cast<CSceneObject*>(O);
+    if (!obj || !(obj->IsStatic() || obj->IsMUStatic()))
+        return;
+
+    CSector* sector = GetCurrentSector();
+    if (!sector)
+        return;
+
+    EditMeshVec* meshes = obj->Meshes();
+    if (!meshes)
+        return;
+
+    for (EditMeshIt m_it = meshes->begin(); m_it != meshes->end(); ++m_it)
+        sector->AddMesh(obj, *m_it);
+}
 //----------------------------------------------------
 
 CCustomObject *ESceneSectorTool::CreateObject(LPVOID data, LPCSTR name)

@@ -32,6 +32,11 @@ DEFINE_VECTOR(CSectorItem, SItemVec, SItemIt);
 
 class CSector : public CCustomObject
 {
+
+    protected:
+        enum { flAutoSector = (1 << 0) };
+        Flags32 m_SectorFlags;
+
     friend class TfrmPropertiesSector;
     friend class SceneBuilder;
     friend class CPortalUtils;
@@ -71,6 +76,9 @@ public:
     void Construct(LPVOID data);
     virtual ~CSector();
     virtual bool CanAttach() { return false; }
+
+    IC bool IsAutoSector() const { return m_SectorFlags.is(flAutoSector); }
+    void OnAutoSectorChange(PropValue* sender);
 
     virtual void Render(int priority, bool strictB2F);
     virtual bool RayPick(float &distance, const Fvector &start, const Fvector &direction,

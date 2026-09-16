@@ -13,7 +13,9 @@ protected:
         flDrawSolid = (1 << 31),
     };
     Flags32 m_Flags;
-    // controls
+
+    CSector* m_pAutoSector = nullptr; 
+
     virtual void CreateControls();
     virtual void RemoveControls();
 
@@ -24,7 +26,12 @@ public:
     IC LPCSTR ClassDesc() { return "Sector"; }
     IC int RenderPriority() { return 20; }
 
-    virtual void OnObjectRemove(CCustomObject *O, bool bDeleting);
+    virtual void OnObjectRemove(CCustomObject* O, bool bDeleting);
+    virtual void OnObjectAppend(CCustomObject* O);
+
+    IC CSector* GetCurrentSector() { return m_pAutoSector; }
+    IC void SetAutoSector(CSector* s) { m_pAutoSector = s; }
+
     void _OnObjectRemove(CSceneObject *O);
     virtual void OnBeforeObjectChange(CCustomObject *O);
 

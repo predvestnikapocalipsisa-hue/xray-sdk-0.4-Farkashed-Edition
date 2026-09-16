@@ -114,6 +114,9 @@ void EScene::AppendObject(CCustomObject *object, bool bUndo)
         object->Select(true);
         UndoSave();
     }
+
+    if (ESceneSectorTool* sectorTool = dynamic_cast<ESceneSectorTool*>(GetOTool(OBJCLASS_SECTOR)))
+        sectorTool->OnObjectAppend(object);
 }
 
 bool EScene::RemoveObject(CCustomObject *object, bool bUndo, bool bDeleting)

@@ -1417,30 +1417,38 @@ void CDrawUtilities::DrawPivot(const Fvector &pos, float sz)
     DrawCross(pos, sz, sz, sz, sz, sz, sz, 0xFF7FFF7F);
 }
 
-void CDrawUtilities::DrawAxis(const Fmatrix &T)
+void CDrawUtilities::DrawAxis(const Fmatrix& T)
 {
-    if (!m_axis_object)
-        m_axis_object = Lib.CreateEditObject("editor\\axis");
+    VERIFY(EDevice.b_is_Ready);
 
-    R_ASSERT(m_axis_object);
+    static int   _wh = 50;    // отступ гизмо от угла экрана, в пикселях
+    static float _kl = 1.0f;  // дистанция гизмо от камеры
+    static float _sz = 0.04f; // длина каждой оси в мировых единицах на этой дистанции
 
-    Fmatrix M = Fidentity;
-    Fmatrix S;
-    S.scale(0.04f, 0.04f, 0.04f);
-    M.mulB_44(S);
-
-    Fvector start, dir;
     Ivector2 pt;
-
-    static int _wh = 50;
-    static float _kl = 1.0f;
-
     pt.x = _wh;
     pt.y = iFloor(UI->GetRenderHeight() - _wh);
 
-    EDevice.m_Camera.MouseRayFromPoint(M.c, dir, pt);
-    M.c.mad(dir, _kl);
-    m_axis_object->Render(M, 2, false);
+    Fvector origin, dir;
+    EDevice.m_Camera.MouseRayFromPoint(origin, dir, pt);
+    origin.mad(dir, _kl); // origin = origin + dir * _kl, как и было в оригинале
+
+    RCache.set_xform_world(Fidentity);
+    DU_DRAW_SH(EDevice.m_WireShader); // тот же шейдер, что уже используется для grid/selection box
+
+    Fvector end;
+
+    end.set(origin); end.x += _sz;
+    DrawLine(origin, end, 0xFFFF3030); // X - красный
+    OutText(end, "x", 0xFFFF6060, 0xFF000000);
+
+    end.set(origin); end.y += _sz;
+    DrawLine(origin, end, 0xFF30FF30); // Y - зелёный
+    OutText(end, "y", 0xFF60FF60, 0xFF000000);
+
+    end.set(origin); end.z += _sz;
+    DrawLine(origin, end, 0xFF3060FF); // Z - синий
+    OutText(end, "z", 0xFF6090FF, 0xFF000000);
 }
 
 void CDrawUtilities::DrawObjectAxis(const Fmatrix &T, float sz, BOOL sel)

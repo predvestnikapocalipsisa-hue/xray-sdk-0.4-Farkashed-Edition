@@ -631,7 +631,20 @@ void CSector::SaveStream(IWriter &F)
     F.close_chunk();
 }
 
-//----------------------------------------------------
+void CSector::OnAutoSectorChange(PropValue* sender)
+{
+    ESceneSectorTool* tool = dynamic_cast<ESceneSectorTool*>(FParentTools);
+    if (!tool)
+        return;
+
+    if (m_SectorFlags.is(flAutoSector))
+        tool->SetAutoSector(this);
+    else if (tool->GetCurrentSector() == this)
+        tool->SetAutoSector(nullptr);
+
+    Tools->UpdateProperties();
+}
+
 xr_token level_sub_map[] =
     {
         {"default", u8(-1)},
@@ -641,10 +654,18 @@ xr_token level_sub_map[] =
         {"#3", 3},
         {NULL, 4}};
 
-void CSector::FillProp(LPCSTR pref, PropItemVec &items)
+void CSector::FillProp(LPCSTR pref, PropItemVec& items)
 {
     inherited::FillProp(pref, items);
     PHelper().CreateFColor(items, PrepareKey(pref, "Color"), &sector_color);
+
+    ESceneSectorTool* tool = dynamic_cast<ESceneSectorTool*>(FParentTools);
+    if (tool)
+        m_SectorFlags.set(flAutoSector, tool->GetCurrentSector() == this);
+
+    PropValue* V = PHelper().CreateFlag32(items, PrepareKey(pref, GetName(), "Auto Sector"), &m_SectorFlags, flAutoSector);
+    V->OnChangeEvent.bind(this, &CSector::OnAutoSectorChange);
+
     int faces, objects, meshes;
     GetCounts(&objects, &meshes, &faces);
     PHelper().CreateCaption(items, PrepareKey(pref, GetName(), "Contents\\Objects"), xr_string(objects).c_str());
