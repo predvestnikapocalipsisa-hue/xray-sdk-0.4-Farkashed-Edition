@@ -15,7 +15,36 @@
 
 CImageManager ImageLib;
 
-extern "C" __declspec(dllimport) int DXTCompress(LPCSTR out_name, u8 *raw_data, u8 *ext_data, u32 w, u32 h, u32 pitch, STextureParams *options, u32 depth);
+// "OK to all": пропускать без диалога все последующие такие ошибки в рамках текущей синхронизации
+static bool s_bIgnoreAllTextureErrors = false;
+// прервать всю операцию синхронизации целиком (Abort)
+static bool s_bAbortTextureSync = false;
+
+// Показывает диалог "Can't make game texture..." с вариантами Abort/Retry/Ignore.
+// Ignore -> больше не спрашивать до конца текущей синхронизации.
+// Abort  -> взводит флаг для прерывания всего цикла синхронизации.
+static void ReportGameTextureError(LPCSTR fmt, ...)
+{
+    if (s_bIgnoreAllTextureErrors || s_bAbortTextureSync)
+        return;
+
+    char buf[1024];
+    va_list mark;
+    va_start(mark, fmt);
+    _vsnprintf(buf, sizeof(buf) - 1, fmt, mark);
+    buf[sizeof(buf) - 1] = 0;
+    va_end(mark);
+
+    int res = MessageBox(GetActiveWindow(), buf, "Error",
+        MB_ABORTRETRYIGNORE | MB_ICONERROR | MB_DEFBUTTON2);
+
+    if (res == IDIGNORE)
+        s_bIgnoreAllTextureErrors = true;
+    else if (res == IDABORT)
+        s_bAbortTextureSync = true;
+}
+
+extern "C" __declspec(dllimport) int DXTCompress(LPCSTR out_name, u8* raw_data, u8* ext_data, u32 w, u32 h, u32 pitch, STextureParams* options, u32 depth);
 
 bool IsValidSize(u32 w, u32 h)
 {
@@ -31,11 +60,11 @@ bool IsValidSize(u32 w, u32 h)
     return true;
 }
 
-FIBITMAP *Surface_Load(char *full_name)
+FIBITMAP* Surface_Load(char* full_name)
 {
     // load
     FREE_IMAGE_FORMAT fif = FreeImage_GetFIFFromFilename(full_name);
-    FIBITMAP *map = FreeImage_Load(fif, full_name);
+    FIBITMAP* map = FreeImage_Load(fif, full_name);
 
     if (!map)
         return nullptr;
@@ -45,7 +74,7 @@ FIBITMAP *Surface_Load(char *full_name)
         return map;
 
     // convert
-    FIBITMAP *map32 = FreeImage_ConvertTo32Bits(map);
+    FIBITMAP* map32 = FreeImage_ConvertTo32Bits(map);
 
     if (!map32)
         map32 = map;
@@ -55,7 +84,7 @@ FIBITMAP *Surface_Load(char *full_name)
     return map32;
 }
 
-bool Stbi_Load(LPCSTR full_name, U32Vec &data, u32 &w, u32 &h, u32 &a)
+bool Stbi_Load(LPCSTR full_name, U32Vec& data, u32& w, u32& h, u32& a)
 {
     if (!FS.exist(full_name))
     {
@@ -84,7 +113,7 @@ bool Stbi_Load(LPCSTR full_name, U32Vec &data, u32 &w, u32 &h, u32 &a)
         return true;
     }
 
-    if (FIBITMAP *bm = Surface_Load((LPSTR)full_name))
+    if (FIBITMAP* bm = Surface_Load((LPSTR)full_name))
     {
         w = FreeImage_GetWidth(bm);
         h = FreeImage_GetHeight(bm);
@@ -106,14 +135,14 @@ bool Stbi_Load(LPCSTR full_name, U32Vec &data, u32 &w, u32 &h, u32 &a)
     return false;
 }
 
-u32 *Stbi_Load(LPCSTR full_name, u32 &w, u32 &h)
+u32* Stbi_Load(LPCSTR full_name, u32& w, u32& h)
 {
     u32 a;
     xr_vector<u32> data;
 
     if (Stbi_Load(full_name, data, w, h, a))
     {
-        u32 *raw_data = xr_alloc<u32>(w * h);
+        u32* raw_data = xr_alloc<u32>(w * h);
         memcpy(raw_data, data.data(), w * h * 4);
         return raw_data;
     }
@@ -121,7 +150,7 @@ u32 *Stbi_Load(LPCSTR full_name, u32 &w, u32 &h)
     return nullptr;
 }
 
-xr_string CImageManager::UpdateFileName(xr_string &fn)
+xr_string CImageManager::UpdateFileName(xr_string& fn)
 {
     return EFS.AppendFolderToName(fn, 1, TRUE);
 }
@@ -129,7 +158,7 @@ xr_string CImageManager::UpdateFileName(xr_string &fn)
 //------------------------------------------------------------------------------
 // создает тхм
 //------------------------------------------------------------------------------
-void CImageManager::MakeThumbnailImage(ETextureThumbnail *THM, u32 *data, u32 w, u32 h, u32 a)
+void CImageManager::MakeThumbnailImage(ETextureThumbnail* THM, u32* data, u32 w, u32 h, u32 a)
 {
     R_ASSERT(THM);
     // create thumbnail
@@ -148,7 +177,7 @@ void CImageManager::MakeThumbnailImage(ETextureThumbnail *THM, u32 *data, u32 w,
 //------------------------------------------------------------------------------
 // создает тхм
 //------------------------------------------------------------------------------
-void CImageManager::CreateTextureThumbnail(ETextureThumbnail *THM, const xr_string &src_name, LPCSTR initial, bool bSetDefParam)
+void CImageManager::CreateTextureThumbnail(ETextureThumbnail* THM, const xr_string& src_name, LPCSTR initial, bool bSetDefParam)
 {
     R_ASSERT(src_name.size());
     string_path base_name;
@@ -192,10 +221,10 @@ void CImageManager::CreateTextureThumbnail(ETextureThumbnail *THM, const xr_stri
 //------------------------------------------------------------------------------
 // создает новую текстуру
 //------------------------------------------------------------------------------
-void CImageManager::CreateGameTexture(LPCSTR src_name, ETextureThumbnail *thumb)
+void CImageManager::CreateGameTexture(LPCSTR src_name, ETextureThumbnail* thumb)
 {
     R_ASSERT(src_name && src_name[0]);
-    ETextureThumbnail *THM = thumb ? thumb : xr_new<ETextureThumbnail>(src_name);
+    ETextureThumbnail* THM = thumb ? thumb : xr_new<ETextureThumbnail>(src_name);
     string_path base_name;
     strcpy(base_name, src_name);
 
@@ -219,13 +248,13 @@ void CImageManager::CreateGameTexture(LPCSTR src_name, ETextureThumbnail *thumb)
 //------------------------------------------------------------------------------
 // создает игровую текстуру
 //------------------------------------------------------------------------------
-bool CImageManager::MakeGameTexture(LPCSTR game_name, u32 *data, const STextureParams &tp)
+bool CImageManager::MakeGameTexture(LPCSTR game_name, u32* data, const STextureParams& tp)
 {
     VerifyPath(game_name);
     // fill texture params
     // compress
     u32 w4 = tp.width * 4;
-    int res = DXTCompress(game_name, (u8 *)data, 0, tp.width, tp.height, w4, (STextureParams *)&tp, 4);
+    int res = DXTCompress(game_name, (u8*)data, 0, tp.width, tp.height, w4, (STextureParams*)&tp, 4);
     if (1 != res)
     {
         FS.file_delete(game_name);
@@ -233,7 +262,7 @@ bool CImageManager::MakeGameTexture(LPCSTR game_name, u32 *data, const STextureP
         switch (res)
         {
         case 0:
-            ELog.DlgMsg(mtError, "Can't make game texture '%s'.", game_name);
+            ReportGameTextureError("Can't make game texture '%s'.", game_name);
             break;
 
         case -1000:
@@ -248,7 +277,7 @@ bool CImageManager::MakeGameTexture(LPCSTR game_name, u32 *data, const STextureP
     return res == 1;
 }
 
-bool CImageManager::MakeGameTexture(ETextureThumbnail *THM, LPCSTR game_name, u32 *load_data)
+bool CImageManager::MakeGameTexture(ETextureThumbnail* THM, LPCSTR game_name, u32* load_data)
 {
     VerifyPath(game_name);
     // flip
@@ -270,7 +299,7 @@ bool CImageManager::MakeGameTexture(ETextureThumbnail *THM, LPCSTR game_name, u3
     {
         bool e_res = true;
         LPCSTR e_name = THM->m_TexParams.ext_normal_map_name.c_str();
-        ETextureThumbnail *NM_THM = xr_new<ETextureThumbnail>(e_name);
+        ETextureThumbnail* NM_THM = xr_new<ETextureThumbnail>(e_name);
 
         if (NM_THM->_Format().type == STextureParams::ttNormalMap)
         {
@@ -306,7 +335,7 @@ bool CImageManager::MakeGameTexture(ETextureThumbnail *THM, LPCSTR game_name, u3
             return false;
     }
     // compress
-    int res = DXTCompress(game_name, (u8 *)load_data, (u8 *)(ext_data.empty() ? 0 : ext_data.data()), w, h, w4, &THM->m_TexParams, 4);
+    int res = DXTCompress(game_name, (u8*)load_data, (u8*)(ext_data.empty() ? 0 : ext_data.data()), w, h, w4, &THM->m_TexParams, 4);
     if (1 != res)
     {
         if (-1000 != res)
@@ -317,7 +346,7 @@ bool CImageManager::MakeGameTexture(ETextureThumbnail *THM, LPCSTR game_name, u3
         switch (res)
         {
         case 0:
-            ELog.DlgMsg(mtError, "Can't make game texture '%s'.", THM->m_SrcName.c_str());
+            ReportGameTextureError("Can't make game texture '%s'.", THM->m_SrcName.c_str());
             break;
 
         case -1000:
@@ -337,7 +366,7 @@ bool CImageManager::MakeGameTexture(ETextureThumbnail *THM, LPCSTR game_name, u3
 //------------------------------------------------------------------------------
 // загружает 32-bit данные
 //------------------------------------------------------------------------------
-bool CImageManager::LoadTextureData(LPCSTR src_name, U32Vec &data, u32 &w, u32 &h, int *age)
+bool CImageManager::LoadTextureData(LPCSTR src_name, U32Vec& data, u32& w, u32& h, int* age)
 {
     string_path fn;
     FS.update_path(fn, _game_textures_, ChangeFileExt(src_name, ".dds").c_str());
@@ -356,7 +385,7 @@ bool CImageManager::LoadTextureData(LPCSTR src_name, U32Vec &data, u32 &w, u32 &
 // копирует обновленные текстуры с Import'a в Textures
 // files - список файлов для копирование
 //------------------------------------------------------------------------------
-void CImageManager::SafeCopyLocalToServer(FS_FileSet &files)
+void CImageManager::SafeCopyLocalToServer(FS_FileSet& files)
 {
     string_path p_import, p_textures;
     string_path src_name, dest_name;
@@ -387,7 +416,7 @@ void CImageManager::SafeCopyLocalToServer(FS_FileSet &files)
             U32Vec data;
             u32 w, h, a;
             R_ASSERT(Stbi_Load(src_name, data, w, h, a));
-            CImage *I = xr_new<CImage>();
+            CImage* I = xr_new<CImage>();
             I->Create(w, h, data.data());
             I->Vflip();
             I->SaveTGA(dest_name);
@@ -404,8 +433,11 @@ void CImageManager::SafeCopyLocalToServer(FS_FileSet &files)
 // source_list - содержит список текстур с расширениями
 // sync_list - реально сохраненные файлы (после использования освободить)
 //------------------------------------------------------------------------------
-void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bForceGame, FS_FileSet *source_list, AStringVec *sync_list, FS_FileSet *modif_map, bool bForceBaseAge)
+void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bForceGame, FS_FileSet* source_list, AStringVec* sync_list, FS_FileSet* modif_map, bool bForceBaseAge)
 {
+    s_bIgnoreAllTextureErrors = false;
+    s_bAbortTextureSync = false;
+
     FS_FileSet M_BASE;
     FS_FileSet M_THUM;
     FS_FileSet M_GAME;
@@ -427,7 +459,7 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
     int m_age = time(NULL);
 
     // sync assoc
-    SPBItem *pb = 0;
+    SPBItem* pb = 0;
     if (bProgress)
         pb = UI->ProgressStart(M_BASE.size(), "Synchronize textures...");
     FS_FileSetIt it = M_BASE.begin();
@@ -449,7 +481,7 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
         FS_FileSetIt gm = M_GAME.find(base_name);
         bool bGame = bThm || ((gm == M_GAME.end()) || ((gm != M_GAME.end()) && (gm->time_write != it->time_write)));
 
-        ETextureThumbnail *THM = 0;
+        ETextureThumbnail* THM = 0;
 
         BOOL bUpdated = FALSE;
         BOOL bFailed = FALSE;
@@ -513,12 +545,14 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
             }
             else
             {
-                ELog.DlgMsg(mtError, "Can't make game texture '%s'.\nInvalid size (%dx%d).", base_name.c_str(), w, h);
+                ReportGameTextureError("Can't make game texture '%s'.\nInvalid size (%dx%d).", base_name.c_str(), w, h);
             }
         }
         if (THM)
             xr_delete(THM);
         if (UI->NeedAbort())
+            break;
+        if (s_bAbortTextureSync)
             break;
 
         // Yield CPU slice so the OS message queue stays healthy during long syncs.
@@ -587,7 +621,7 @@ void CImageManager::ChangeFileAgeTo(FS_FileSet* tgt_map, int age)
     FS.unlock_rescan			();
 }
 */
-void CImageManager::WriteAssociation(CInifile *ltx_ini, LPCSTR base_name, const STextureParams &fmt)
+void CImageManager::WriteAssociation(CInifile* ltx_ini, LPCSTR base_name, const STextureParams& fmt)
 {
     ltx_ini->w_u32("types", base_name, fmt.type);
 }
@@ -605,19 +639,19 @@ void CImageManager::SynchronizeTexture(LPCSTR tex_name, int age)
 //------------------------------------------------------------------------------
 // возвращает список всех текстур
 //------------------------------------------------------------------------------
-int CImageManager::GetTextures(FS_FileSet &files, BOOL bFolders)
+int CImageManager::GetTextures(FS_FileSet& files, BOOL bFolders)
 {
     return FS.file_list(files, _game_textures_, (bFolders ? FS_ListFolders : 0) | FS_ListFiles | FS_ClampExt, "*.dds");
 }
 
-int CImageManager::GetTexturesRaw(FS_FileSet &files, BOOL bFolders)
+int CImageManager::GetTexturesRaw(FS_FileSet& files, BOOL bFolders)
 {
     return FS.file_list(files, _textures_, (bFolders ? FS_ListFolders : 0) | FS_ListFiles | FS_ClampExt, "*.tga");
 }
 //------------------------------------------------------------------------------
 // возвращает список текстур, которые нужно обновить
 //------------------------------------------------------------------------------
-int CImageManager::GetLocalNewTextures(FS_FileSet &files)
+int CImageManager::GetLocalNewTextures(FS_FileSet& files)
 {
     return FS.file_list(files, _import_, FS_ListFiles | FS_RootOnly, "*.tga,*.bmp,*.dds,*.png,*.jpg");
 }
@@ -627,7 +661,7 @@ int CImageManager::GetLocalNewTextures(FS_FileSet &files)
 // output: 	соответствие
 //------------------------------------------------------------------------------
 #define SQR(a) ((a) * (a))
-BOOL CImageManager::CheckCompliance(LPCSTR fname, int & compl )
+BOOL CImageManager::CheckCompliance(LPCSTR fname, int& compl )
 {
     compl = 0;
     U32Vec data;
@@ -640,8 +674,8 @@ BOOL CImageManager::CheckCompliance(LPCSTR fname, int & compl )
     u32 w_2 = (1 == w) ? w : w / 2;
     u32 h_2 = (1 == h) ? h : h / 2;
     // scale down(lanczos3) and up (bilinear, as video board)
-    u32 *pScaled = (u32 *)(xr_malloc((w_2) * (h_2)*4));
-    u32 *pRestored = (u32 *)(xr_malloc(w * h * 4));
+    u32* pScaled = (u32*)(xr_malloc((w_2) * (h_2) * 4));
+    u32* pRestored = (u32*)(xr_malloc(w * h * 4));
     try
     {
         imf_Process(pScaled, w_2, h_2, data.data(), w, h, imf_lanczos3);
@@ -685,9 +719,9 @@ BOOL CImageManager::CheckCompliance(LPCSTR fname, int & compl )
     xr_free(pRestored);
     return TRUE;
 }
-void CImageManager::CheckCompliance(FS_FileSet &files, FS_FileSet & compl )
+void CImageManager::CheckCompliance(FS_FileSet& files, FS_FileSet & compl )
 {
-    SPBItem *pb = UI->ProgressStart(files.size(), "Check texture compliance: ");
+    SPBItem* pb = UI->ProgressStart(files.size(), "Check texture compliance: ");
     FS_FileSetIt it = files.begin();
     FS_FileSetIt _E = files.end();
     for (; it != _E; it++)
@@ -707,7 +741,7 @@ void CImageManager::CheckCompliance(FS_FileSet &files, FS_FileSet & compl )
     UI->ProgressEnd(pb);
 }
 
-IC void GET(U32Vec &pixels, u32 w, u32 h, u32 x, u32 y, u32 ref, u32 &count, u32 &r, u32 &g, u32 &b)
+IC void GET(U32Vec& pixels, u32 w, u32 h, u32 x, u32 y, u32 ref, u32& count, u32& r, u32& g, u32& b)
 {
     // wrap pixels
     if (x >= w)
@@ -726,7 +760,7 @@ IC void GET(U32Vec &pixels, u32 w, u32 h, u32 x, u32 y, u32 ref, u32 &count, u32
     count++;
 }
 
-BOOL _ApplyBorders(U32Vec &pixels, u32 w, u32 h, u32 ref)
+BOOL _ApplyBorders(U32Vec& pixels, u32 w, u32 h, u32 ref)
 {
     BOOL bNeedContinue = FALSE;
 
@@ -771,7 +805,7 @@ BOOL _ApplyBorders(U32Vec &pixels, u32 w, u32 h, u32 ref)
     return bNeedContinue;
 }
 
-void CImageManager::ApplyBorders(U32Vec &tgt_data, u32 w, u32 h)
+void CImageManager::ApplyBorders(U32Vec& tgt_data, u32 w, u32 h)
 {
     U32Vec border_pixels = tgt_data;
     for (U32It it = tgt_data.begin(); it != tgt_data.end(); it++)
@@ -782,7 +816,7 @@ void CImageManager::ApplyBorders(U32Vec &tgt_data, u32 w, u32 h)
         tgt_data[t] = subst_alpha(tgt_data[t], color_get_A(border_pixels[t]));
 }
 
-BOOL CImageManager::CreateOBJThumbnail(LPCSTR tex_name, CEditableObject *obj, int age)
+BOOL CImageManager::CreateOBJThumbnail(LPCSTR tex_name, CEditableObject* obj, int age)
 {
     BOOL bResult = TRUE;
     // save render params
@@ -843,7 +877,7 @@ void CImageManager::RemoveTexture(LPCSTR fname, EItemType type)
     }
 }
 
-EImageThumbnail *CImageManager::CreateThumbnail(LPCSTR src_name, ECustomThumbnail::THMType type, bool bLoad)
+EImageThumbnail* CImageManager::CreateThumbnail(LPCSTR src_name, ECustomThumbnail::THMType type, bool bLoad)
 {
     switch (type)
     {
@@ -861,7 +895,7 @@ EImageThumbnail *CImageManager::CreateThumbnail(LPCSTR src_name, ECustomThumbnai
 // если передан параметр modif - обновляем DX-Surface only и только из списка
 // иначе полная синхронизация
 //------------------------------------------------------------------------------
-void CImageManager::RefreshTextures(AStringVec *modif)
+void CImageManager::RefreshTextures(AStringVec* modif)
 {
     if (FS.can_write_to_alias(_textures_))
     {
@@ -882,9 +916,9 @@ void CImageManager::RefreshTextures(AStringVec *modif)
     }
 }
 
-void pb_callback(void *data, float &v)
+void pb_callback(void* data, float& v)
 {
-    SPBItem *PB = (SPBItem *)(data);
+    SPBItem* PB = (SPBItem*)(data);
     PB->Update(v);
 }
 
@@ -907,7 +941,7 @@ BOOL CImageManager::CreateSmallerCubeMap(LPCSTR src_name, LPCSTR dst_name)
         }
         // generate smaller
         U32Vec sm_data(sm_wf * sm_h, 0);
-        SPBItem *PB = UI->ProgressStart(1.f, "Cube Map: scale image...");
+        SPBItem* PB = UI->ProgressStart(1.f, "Cube Map: scale image...");
         CTimer T;
         T.Start();
         ETOOLS::SimplifyCubeMap(data.data(), w, h, sm_data.data(), sm_w, sm_h, 16.f, pb_callback, PB);
