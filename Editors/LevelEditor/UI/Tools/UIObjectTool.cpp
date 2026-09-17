@@ -127,6 +127,36 @@ void UIObjectTool::Draw()
         ImGui::TreePop();
     }
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+    if (ImGui::TreeNode("LOD Generator"))
+    {
+        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        {
+            static int lodQualityIdx = 1; // 0 = Low (1), 1 = Medium (4), 2 = High (7)
+            const char* qualityNames[] = { "Low (1)", "Medium (4)", "High (7)" };
+            int qualityValues[] = { 1, 4, 7 };
+
+            ImGui::Text("Quality:");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(-1);
+            ImGui::Combo("##LODQualityCombo", &lodQualityIdx, qualityNames, IM_ARRAYSIZE(qualityNames));
+
+            if (ImGui::Button("Generate Missing LODs", ImVec2(-1, 0)))
+            {
+                GenerateLODs(true, qualityValues[lodQualityIdx]);
+            }
+            if (ImGui::Button("Re-Generate All LODs", ImVec2(-1, 0)))
+            {
+                if (ELog.DlgMsg(mtConfirmation, mbYes | mbNo, "Are you sure to re-generate ALL LODs for level objects?") == mrYes)
+                {
+                    GenerateLODs(false, qualityValues[lodQualityIdx]);
+                }
+            }
+        }
+        ImGui::Separator();
+        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::TreePop();
+    }
+    ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Current Object"))
     {
 
@@ -357,4 +387,102 @@ void UIObjectTool::ClearSurface(bool selected)
             }
         }
     }
+}
+
+void UIObjectTool::GenerateLODs(bool bOnlyMissing, int quality)
+{
+    xr_vector<CEditableObject*> mu_objects;
+
+    ObjectIt _F = Scene->FirstObj(OBJCLASS_SCENEOBJECT);
+    ObjectIt _E = Scene->LastObj(OBJCLASS_SCENEOBJECT);
+
+    for (; _F != _E; ++_F)
+    {
+        CSceneObject* SO = (CSceneObject*)(*_F);
+        if (SO && SO->IsMUStatic())
+        {
+            CEditableObject* EO = SO->GetReference();
+            if (EO)
+            {
+                if (std::find(mu_objects.begin(), mu_objects.end(), EO) == mu_objects.end())
+                {
+                    mu_objects.push_back(EO);
+                }
+            }
+        }
+    }
+
+    if (mu_objects.empty())
+    {
+        ELog.DlgMsg(mtInformation, "No Multiple Usage static objects (MU-Static) found on the level.");
+        return;
+    }
+
+    xr_vector<CEditableObject*> target_objects;
+
+    for (CEditableObject* O : mu_objects)
+    {
+        bool bNeedGen = true;
+        if (bOnlyMissing)
+        {
+            xr_string lod_name = O->GetLODTextureName();
+            xr_string l_name = lod_name.c_str();
+            string_path fn_dds, fn_nm_dds;
+            FS.update_path(fn_dds, _game_textures_, EFS.ChangeFileExt(l_name, ".dds").c_str());
+            l_name += "_nm";
+            FS.update_path(fn_nm_dds, _game_textures_, EFS.ChangeFileExt(l_name, ".dds").c_str());
+
+            int age = FS.get_file_age(fn_dds);
+            int age_nm = FS.get_file_age(fn_nm_dds);
+
+            if (age != -1 && age_nm != -1)
+            {
+                bNeedGen = false;
+            }
+        }
+
+        if (bNeedGen)
+        {
+            target_objects.push_back(O);
+        }
+    }
+
+    if (target_objects.empty())
+    {
+        ELog.DlgMsg(mtInformation, "All MU-Static objects already have LOD textures!");
+        return;
+    }
+
+    u32 lodsCnt = 0;
+    SPBItem* pb = UI->ProgressStart(target_objects.size(), "Generating LODs...");
+
+    for (CEditableObject* O : target_objects)
+    {
+        pb->Inc(O->GetName());
+
+        BOOL bLod = O->m_objectFlags.is(CEditableObject::eoUsingLOD);
+        O->m_objectFlags.set(CEditableObject::eoUsingLOD, FALSE);
+
+        xr_string tex_name = EFS.ChangeFileExt(O->GetName(), "");
+        string_path tmp;
+        strcpy(tmp, tex_name.c_str());
+        _ChangeSymbol(tmp, '\\', '_');
+        tex_name = xr_string("lod_") + tmp;
+        tex_name = ImageLib.UpdateFileName(tex_name);
+
+        ImageLib.CreateLODTexture(O, tex_name.c_str(), LOD_IMAGE_SIZE, LOD_IMAGE_SIZE, LOD_SAMPLE_COUNT, O->Version(), quality);
+        O->OnDeviceDestroy();
+        O->m_objectFlags.set(CEditableObject::eoUsingLOD, bLod);
+
+        ELog.Msg(mtInformation, "LOD for object '%s' successfully created.", O->GetName());
+        lodsCnt++;
+
+        if (UI->NeedAbort())
+            break;
+    }
+
+    UI->ProgressEnd(pb);
+
+    if (lodsCnt)
+        ELog.DlgMsg(mtInformation, "'%u' LOD's successfully created.", lodsCnt);
 }

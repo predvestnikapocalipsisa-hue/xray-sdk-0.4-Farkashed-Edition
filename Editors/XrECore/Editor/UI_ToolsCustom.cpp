@@ -657,7 +657,6 @@ void CToolCustom::RenderGizmo()
         if (m_bHiddenMode && m_MovedAmount.square_magnitude() > EPS_S)
         {
             string128 buf;
-            sprintf(buf, "Move: X: %.2fm  Y: %.2fm  Z: %.2fm", m_MovedAmount.x, m_MovedAmount.y, m_MovedAmount.z);
             DU_impl.OutText(Fvector().add(center, Fvector().set(0, scale * 1.5f, 0)), buf, 0xFFFFFF00, 0xFF000000);
         }
     }
@@ -690,7 +689,6 @@ void CToolCustom::RenderGizmo()
             DU_impl.DrawCircleSector(center, n, startDir, m_RotateAmount, sectorRadius, 0x40FFFF00, 0xFFFFFF00, 48);
 
             string128 buf;
-            sprintf(buf, "Rotate: %.1f deg", rad2deg(m_RotateAmount));
             DU_impl.OutText(Fvector().add(center, Fvector().set(0, scale * 2.3f, 0)), buf, 0xFFFFFF00, 0xFF000000);
         }
     }
@@ -723,7 +721,6 @@ void CToolCustom::RenderGizmo()
         if (m_bHiddenMode && m_ScaleAmount.square_magnitude() > EPS_S)
         {
             string128 buf;
-            sprintf(buf, "Scale: X: %.2f  Y: %.2f  Z: %.2f", 1.0f + m_ScaleAmount.x, 1.0f + m_ScaleAmount.y, 1.0f + m_ScaleAmount.z);
             DU_impl.OutText(Fvector().add(center, Fvector().set(0, scale * 1.5f, 0)), buf, 0xFFFFFF00, 0xFF000000);
         }
     }

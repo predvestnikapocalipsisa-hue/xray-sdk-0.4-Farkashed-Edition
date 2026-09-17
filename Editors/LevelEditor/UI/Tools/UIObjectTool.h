@@ -23,6 +23,7 @@ private:
 	void SelByRefObject(bool flag);
 	void MultiSelByRefObject(bool flag);
 	void ClearSurface(bool selected);
+	void GenerateLODs(bool bOnlyMissing, int quality);
 	const char *m_Current;
 	UIItemListForm *m_ObjectList;
 	bool m_MultiAppend;

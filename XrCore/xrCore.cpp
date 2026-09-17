@@ -104,6 +104,8 @@ void xrCore::InitCore(const char* AppName, LogCallback cb)
 	Memory._initialize(strstr(Params, "-mem_debug") ? TRUE : FALSE);
 	DUMP_PHASE;
 
+	_setmaxstdio(2048);
+
 	InitLog();
 	_initialize_cpu();
 

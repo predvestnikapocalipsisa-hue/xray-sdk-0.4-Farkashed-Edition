@@ -250,13 +250,7 @@ int DXTCompressImage(LPCSTR out_name, u8 *raw_data, u32 w, u32 h, u32 pitch, STe
 	comp_opts.setQuality(Quality_Highest);
 	comp_opts.setQuantization(!!(fmt->flags.is(STextureParams::flDitherColor)), false, !!(fmt->flags.is(STextureParams::flBinaryAlpha)));
 
-	HFILE fileout = _open(out_name, _O_WRONLY | _O_BINARY | _O_CREAT | _O_TRUNC, _S_IWRITE);
 
-	if (fileout == -1)
-	{
-		fprintf(stderr, "Can't open output file %s\n", out_name);
-		return false;
-	}
 
 	OutputOptions out_opts;
 
