@@ -595,7 +595,13 @@ int DXTCompressBump(LPCSTR out_name, u8 *T_height_gloss, u8 *T_normal_map,
         Image_DXTC *img = new Image_DXTC();
         if (img->LoadFromFile(out_name))
         {
-            VERIFY(w == img->Width() && h == img->Height());
+            if (w != img->Width() || h != img->Height())
+            {
+                Msg("! DXTCompressBump error: Dimensions mismatch for '%s' (%ux%u vs %ux%u)", out_name, w, h, img->Width(), img->Height());
+                delete img;
+                delete pSrc;
+                return 0;
+            }
             img->Decompress();
             u8 *T_normal_1U = img->GetDecompDataPointer();
 #ifdef XR_DXT_DBG_BUMP_STAGES_DIR

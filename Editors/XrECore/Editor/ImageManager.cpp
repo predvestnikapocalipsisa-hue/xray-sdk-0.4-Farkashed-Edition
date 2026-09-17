@@ -127,7 +127,7 @@ xr_string CImageManager::UpdateFileName(xr_string &fn)
 }
 
 //------------------------------------------------------------------------------
-// создает тхм
+// СЃРѕР·РґР°РµС‚ С‚С…Рј
 //------------------------------------------------------------------------------
 void CImageManager::MakeThumbnailImage(ETextureThumbnail *THM, u32 *data, u32 w, u32 h, u32 a)
 {
@@ -146,7 +146,7 @@ void CImageManager::MakeThumbnailImage(ETextureThumbnail *THM, u32 *data, u32 w,
 }
 
 //------------------------------------------------------------------------------
-// создает тхм
+// СЃРѕР·РґР°РµС‚ С‚С…Рј
 //------------------------------------------------------------------------------
 void CImageManager::CreateTextureThumbnail(ETextureThumbnail *THM, const xr_string &src_name, LPCSTR initial, bool bSetDefParam)
 {
@@ -173,7 +173,7 @@ void CImageManager::CreateTextureThumbnail(ETextureThumbnail *THM, const xr_stri
 
     MakeThumbnailImage(THM, data.data(), w, h, a);
 
-    // выставить начальные параметры
+    // РІС‹СЃС‚Р°РІРёС‚СЊ РЅР°С‡Р°Р»СЊРЅС‹Рµ РїР°СЂР°РјРµС‚СЂС‹
     if (bSetDefParam)
     {
         THM->m_Age = FS.get_file_age(fn.c_str());
@@ -190,7 +190,7 @@ void CImageManager::CreateTextureThumbnail(ETextureThumbnail *THM, const xr_stri
 }
 
 //------------------------------------------------------------------------------
-// создает новую текстуру
+// СЃРѕР·РґР°РµС‚ РЅРѕРІСѓСЋ С‚РµРєСЃС‚СѓСЂСѓ
 //------------------------------------------------------------------------------
 void CImageManager::CreateGameTexture(LPCSTR src_name, ETextureThumbnail *thumb)
 {
@@ -217,7 +217,7 @@ void CImageManager::CreateGameTexture(LPCSTR src_name, ETextureThumbnail *thumb)
 }
 
 //------------------------------------------------------------------------------
-// создает игровую текстуру
+// СЃРѕР·РґР°РµС‚ РёРіСЂРѕРІСѓСЋ С‚РµРєСЃС‚СѓСЂСѓ
 //------------------------------------------------------------------------------
 bool CImageManager::MakeGameTexture(LPCSTR game_name, u32 *data, const STextureParams &tp)
 {
@@ -254,6 +254,11 @@ bool CImageManager::MakeGameTexture(ETextureThumbnail *THM, LPCSTR game_name, u3
     // flip
     u32 w = THM->_Width();
     u32 h = THM->_Height();
+    if (w == 0 || h == 0)
+    {
+        ELog.Msg(mtError, "Can't make game texture '%s'. Texture thumbnail dimensions are zero (%dx%d).", game_name, w, h);
+        return false;
+    }
     u32 w4 = w * 4;
     // remove old
     FS.file_delete(game_name);
@@ -321,12 +326,16 @@ bool CImageManager::MakeGameTexture(ETextureThumbnail *THM, LPCSTR game_name, u3
         }
         return false;
     }
-    R_ASSERT((res == 1) && FS.file_length(game_name));
+    if (res != 1 || !FS.file_length(game_name))
+    {
+        ELog.Msg(mtError, "Can't make game texture '%s'. Compression result invalid or file empty.", game_name);
+        return false;
+    }
     return res == 1;
 }
 
 //------------------------------------------------------------------------------
-// загружает 32-bit данные
+// Р·Р°РіСЂСѓР¶Р°РµС‚ 32-bit РґР°РЅРЅС‹Рµ
 //------------------------------------------------------------------------------
 bool CImageManager::LoadTextureData(LPCSTR src_name, U32Vec &data, u32 &w, u32 &h, int *age)
 {
@@ -344,8 +353,8 @@ bool CImageManager::LoadTextureData(LPCSTR src_name, U32Vec &data, u32 &w, u32 &
 }
 
 //------------------------------------------------------------------------------
-// копирует обновленные текстуры с Import'a в Textures
-// files - список файлов для копирование
+// РєРѕРїРёСЂСѓРµС‚ РѕР±РЅРѕРІР»РµРЅРЅС‹Рµ С‚РµРєСЃС‚СѓСЂС‹ СЃ Import'a РІ Textures
+// files - СЃРїРёСЃРѕРє С„Р°Р№Р»РѕРІ РґР»СЏ РєРѕРїРёСЂРѕРІР°РЅРёРµ
 //------------------------------------------------------------------------------
 void CImageManager::SafeCopyLocalToServer(FS_FileSet &files)
 {
@@ -391,9 +400,9 @@ void CImageManager::SafeCopyLocalToServer(FS_FileSet &files)
 }
 
 //------------------------------------------------------------------------------
-// возвращает список не синхронизированных (модифицированных) текстур
-// source_list - содержит список текстур с расширениями
-// sync_list - реально сохраненные файлы (после использования освободить)
+// РІРѕР·РІСЂР°С‰Р°РµС‚ СЃРїРёСЃРѕРє РЅРµ СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°РЅРЅС‹С… (РјРѕРґРёС„РёС†РёСЂРѕРІР°РЅРЅС‹С…) С‚РµРєСЃС‚СѓСЂ
+// source_list - СЃРѕРґРµСЂР¶РёС‚ СЃРїРёСЃРѕРє С‚РµРєСЃС‚СѓСЂ СЃ СЂР°СЃС€РёСЂРµРЅРёСЏРјРё
+// sync_list - СЂРµР°Р»СЊРЅРѕ СЃРѕС…СЂР°РЅРµРЅРЅС‹Рµ С„Р°Р№Р»С‹ (РїРѕСЃР»Рµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ РѕСЃРІРѕР±РѕРґРёС‚СЊ)
 //------------------------------------------------------------------------------
 void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bForceGame, FS_FileSet *source_list, AStringVec *sync_list, FS_FileSet *modif_map, bool bForceBaseAge)
 {
@@ -449,8 +458,13 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
         {
             THM = xr_new<ETextureThumbnail>(it->name.c_str());
             bool bRes = Stbi_Load(fn, data, w, h, a);
-            R_ASSERT(bRes);
-            //.             MakeThumbnailImage(THM,data.begin(),w,h,a);
+            if (!bRes)
+            {
+                ELog.Msg(mtError, "Can't load texture '%s' for thumbnail. File may be corrupted.", fn);
+                if (THM) xr_delete(THM);
+                continue;
+            }
+            MakeThumbnailImage(THM, data.data(), w, h, a);
             THM->Save(it->time_write);
             bUpdated = TRUE;
         }
@@ -463,8 +477,21 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
             if (data.empty())
             {
                 bool bRes = Stbi_Load(fn, data, w, h, a);
-                R_ASSERT(bRes);
+                if (!bRes)
+                {
+                    ELog.Msg(mtError, "Can't load texture '%s'. File may be corrupted.", fn);
+                    if (THM) xr_delete(THM);
+                    continue;
+                }
             }
+
+            if (THM->_Width() == 0 || THM->_Height() == 0)
+            {
+                THM->m_TexParams.width = w;
+                THM->m_TexParams.height = h;
+                THM->m_TexParams.flags.set(STextureParams::flHasAlpha, a);
+            }
+
             if (IsValidSize(w, h))
             {
                 string_path game_name;
@@ -494,6 +521,16 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
         if (UI->NeedAbort())
             break;
 
+        // Yield CPU slice so the OS message queue stays healthy during long syncs.
+        // Without this the main window becomes unresponsive and may be force-killed.
+        MSG msg;
+        while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+        {
+            ::TranslateMessage(&msg);
+            ::DispatchMessage(&msg);
+        }
+        ::Sleep(0);
+
         if (bProgress)
             pb->Inc(bUpdated ? xr_string(base_name + (bFailed ? " - FAILED" : " - UPDATED.")).c_str() : base_name.c_str(), bUpdated);
 
@@ -501,7 +538,7 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
         {
             string_path tga_fn, thm_fn, dds_fn;
             FS.update_path(tga_fn, _textures_, EFS.ChangeFileExt(base_name, ".tga").c_str());
-            FS.update_path(thm_fn, _game_textures_, EFS.ChangeFileExt(base_name, ".thm").c_str());
+            FS.update_path(thm_fn, _textures_, EFS.ChangeFileExt(base_name, ".thm").c_str());
             FS.update_path(dds_fn, _game_textures_, EFS.ChangeFileExt(base_name, ".dds").c_str());
             if (bForceBaseAge)
             {
@@ -566,7 +603,7 @@ void CImageManager::SynchronizeTexture(LPCSTR tex_name, int age)
     RefreshTextures(&modif);
 }
 //------------------------------------------------------------------------------
-// возвращает список всех текстур
+// РІРѕР·РІСЂР°С‰Р°РµС‚ СЃРїРёСЃРѕРє РІСЃРµС… С‚РµРєСЃС‚СѓСЂ
 //------------------------------------------------------------------------------
 int CImageManager::GetTextures(FS_FileSet &files, BOOL bFolders)
 {
@@ -578,16 +615,16 @@ int CImageManager::GetTexturesRaw(FS_FileSet &files, BOOL bFolders)
     return FS.file_list(files, _textures_, (bFolders ? FS_ListFolders : 0) | FS_ListFiles | FS_ClampExt, "*.tga");
 }
 //------------------------------------------------------------------------------
-// возвращает список текстур, которые нужно обновить
+// РІРѕР·РІСЂР°С‰Р°РµС‚ СЃРїРёСЃРѕРє С‚РµРєСЃС‚СѓСЂ, РєРѕС‚РѕСЂС‹Рµ РЅСѓР¶РЅРѕ РѕР±РЅРѕРІРёС‚СЊ
 //------------------------------------------------------------------------------
 int CImageManager::GetLocalNewTextures(FS_FileSet &files)
 {
     return FS.file_list(files, _import_, FS_ListFiles | FS_RootOnly, "*.tga,*.bmp,*.dds,*.png,*.jpg");
 }
 //------------------------------------------------------------------------------
-// проверяет соответствие размера текстур
-// input: 	список файлов для тестирования
-// output: 	соответствие
+// РїСЂРѕРІРµСЂСЏРµС‚ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРµ СЂР°Р·РјРµСЂР° С‚РµРєСЃС‚СѓСЂ
+// input: 	СЃРїРёСЃРѕРє С„Р°Р№Р»РѕРІ РґР»СЏ С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЏ
+// output: 	СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРµ
 //------------------------------------------------------------------------------
 #define SQR(a) ((a) * (a))
 BOOL CImageManager::CheckCompliance(LPCSTR fname, int & compl )
@@ -821,8 +858,8 @@ EImageThumbnail *CImageManager::CreateThumbnail(LPCSTR src_name, ECustomThumbnai
 }
 
 //------------------------------------------------------------------------------
-// если передан параметр modif - обновляем DX-Surface only и только из списка
-// иначе полная синхронизация
+// РµСЃР»Рё РїРµСЂРµРґР°РЅ РїР°СЂР°РјРµС‚СЂ modif - РѕР±РЅРѕРІР»СЏРµРј DX-Surface only Рё С‚РѕР»СЊРєРѕ РёР· СЃРїРёСЃРєР°
+// РёРЅР°С‡Рµ РїРѕР»РЅР°СЏ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ
 //------------------------------------------------------------------------------
 void CImageManager::RefreshTextures(AStringVec *modif)
 {
