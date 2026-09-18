@@ -29,17 +29,18 @@ UIImageEditorForm::~UIImageEditorForm()
 
 void UIImageEditorForm::Draw()
 {
-    if (m_bPropsDirty)
-    {
-        RefreshCurrentProperties();
-        m_bPropsDirty = false;
-    }
 
     if (m_TextureRemove)
     {
         m_TextureRemove->Release();
         m_TextureRemove = nullptr;
     }
+    if (m_bPropsDirty)
+    {
+        RefreshCurrentProperties();
+        m_bPropsDirty = false;
+    }
+
     ImVec2 avail = ImGui::GetContentRegionAvail();
     ImGui::BeginChild("Left", ImVec2(avail.x * 0.3f, avail.y - 60), true);
     {
@@ -216,40 +217,7 @@ void UIImageEditorForm::OnCubeMapBtnClick(ButtonValue* value, bool& bModif, bool
 
 void UIImageEditorForm::OnTypeChange(PropValue* prop)
 {
-    RStringVec items;
-
-    if (m_ItemList->GetSelected(items) && !items.empty())
-    {
-        if (!m_THM_Current.empty())
-        {
-            PropItemVec props;
-
-            ETextureThumbnail* thm = m_THM_Current.back();
-
-            thm->FillProp(
-                props,
-                PropValue::TOnChange(this, &UIImageEditorForm::OnTypeChange)
-            );
-
-            if (thm->_Format().type == STextureParams::ttCubeMap)
-            {
-                ButtonValue* B = PHelper().CreateButton(
-                    props,
-                    "CubeMap\\Edit",
-                    "Make Small",
-                    0
-                );
-
-                B->OnBtnClickEvent.bind(
-                    this,
-                    &UIImageEditorForm::OnCubeMapBtnClick
-                );
-            }
-
-            m_ItemProps->ClearProperties();
-            m_ItemProps->AssignItems(props);
-        }
-    }
+    m_bPropsDirty = true;
 }
 
 void UIImageEditorForm::InitItemList()
@@ -439,6 +407,7 @@ void UIImageEditorForm::RefreshCurrentProperties()
 
     if (!thm)
         return;
+    m_ItemProps->ClearProperties();
 
     PropItemVec props;
 
