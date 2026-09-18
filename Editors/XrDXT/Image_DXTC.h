@@ -26,8 +26,8 @@ function is called.  Output of timing test is saved to a local .txt file.
 #endif // _MSC_VER > 1000
 
 #include <ddraw.h>
+#include "dds.h"
 
-// struct TimingInfo;		// defined in Image_DXTC.cpp
 
 enum PixFormat
 {
@@ -42,8 +42,8 @@ enum PixFormat
 
 class Image_DXTC
 {
-	BYTE *m_pCompBytes; // compressed image bytes
-	BYTE *m_pDecompBytes;
+	BYTE* m_pCompBytes; 
+	BYTE* m_pDecompBytes;
 
 	int m_nCompSize;
 	int m_nCompLineSz;
@@ -51,10 +51,10 @@ class Image_DXTC
 	string256 m_strFormat;
 	PixFormat m_CompFormat;
 
-	DDSURFACEDESC2 m_DDSD; // read from dds file
-	bool m_bMipTexture;	   // texture has mipmaps?
+	DDS_HEADER m_DDSD;
+	bool m_bMipTexture;	   
 
-	int m_nWidth; // in pixels of uncompressed image
+	int m_nWidth; 
 	int m_nHeight;
 
 private:
@@ -64,20 +64,20 @@ private:
 	void DecompressDXT4();
 	void DecompressDXT5();
 
-	void DecodePixelFormat(LPSTR strPixelFormat, DDPIXELFORMAT *pddpf);
+	void DecodePixelFormat(LPSTR strPixelFormat, DDS_PIXELFORMAT* pddpf);
 	void AllocateDecompBytes();
 
 public:
 	Image_DXTC();
 	virtual ~Image_DXTC();
 
-	bool LoadFromFile(LPCSTR filename); // true if success
+	bool LoadFromFile(LPCSTR filename); 
 	void Decompress();
 
-	void SaveAsRaw(); // save decompressed bits
+	void SaveAsRaw(); 
 
-	BYTE *GetCompDataPointer() { return (m_pCompBytes); };
-	BYTE *GetDecompDataPointer() { return (m_pDecompBytes); };
+	BYTE* GetCompDataPointer() { return (m_pCompBytes); };
+	BYTE* GetDecompDataPointer() { return (m_pDecompBytes); };
 
 	int Width() { return (m_nWidth); }
 	int Height() { return (m_nHeight); }

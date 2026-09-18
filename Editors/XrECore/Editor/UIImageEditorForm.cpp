@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "UIImageEditorForm.h"
 #include "EThumbnail.h"
-UIImageEditorForm *UIImageEditorForm::Form = nullptr;
+UIImageEditorForm* UIImageEditorForm::Form = nullptr;
 UIImageEditorForm::UIImageEditorForm()
 {
     m_ItemProps = xr_new<UIPropertiesForm>();
@@ -16,6 +16,7 @@ UIImageEditorForm::UIImageEditorForm()
     m_bFilterNormal = true;
     m_bFilterTerrain = true;
     m_TextureRemove = nullptr;
+    m_bPropsDirty = false;
 }
 
 UIImageEditorForm::~UIImageEditorForm()
@@ -28,6 +29,12 @@ UIImageEditorForm::~UIImageEditorForm()
 
 void UIImageEditorForm::Draw()
 {
+    if (m_bPropsDirty)
+    {
+        RefreshCurrentProperties();
+        m_bPropsDirty = false;
+    }
+
     if (m_TextureRemove)
     {
         m_TextureRemove->Release();
@@ -114,7 +121,6 @@ void UIImageEditorForm::Show(bool bImport)
     if (Form == nullptr)
         Form = xr_new<UIImageEditorForm>();
     Form->bImportMode = bImport;
-    //.        form->ebRebuildAssociation->Enabled = !bImport;
     Form->bReadonlyMode = !FS.can_write_to_alias(_textures_);
     if (Form->bReadonlyMode)
     {
@@ -145,13 +151,13 @@ void UIImageEditorForm::ImportTextures()
     }
 }
 
-ETextureThumbnail *UIImageEditorForm::FindUsedTHM(const shared_str &name)
+ETextureThumbnail* UIImageEditorForm::FindUsedTHM(const shared_str& name)
 {
     THMMapIt it = m_THM_Used.find(name);
     if (it != m_THM_Used.end())
         return it->second;
 
-    ETextureThumbnail *thm = xr_new<ETextureThumbnail>(name.c_str(), false);
+    ETextureThumbnail* thm = xr_new<ETextureThumbnail>(name.c_str(), false);
     m_THM_Used[name] = thm;
 
     if (bImportMode)
@@ -185,9 +191,9 @@ void UIImageEditorForm::RegisterModifiedTHM()
     }
 }
 
-void UIImageEditorForm::OnCubeMapBtnClick(ButtonValue *value, bool &bModif, bool &bSafe)
+void UIImageEditorForm::OnCubeMapBtnClick(ButtonValue* value, bool& bModif, bool& bSafe)
 {
-    ButtonValue *B = dynamic_cast<ButtonValue *>(value);
+    ButtonValue* B = dynamic_cast<ButtonValue*>(value);
     R_ASSERT(B);
     bModif = false;
     switch (B->btn_num)
@@ -211,20 +217,36 @@ void UIImageEditorForm::OnCubeMapBtnClick(ButtonValue *value, bool &bModif, bool
 void UIImageEditorForm::OnTypeChange(PropValue* prop)
 {
     RStringVec items;
+
     if (m_ItemList->GetSelected(items) && !items.empty())
     {
         if (!m_THM_Current.empty())
         {
             PropItemVec props;
+
             ETextureThumbnail* thm = m_THM_Current.back();
-            thm->FillProp(props, PropValue::TOnChange(this, &UIImageEditorForm::OnTypeChange));
+
+            thm->FillProp(
+                props,
+                PropValue::TOnChange(this, &UIImageEditorForm::OnTypeChange)
+            );
 
             if (thm->_Format().type == STextureParams::ttCubeMap)
             {
-                ButtonValue* B = PHelper().CreateButton(props, "CubeMap\\Edit", "Make Small", 0);
-                B->OnBtnClickEvent.bind(this, &UIImageEditorForm::OnCubeMapBtnClick);
+                ButtonValue* B = PHelper().CreateButton(
+                    props,
+                    "CubeMap\\Edit",
+                    "Make Small",
+                    0
+                );
+
+                B->OnBtnClickEvent.bind(
+                    this,
+                    &UIImageEditorForm::OnCubeMapBtnClick
+                );
             }
 
+            m_ItemProps->ClearProperties();
             m_ItemProps->AssignItems(props);
         }
     }
@@ -255,8 +277,8 @@ void UIImageEditorForm::InitItemList()
     FS_FileSetIt _E = texture_map.end();
     for (; it != _E; it++)
     {
-        ListItem *I = LHelper().CreateItem(items, it->name.c_str(), 0);
-        I->m_Object = (void *)(FindUsedTHM(it->name.c_str()));
+        ListItem* I = LHelper().CreateItem(items, it->name.c_str(), 0);
+        I->m_Object = (void*)(FindUsedTHM(it->name.c_str()));
         R_ASSERT2(I->m_Object, it->name.c_str());
     }
     m_ItemList->AssignItems(items);
@@ -308,62 +330,60 @@ void UIImageEditorForm::UpdateLib()
     }
 }
 
-void UIImageEditorForm::OnItemsFocused(ListItem *item)
+void UIImageEditorForm::OnItemsFocused(ListItem* item)
 {
+    RegisterModifiedTHM();
+
+    m_THM_Current.clear();
+
+    if (m_Texture)
+    {
+        if (m_TextureRemove)
+            m_TextureRemove->Release();
+
+        m_TextureRemove = m_Texture;
+        m_Texture = nullptr;
+    }
+
+    m_ItemProps->ClearProperties();
+
     PropItemVec props;
 
-    RegisterModifiedTHM();
-    m_THM_Current.clear();
-    m_TextureRemove = m_Texture;
-    m_Texture = nullptr;
     if (item)
     {
+        ETextureThumbnail* thm = FindUsedTHM(item->Key());
 
-        ListItem *prop = item;
-        if (prop)
+        if (thm)
         {
-            ETextureThumbnail *thm = 0;
-
-            thm = FindUsedTHM(prop->Key());
-            /*
-            if (bImportMode)
-            {
-                thm = FindUsedTHM(prop->Key());
-                if (!thm)
-                {
-                    m_THM_Used.push_back    (thm=xr_new<ETextureThumbnail>(prop->Key(),false));
-                    xr_string fn            = prop->Key();
-                    ImageLib.UpdateFileName (fn);
-
-                    if (!thm->Load(prop->Key(),_import_))
-                    {
-                        bool bLoad                      = thm->Load(fn.c_str(),_game_textures_);
-                        ImageLib.CreateTextureThumbnail (thm, prop->Key(), _import_, !bLoad);
-                    }
-                }
-            }else
-            {
-                thm = FindUsedTHM(prop->Key());
-                if (!thm)
-                    m_THM_Used.push_back(thm=xr_new<ETextureThumbnail>(prop->Key()));
-            }
-            */
             m_THM_Current.push_back(thm);
-            // prop->tag								= thm->_Format().type;
 
-            // fill prop
-            thm->FillProp(props, PropValue::TOnChange(this, &UIImageEditorForm::OnTypeChange));
+            thm->Update(m_Texture);
+
+            thm->FillProp(
+                props,
+                PropValue::TOnChange(this, &UIImageEditorForm::OnTypeChange)
+            );
 
             if (thm->_Format().type == STextureParams::ttCubeMap)
             {
-                ButtonValue *B = PHelper().CreateButton(props, "CubeMap\\Edit", "Make Small", 0);
-                B->OnBtnClickEvent.bind(this, &UIImageEditorForm::OnCubeMapBtnClick);
-            }
+                ButtonValue* B = PHelper().CreateButton(
+                    props,
+                    "CubeMap\\Edit",
+                    "Make Small",
+                    0
+                );
 
-            thm->Update(m_Texture);
+                B->OnBtnClickEvent.bind(
+                    this,
+                    &UIImageEditorForm::OnCubeMapBtnClick
+                );
+            }
         }
     }
+
     m_ItemProps->AssignItems(props);
+
+    m_bPropsDirty = false;
 }
 
 void UIImageEditorForm::SaveUsedTHM()
@@ -377,14 +397,14 @@ void UIImageEditorForm::SaveUsedTHM()
 
 void UIImageEditorForm::FilterUpdate()
 {
-    const ListItemsVec &items = m_ItemList->GetItems();
+    const ListItemsVec& items = m_ItemList->GetItems();
 
     u32 cnt = items.size();
     for (u32 k = 0; k < cnt; ++k)
     {
-        ListItem *I = items[k];
+        ListItem* I = items[k];
 
-        ETextureThumbnail *thm = (ETextureThumbnail *)I->m_Object;
+        ETextureThumbnail* thm = (ETextureThumbnail*)I->m_Object;
 
         BOOL bVis = FALSE;
         int type = thm->_Format().type;
@@ -402,4 +422,45 @@ void UIImageEditorForm::FilterUpdate()
         I->Visible(bVis);
     }
     m_ItemList->ClearSelected();
+}
+
+void UIImageEditorForm::RequestPropertiesUpdate()
+{
+    if (Form)
+        Form->m_bPropsDirty = true;
+}
+
+void UIImageEditorForm::RefreshCurrentProperties()
+{
+    if (m_THM_Current.empty())
+        return;
+
+    ETextureThumbnail* thm = m_THM_Current.back();
+
+    if (!thm)
+        return;
+
+    PropItemVec props;
+
+    thm->FillProp(
+        props,
+        PropValue::TOnChange(this, &UIImageEditorForm::OnTypeChange)
+    );
+
+    if (thm->_Format().type == STextureParams::ttCubeMap)
+    {
+        ButtonValue* B = PHelper().CreateButton(
+            props,
+            "CubeMap\\Edit",
+            "Make Small",
+            0
+        );
+
+        B->OnBtnClickEvent.bind(
+            this,
+            &UIImageEditorForm::OnCubeMapBtnClick
+        );
+    }
+
+    m_ItemProps->AssignItems(props);
 }

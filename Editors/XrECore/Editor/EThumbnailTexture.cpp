@@ -66,7 +66,7 @@ int ETextureThumbnail::MemoryUsage()
     if (FS.exist(fn))
     {
         string128 buffer;
-        IReader *F = FS.r_open(0, fn);
+        IReader* F = FS.r_open(0, fn);
         F->r_string(buffer, sizeof(buffer));
         int cnt = 0;
         while (!F->eof())
@@ -81,7 +81,7 @@ int ETextureThumbnail::MemoryUsage()
 }
 //------------------------------------------------------------------------------
 
-void ETextureThumbnail::CreateFromData(u32 *p, u32 w, u32 h)
+void ETextureThumbnail::CreateFromData(u32* p, u32 w, u32 h)
 {
     EImageThumbnail::CreatePixels(p, w, h);
     m_TexParams.width = w;
@@ -90,7 +90,7 @@ void ETextureThumbnail::CreateFromData(u32 *p, u32 w, u32 h)
 }
 //------------------------------------------------------------------------------
 
-bool Stbi_Load(LPCSTR full_name, U32Vec &data, u32 &w, u32 &h, u32 &a);
+bool Stbi_Load(LPCSTR full_name, U32Vec& data, u32& w, u32& h, u32& a);
 
 bool ETextureThumbnail::Load(LPCSTR src_name, LPCSTR path)
 {
@@ -106,7 +106,17 @@ bool ETextureThumbnail::Load(LPCSTR src_name, LPCSTR path)
     if (!FS.exist(fn))
     {
         LPCSTR tex_name = src_name ? src_name : m_Name.c_str();
-        if (strstr(tex_name, "terrain\\") || strstr(tex_name, "terrain/"))
+        // NEW: раньше сюда попадала любая текстура из папки "terrain\" без
+        // собственного .thm, включая её спутники "*_det.dds"/"*_mask.dds" -
+        // они не являются террейновыми диффузными текстурами и не должны
+        // наследовать m_TexParams.type/остальные поля из шаблона целиком
+        // (template_terrain.thm существует, чтобы новый террейн без своего
+        // .thm не заводился "мыльным" - это намеренное поведение именно для
+        // самой террейн-текстуры, а не для её сателлитов).
+        bool bTerrainFolder = strstr(tex_name, "terrain\\") || strstr(tex_name, "terrain/");
+        bool bTerrainSatellite = strstr(tex_name, "_det") || strstr(tex_name, "_mask");
+
+        if (bTerrainFolder && !bTerrainSatellite)
         {
             FS.update_path(fn, "$game_textures$", "ed\\template_terrain.thm");
             if (!FS.exist(fn))
@@ -116,7 +126,7 @@ bool ETextureThumbnail::Load(LPCSTR src_name, LPCSTR path)
             return false;
     }
 
-    IReader *F = FS.r_open(fn);
+    IReader* F = FS.r_open(fn);
     u16 version = 0;
 
     R_ASSERT(F->r_chunk(THM_CHUNK_VERSION, &version));
@@ -183,15 +193,15 @@ void ETextureThumbnail::Save(int age, LPCSTR path)
 }
 //------------------------------------------------------------------------------
 
-void ETextureThumbnail::FillProp(PropItemVec &items, PropValue::TOnChange on_type_change)
+void ETextureThumbnail::FillProp(PropItemVec& items, PropValue::TOnChange on_type_change)
 {
     m_TexParams.FillProp(m_SrcName.c_str(), items, on_type_change);
 }
 //------------------------------------------------------------------------------
 
-void ETextureThumbnail::FillInfo(PropItemVec &items)
+void ETextureThumbnail::FillInfo(PropItemVec& items)
 {
-    STextureParams &F = m_TexParams;
+    STextureParams& F = m_TexParams;
     PHelper().CreateCaption(items, "Format", get_token_name(tfmt_token, F.fmt));
     PHelper().CreateCaption(items, "Type", get_token_name(ttype_token, F.type));
     PHelper().CreateCaption(items, "Width", shared_str().printf("%d", _Width()));
@@ -199,7 +209,7 @@ void ETextureThumbnail::FillInfo(PropItemVec &items)
     PHelper().CreateCaption(items, "Alpha", _Alpha() ? "on" : "off");
 }
 
-void ETextureThumbnail::Update(ImTextureID &Texture)
+void ETextureThumbnail::Update(ImTextureID& Texture)
 {
     VERIFY(!Texture);
     if (0 == m_Pixels.size())
@@ -244,7 +254,7 @@ void ETextureThumbnail::Update(ImTextureID &Texture)
     }
 }
 
-BOOL ETextureThumbnail::similar(ETextureThumbnail *thm1, xr_vector<xr_string> &sel_params)
+BOOL ETextureThumbnail::similar(ETextureThumbnail* thm1, xr_vector<xr_string>& sel_params)
 {
     BOOL res = m_TexParams.similar(thm1->m_TexParams, sel_params);
     /*

@@ -13,32 +13,35 @@ public:
 	static void Update();
 	static void Show(bool bImport);
 	static void ImportTextures();
+	static void RequestPropertiesUpdate();
 
 private:
-	DEFINE_VECTOR(ETextureThumbnail *, THMVec, THMIt);
-	DEFINE_MAP(shared_str, ETextureThumbnail *, THMMap, THMMapIt);
+	DEFINE_VECTOR(ETextureThumbnail*, THMVec, THMIt);
+	DEFINE_MAP(shared_str, ETextureThumbnail*, THMMap, THMMapIt);
 	THMMap m_THM_Used;
 	THMVec m_THM_Current;
-	UIItemListForm *m_ItemList;
-	UIPropertiesForm *m_ItemProps;
+	UIItemListForm* m_ItemList;
+	UIPropertiesForm* m_ItemProps;
 	FS_FileSet texture_map;
 	FS_FileSet modif_map;
 	bool bImportMode;
 	bool bReadonlyMode;
-	static UIImageEditorForm *Form;
+	static UIImageEditorForm* Form;
 	ImTextureID m_Texture;
 	ImTextureID m_TextureRemove;
+	bool m_bPropsDirty;
 
 private:
-	ETextureThumbnail *FindUsedTHM(const shared_str &name);
+	ETextureThumbnail* FindUsedTHM(const shared_str& name);
 	void RegisterModifiedTHM();
-	void OnCubeMapBtnClick(ButtonValue *value, bool &bModif, bool &bSafe);
-	void OnTypeChange(PropValue *prop);
+	void OnCubeMapBtnClick(ButtonValue* value, bool& bModif, bool& bSafe);
+	void OnTypeChange(PropValue* prop);
 	void InitItemList();
 	void HideLib();
 	void UpdateLib();
-	void OnItemsFocused(ListItem *item);
+	void OnItemsFocused(ListItem* item);
 	void SaveUsedTHM();
+	void RefreshCurrentProperties();
 
 private:
 	bool m_bFilterImage;

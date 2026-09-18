@@ -9,20 +9,23 @@
 #include "ResourceManager.h"
 //#include "..\BearBundle\External\Public\StbImage\stb_image.h"
 #include "../XrETools/ETools.h"
+// нужен для UIImageEditorForm::RequestPropertiesUpdate() - на случай если THM
+// меняется в фоне, пока в редакторе открыт диалог ImageEditor с этой текстурой
+#include "UIImageEditorForm.h"
 
 #include "FreeImage.h"
 #pragma comment(lib, "FreeImage.lib")
 
 CImageManager ImageLib;
 
-// "OK to all": РїСЂРѕРїСѓСЃРєР°С‚СЊ Р±РµР· РґРёР°Р»РѕРіР° РІСЃРµ РїРѕСЃР»РµРґСѓСЋС‰РёРµ С‚Р°РєРёРµ РѕС€РёР±РєРё РІ СЂР°РјРєР°С… С‚РµРєСѓС‰РµР№ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё
+// "OK to all": пропускать без диалога все последующие такие ошибки в рамках текущей синхронизации
 static bool s_bIgnoreAllTextureErrors = false;
-// РїСЂРµСЂРІР°С‚СЊ РІСЃСЋ РѕРїРµСЂР°С†РёСЋ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё С†РµР»РёРєРѕРј (Abort)
+// прервать всю операцию синхронизации целиком (Abort)
 static bool s_bAbortTextureSync = false;
 
-// РџРѕРєР°Р·С‹РІР°РµС‚ РґРёР°Р»РѕРі "Can't make game texture..." СЃ РІР°СЂРёР°РЅС‚Р°РјРё Abort/Retry/Ignore.
-// Ignore -> Р±РѕР»СЊС€Рµ РЅРµ СЃРїСЂР°С€РёРІР°С‚СЊ РґРѕ РєРѕРЅС†Р° С‚РµРєСѓС‰РµР№ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё.
-// Abort  -> РІР·РІРѕРґРёС‚ С„Р»Р°Рі РґР»СЏ РїСЂРµСЂС‹РІР°РЅРёСЏ РІСЃРµРіРѕ С†РёРєР»Р° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё.
+// Показывает диалог "Can't make game texture..." с вариантами Abort/Retry/Ignore.
+// Ignore -> больше не спрашивать до конца текущей синхронизации.
+// Abort  -> взводит флаг для прерывания всего цикла синхронизации.
 static void ReportGameTextureError(LPCSTR fmt, ...)
 {
     if (s_bIgnoreAllTextureErrors || s_bAbortTextureSync)
@@ -213,9 +216,40 @@ void CImageManager::CreateTextureThumbnail(ETextureThumbnail* THM, const xr_stri
             THM->m_TexParams.type = STextureParams::ttCubeMap;
             THM->m_TexParams.flags.set(STextureParams::flGenerateMipMaps, FALSE);
         }
+        else
+        {
+            // NEW: бамп/деталь/маска-текстуры по соглашению об именах не несут
+            // признака своего типа ни в .tga, ни где-либо ещё, кроме имени файла.
+            // См. ApplyNamingConventionType.
+            ApplyNamingConventionType(THM, src_name.c_str());
+        }
     }
 
     THM->SetValid();
+}
+
+// NEW: см. объявление в ImageManager.h. Единая точка обязательной
+// классификации типа текстуры по соглашению об именах. Перезаписывает
+// THM->m_TexParams.type независимо от того, что было загружено из уже
+// существующего .thm (пусть и неверное) или выставлено конструктором по
+// умолчанию - это принципиально важно, потому что точечные проверки в
+// CreateTextureThumbnail (default-параметры) и ETextureThumbnail::Load()
+// (шаблон template_terrain.thm) срабатывают только когда .thm ещё не
+// существовало вовсе. Если .thm уже был однажды сохранён с неверным типом,
+// обычная ресинхронизация лишь читает его и сохраняет обратно без изменений -
+// эта функция разрывает такой цикл, принудительно поправляя type при каждом
+// (пере)создании THM в SynchronizeTextures.
+void CImageManager::ApplyNamingConventionType(ETextureThumbnail* THM, LPCSTR base_name)
+{
+    if (strstr(base_name, "_bump"))
+    {
+        THM->m_TexParams.type = STextureParams::ttBumpMap;
+        THM->m_TexParams.flags.set(STextureParams::flGenerateMipMaps, FALSE);
+    }
+    else if (strstr(base_name, "_det") || strstr(base_name, "_mask"))
+    {
+        THM->m_TexParams.type = STextureParams::ttImage;
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -238,7 +272,10 @@ void CImageManager::CreateGameTexture(LPCSTR src_name, ETextureThumbnail* thumb)
     u32 w, h, a;
     if (!Stbi_Load(base_name, data, w, h, a))
         return;
-    MakeGameTexture(THM, game_name, data.data());
+    // FIX: передаём актуальные w,h (только что прочитанные из файла на диске),
+    // а не размеры, закэшированные в THM — они могут быть устаревшими,
+    // если .thm не был пересинхронизирован после смены разрешения текстуры.
+    MakeGameTexture(THM, game_name, data.data(), w, h);
 
     FS.set_file_age(game_name, base_age);
     if (!thumb)
@@ -277,12 +314,36 @@ bool CImageManager::MakeGameTexture(LPCSTR game_name, u32* data, const STextureP
     return res == 1;
 }
 
-bool CImageManager::MakeGameTexture(ETextureThumbnail* THM, LPCSTR game_name, u32* load_data)
+// FIX: сигнатура дополнена параметрами w, h — реальным размером данных в load_data.
+// Раньше w/h читались из THM->_Width()/_Height(), то есть из значений, закэшированных
+// в .thm-файле с предыдущей синхронизации. Если .thm не пересобирался вовремя (bThm==false
+// при изменившемся исходном .tga), эти размеры расходились с фактическим буфером
+// load_data, и DXTCompress -> DXTCompressImage читал/писал за пределы буфера
+// (heap corruption, AV в RGBAImage::pixels()[k].set(...) в DXT.cpp).
+bool CImageManager::MakeGameTexture(ETextureThumbnail* THM, LPCSTR game_name, u32* load_data, u32 w, u32 h)
 {
     VerifyPath(game_name);
-    // flip
-    u32 w = THM->_Width();
-    u32 h = THM->_Height();
+
+    // Синхронизируем закэшированные в THM размеры с фактическими данными.
+    // Несовпадение означает, что .thm устарел относительно .tga — это и есть
+    // источник переполнения буфера в DXTCompressImage при старом коде.
+    if ((THM->m_TexParams.width != w) || (THM->m_TexParams.height != h))
+    {
+        // Несовпадение уже исправляется ниже (актуальные w,h подставляются в THM),
+        // поэтому это не фатальная ошибка и не должно останавливать синхронизацию
+        // модальным диалогом - просто пишем в лог для трассировки.
+        Msg("! Texture '%s': cached .thm size (%ux%u) does not match actual data (%ux%u). "
+            "Thumbnail was out of date - using actual size.",
+            THM->m_SrcName.c_str(), THM->m_TexParams.width, THM->m_TexParams.height, w, h);
+        THM->m_TexParams.width = w;
+        THM->m_TexParams.height = h;
+
+        // Properties-панель ImageEditor могла в этот момент показывать именно
+        // этот THM с уже устаревшими Width/Height - просим её перечитать данные
+        // на следующем кадре.
+        UIImageEditorForm::RequestPropertiesUpdate();
+    }
+
     u32 w4 = w * 4;
     // remove old
     FS.file_delete(game_name);
@@ -330,6 +391,26 @@ bool CImageManager::MakeGameTexture(ETextureThumbnail* THM, LPCSTR game_name, u3
             return false;
     }
     // compress
+    // NEW: диагностика перед вызовом закрытой DXTCompress.dll - её исходников
+    // у нас нет, а DLL внутри себя явно уходит в отдельный путь "DXTCompressBump"
+    // для type==ttBumpMap (видно по логу редактора), который сейчас массово
+    // фейлится (res==0) для текстур, ранее долгое время ошибочно
+    // классифицировавшихся как ttImage. Логируем реальные параметры, с
+    // которыми уходит вызов, чтобы было с чем сравнить заведомо рабочую
+    // (например, ванильную, не тронутую этим SDK) бамп-текстуру.
+    if (THM->m_TexParams.type == STextureParams::ttBumpMap)
+    {
+        Msg("! [BUMP DEBUG] '%s': fmt=%d flags=0x%08X w=%d h=%d "
+            "bump_mode=%d bump_virtual_height=%f bump_name='%s' ext_normal_map_name='%s'",
+            THM->m_SrcName.c_str(),
+            THM->m_TexParams.fmt,
+            THM->m_TexParams.flags.get(),
+            w, h,
+            THM->m_TexParams.bump_mode,
+            THM->m_TexParams.bump_virtual_height,
+            THM->m_TexParams.bump_name.c_str(),
+            THM->m_TexParams.ext_normal_map_name.c_str());
+    }
     int res = DXTCompress(game_name, (u8*)load_data, (u8*)(ext_data.empty() ? 0 : ext_data.data()), w, h, w4, &THM->m_TexParams, 4);
     if (1 != res)
     {
@@ -480,6 +561,11 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
         if (sync_thm && bThm)
         {
             THM = xr_new<ETextureThumbnail>(it->name.c_str());
+            // NEW: THM->Load() внутри конструктора мог только что успешно
+            // прочитать уже испорченный .thm (неверный type, сохранённый
+            // раньше) - без этого вызова тип так и остался бы неверным
+            // навсегда, потому что ниже мы просто пересохраняем THM как есть.
+            ApplyNamingConventionType(THM, base_name.c_str());
             bool bRes = Stbi_Load(fn, data, w, h, a);
             R_ASSERT(bRes);
             //.             MakeThumbnailImage(THM,data.begin(),w,h,a);
@@ -490,7 +576,13 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
         if (bForceGame || (sync_game && bGame))
         {
             if (!THM)
+            {
                 THM = xr_new<ETextureThumbnail>(it->name.c_str());
+                // NEW: см. комментарий выше - THM создаётся здесь отдельно,
+                // если bThm было false (thm не пересоздавался в этом проходе),
+                // так что применяем ту же принудительную коррекцию типа.
+                ApplyNamingConventionType(THM, base_name.c_str());
+            }
             R_ASSERT(THM);
             if (data.empty())
             {
@@ -503,7 +595,11 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
                 strconcat(sizeof(game_name), game_name, base_name.c_str(), ".dds");
 
                 FS.update_path(game_name, _game_textures_, game_name);
-                if (MakeGameTexture(THM, game_name, data.data()))
+                // FIX: передаём актуальные w,h (только что полученные из Stbi_Load выше),
+                // а не то, что лежит в THM->m_TexParams — эти поля могли остаться от
+                // предыдущей синхронизации, если thumbnail не пересобирался (bThm==false),
+                // а исходный .tga тем временем сменил разрешение.
+                if (MakeGameTexture(THM, game_name, data.data(), w, h))
                 {
                     if (sync_list)
                         sync_list->push_back(base_name.c_str());
@@ -554,6 +650,12 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
     }
     if (bProgress)
         UI->ProgressEnd(pb);
+
+    // Общая страховка: если во время этой синхронизации был открыт ImageEditor,
+    // и в нём выбрана одна из обработанных текстур - её данные могли поменяться
+    // (не только Width/Height, но и Format/MipMaps и т.п.), просим форму
+    // перечитать properties, а не полагаться только на точечную проверку выше.
+    UIImageEditorForm::RequestPropertiesUpdate();
 }
 /*
 void CImageManager::ChangeFileAgeTo(FS_FileSet* tgt_map, int age)
