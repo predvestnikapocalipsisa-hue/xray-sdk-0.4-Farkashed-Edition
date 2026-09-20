@@ -1,3 +1,4 @@
+#include "Scene/scene.h"
 #pragma once
 
 // refs
@@ -42,6 +43,7 @@ protected:
     bool ScaleStart(TShiftState _Shift);
     void ScaleProcess(TShiftState _Shift);
     bool ScaleEnd(TShiftState _Shift);
+    xr_vector<ObjectTransformState> m_PendingTransforms;
     // rotate
     Fvector m_RotateVector;
     float m_fRotateSnapAngle;

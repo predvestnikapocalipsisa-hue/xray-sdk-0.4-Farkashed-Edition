@@ -17,22 +17,22 @@ static int   s_activeTheme   = 0;   // Current theme index (-1 = custom)
 // ============================================================
 //  Palette (User-editable)
 // ============================================================
-static float s_windowBg[4]     = { 0.09f, 0.10f, 0.15f, 0.97f };
-static float s_childBg[4]      = { 0.12f, 0.13f, 0.18f, 0.60f };
-static float s_popupBg[4]      = { 0.10f, 0.11f, 0.15f, 0.96f };
-static float s_accent[4]       = { 0.28f, 0.56f, 1.00f, 1.00f };
+static float s_windowBg[4]     = { 0.10f, 0.10f, 0.12f, 0.98f };
+static float s_childBg[4]      = { 0.13f, 0.13f, 0.16f, 0.70f };
+static float s_popupBg[4]      = { 0.12f, 0.12f, 0.15f, 0.98f };
+static float s_accent[4]       = { 0.52f, 0.38f, 0.92f, 1.00f };
 static float s_text[4]         = { 0.94f, 0.95f, 0.98f, 1.00f };
 static float s_textDisabled[4] = { 0.48f, 0.50f, 0.56f, 1.00f };
-static float s_border[4]       = { 0.22f, 0.26f, 0.35f, 0.65f };
-static float s_scrollbar[4]    = { 0.07f, 0.08f, 0.11f, 1.00f };
+static float s_border[4]       = { 0.22f, 0.24f, 0.30f, 0.65f };
+static float s_scrollbar[4]    = { 0.08f, 0.08f, 0.10f, 1.00f };
 
 // ============================================================
 //  Shape / Spacing
 // ============================================================
-static float s_rounding    = 6.0f;
+static float s_rounding    = 5.0f;
 static float s_framePad    = 5.0f;
-static float s_itemSpacing = 7.0f;
-static float s_windowPad   = 14.0f;
+static float s_itemSpacing = 6.0f;
+static float s_windowPad   = 12.0f;
 static float s_borderSize  = 1.0f;
 static float s_alpha       = 0.98f;
 
@@ -54,34 +54,38 @@ struct Theme {
 };
 
 static const Theme s_themes[] = {
-    { "Dark Blue Pro",  "[Blue]",
-      { 0.09f, 0.10f, 0.15f, 0.97f }, { 0.28f, 0.56f, 1.00f, 1.00f }, { 0.95f, 0.96f, 0.98f, 1.00f }, 6.0f },
-    { "Midnight Slate", "[Mid]",
-      { 0.06f, 0.07f, 0.10f, 0.98f }, { 0.32f, 0.62f, 0.92f, 1.00f }, { 0.90f, 0.92f, 0.96f, 1.00f }, 7.0f },
-    { "Nord Dark",      "[Nord]",
-      { 0.16f, 0.18f, 0.23f, 0.97f }, { 0.53f, 0.75f, 0.82f, 1.00f }, { 0.93f, 0.95f, 0.97f, 1.00f }, 6.0f },
-    { "Deep Purple",    "[Purp]",
-      { 0.10f, 0.07f, 0.16f, 0.97f }, { 0.62f, 0.35f, 0.95f, 1.00f }, { 0.96f, 0.93f, 1.00f, 1.00f }, 6.0f },
-    { "Cyber Neon",     "[Neon]",
-      { 0.08f, 0.05f, 0.13f, 0.98f }, { 0.00f, 0.85f, 0.95f, 1.00f }, { 0.96f, 0.92f, 1.00f, 1.00f }, 5.0f },
-    { "Teal Dark",      "[Teal]",
-      { 0.05f, 0.11f, 0.12f, 0.97f }, { 0.10f, 0.78f, 0.72f, 1.00f }, { 0.88f, 0.97f, 0.96f, 1.00f }, 6.0f },
-    { "Emerald Night",  "[Emrd]",
-      { 0.05f, 0.11f, 0.07f, 0.97f }, { 0.18f, 0.82f, 0.44f, 1.00f }, { 0.88f, 0.98f, 0.90f, 1.00f }, 6.0f },
-    { "Warm Charcoal",  "[Warm]",
-      { 0.13f, 0.11f, 0.09f, 0.97f }, { 0.92f, 0.55f, 0.18f, 1.00f }, { 0.98f, 0.94f, 0.88f, 1.00f }, 5.0f },
-    { "Crimson Night",  "[Crim]",
-      { 0.11f, 0.06f, 0.07f, 0.97f }, { 0.88f, 0.22f, 0.26f, 1.00f }, { 0.98f, 0.89f, 0.90f, 1.00f }, 6.0f },
-    { "Rose Gold",      "[Rose]",
-      { 0.12f, 0.08f, 0.10f, 0.97f }, { 0.95f, 0.48f, 0.58f, 1.00f }, { 0.99f, 0.91f, 0.93f, 1.00f }, 7.0f },
-    { "Slate Gray",     "[Slate]",
-      { 0.14f, 0.15f, 0.17f, 0.97f }, { 0.52f, 0.58f, 0.68f, 1.00f }, { 0.95f, 0.96f, 0.98f, 1.00f }, 5.0f },
-    { "Classic Light",  "[Light]",
-      { 0.93f, 0.94f, 0.96f, 1.00f }, { 0.18f, 0.46f, 0.88f, 1.00f }, { 0.08f, 0.09f, 0.13f, 1.00f }, 5.0f },
-    { "Sand Storm",     "[Sand]",
-      { 0.17f, 0.15f, 0.11f, 0.97f }, { 0.85f, 0.70f, 0.32f, 1.00f }, { 0.98f, 0.95f, 0.84f, 1.00f }, 5.0f },
-    { "Obsidian Pure",  "[Obsd]",
-      { 0.04f, 0.04f, 0.05f, 0.98f }, { 0.85f, 0.88f, 0.95f, 1.00f }, { 0.95f, 0.96f, 0.98f, 1.00f }, 4.0f },
+    { "Obsidian Studio", "[Obsd]",
+      { 0.10f, 0.10f, 0.12f, 0.98f }, { 0.52f, 0.38f, 0.92f, 1.00f }, { 0.94f, 0.95f, 0.98f, 1.00f }, 5.0f },
+    { "Unreal Amber",    "[UE5]",
+      { 0.11f, 0.11f, 0.13f, 0.98f }, { 0.95f, 0.48f, 0.12f, 1.00f }, { 0.92f, 0.94f, 0.96f, 1.00f }, 4.0f },
+    { "Dark Blue Pro",   "[Blue]",
+      { 0.09f, 0.10f, 0.14f, 0.98f }, { 0.24f, 0.54f, 0.96f, 1.00f }, { 0.95f, 0.96f, 0.98f, 1.00f }, 5.0f },
+    { "Midnight Slate",  "[Mid]",
+      { 0.07f, 0.08f, 0.10f, 0.98f }, { 0.06f, 0.65f, 0.90f, 1.00f }, { 0.90f, 0.92f, 0.96f, 1.00f }, 6.0f },
+    { "Nordic Frost",    "[Nord]",
+      { 0.14f, 0.16f, 0.20f, 0.98f }, { 0.38f, 0.68f, 0.90f, 1.00f }, { 0.93f, 0.95f, 0.97f, 1.00f }, 5.0f },
+    { "Deep Purple",     "[Purp]",
+      { 0.09f, 0.07f, 0.13f, 0.98f }, { 0.68f, 0.32f, 0.92f, 1.00f }, { 0.96f, 0.93f, 1.00f, 1.00f }, 5.0f },
+    { "Cyber Neon",      "[Neon]",
+      { 0.06f, 0.06f, 0.09f, 0.98f }, { 0.00f, 0.85f, 0.85f, 1.00f }, { 0.96f, 0.92f, 1.00f, 1.00f }, 4.0f },
+    { "Teal Dark",       "[Teal]",
+      { 0.06f, 0.10f, 0.11f, 0.98f }, { 0.12f, 0.75f, 0.65f, 1.00f }, { 0.88f, 0.97f, 0.96f, 1.00f }, 5.0f },
+    { "Emerald Night",   "[Emrd]",
+      { 0.06f, 0.10f, 0.07f, 0.98f }, { 0.16f, 0.78f, 0.40f, 1.00f }, { 0.88f, 0.98f, 0.90f, 1.00f }, 5.0f },
+    { "Warm Charcoal",   "[Warm]",
+      { 0.12f, 0.11f, 0.10f, 0.98f }, { 0.92f, 0.52f, 0.15f, 1.00f }, { 0.98f, 0.94f, 0.88f, 1.00f }, 4.0f },
+    { "Crimson Night",   "[Crim]",
+      { 0.10f, 0.06f, 0.07f, 0.98f }, { 0.85f, 0.20f, 0.25f, 1.00f }, { 0.98f, 0.89f, 0.90f, 1.00f }, 5.0f },
+    { "Rose Gold",       "[Rose]",
+      { 0.11f, 0.08f, 0.10f, 0.98f }, { 0.92f, 0.42f, 0.55f, 1.00f }, { 0.99f, 0.91f, 0.93f, 1.00f }, 6.0f },
+    { "Slate Gray",      "[Slate]",
+      { 0.13f, 0.14f, 0.16f, 0.98f }, { 0.50f, 0.54f, 0.65f, 1.00f }, { 0.95f, 0.96f, 0.98f, 1.00f }, 4.0f },
+    { "Classic Light",   "[Light]",
+      { 0.92f, 0.93f, 0.95f, 1.00f }, { 0.20f, 0.45f, 0.85f, 1.00f }, { 0.08f, 0.09f, 0.12f, 1.00f }, 4.0f },
+    { "Sand Storm",      "[Sand]",
+      { 0.14f, 0.12f, 0.09f, 0.98f }, { 0.82f, 0.65f, 0.25f, 1.00f }, { 0.98f, 0.95f, 0.84f, 1.00f }, 4.0f },
+    { "Obsidian Pure",   "[Obsd]",
+      { 0.04f, 0.04f, 0.05f, 0.98f }, { 0.80f, 0.84f, 0.92f, 1.00f }, { 0.95f, 0.96f, 0.98f, 1.00f }, 3.0f },
 };
 static const int s_themeCount = (int)(sizeof(s_themes) / sizeof(s_themes[0]));
 
@@ -121,16 +125,17 @@ static inline ImVec4 Mix(const ImVec4& a, const ImVec4& b, float t)
 // ============================================================
 inline void UpdateImGuiStyle()
 {
+    if (!ImGui::GetCurrentContext()) return;
     ImGuiStyle& st = ImGui::GetStyle();
 
     const float r           = s_rounding;
     st.WindowRounding       = r;
-    st.ChildRounding        = ClampF(r - 2.0f, 0.0f, 12.0f);
-    st.FrameRounding        = ClampF(r - 3.0f, 0.0f, 10.0f);
+    st.ChildRounding        = ClampF(r - 1.0f, 0.0f, 12.0f);
+    st.FrameRounding        = ClampF(r - 2.0f, 0.0f, 10.0f);
     st.PopupRounding        = r;
-    st.ScrollbarRounding    = 10.0f;
-    st.GrabRounding         = ClampF(r - 3.0f, 0.0f, 10.0f);
-    st.TabRounding          = ClampF(r - 2.0f, 0.0f, 10.0f);
+    st.ScrollbarRounding    = 8.0f;
+    st.GrabRounding         = ClampF(r - 2.0f, 0.0f, 10.0f);
+    st.TabRounding          = ClampF(r - 1.0f, 0.0f, 10.0f);
 
     st.WindowBorderSize     = s_borderSize;
     st.FrameBorderSize      = s_borderSize > 0.5f ? 1.0f : 0.0f;
@@ -138,21 +143,19 @@ inline void UpdateImGuiStyle()
     st.ChildBorderSize      = s_borderSize;
     st.TabBorderSize        = s_borderSize > 0.5f ? 1.0f : 0.0f;
 
-    st.FramePadding         = { s_framePad * 1.8f, s_framePad };
-    st.ItemSpacing          = { s_itemSpacing * 1.6f, s_itemSpacing };
-    st.ItemInnerSpacing     = { s_itemSpacing * 0.9f, s_itemSpacing * 0.9f };
+    st.FramePadding         = { s_framePad * 1.6f, s_framePad };
+    st.ItemSpacing          = { s_itemSpacing * 1.4f, s_itemSpacing };
+    st.ItemInnerSpacing     = { s_itemSpacing * 0.8f, s_itemSpacing * 0.8f };
     st.WindowPadding        = { s_windowPad, s_windowPad };
-    st.ScrollbarSize        = 13.0f;
-    st.GrabMinSize          = 11.0f;
-    st.IndentSpacing        = 18.0f;
+    st.ScrollbarSize        = 12.0f;
+    st.GrabMinSize          = 10.0f;
+    st.IndentSpacing        = 16.0f;
     st.WindowTitleAlign     = { 0.0f, 0.5f };
     st.Alpha                = s_alpha;
 
     const ImVec4 accent     = ToImVec4(s_accent);
-    const ImVec4 accentHov  = Brighten(accent, 1.18f);
-    const ImVec4 accentAct  = Darken(accent, 0.78f);
-    const ImVec4 accentDim  = Darken(accent, 0.52f);
-    const ImVec4 accentFade = WithAlpha(accent, 0.30f);
+    const ImVec4 accentHov  = Brighten(accent, 1.15f);
+    const ImVec4 accentAct  = Darken(accent, 0.82f);
     const ImVec4 bg         = ToImVec4(s_windowBg);
     const ImVec4 childBg    = ToImVec4(s_childBg);
     const ImVec4 popupBg    = ToImVec4(s_popupBg);
@@ -161,13 +164,16 @@ inline void UpdateImGuiStyle()
     const ImVec4 border     = ToImVec4(s_border);
     const ImVec4 scrollbar  = ToImVec4(s_scrollbar);
 
-    const ImVec4 frameBg    = Brighten(bg, 1.35f);
-    const ImVec4 frameBgHov = Brighten(bg, 1.65f);
+    bool isLightTheme = (bg.x + bg.y + bg.z) > 1.8f;
+    const ImVec4 frameBg    = isLightTheme ? Darken(bg, 0.94f) : Brighten(bg, 1.30f);
+    const ImVec4 frameBgHov = isLightTheme ? Darken(bg, 0.88f) : Brighten(bg, 1.60f);
 
-    const ImVec4 titleBg    = Darken(bg, 0.75f);
-    const ImVec4 titleActive= Darken(Mix(bg, accent, 0.30f), 0.90f);
+    const ImVec4 titleBg    = Darken(bg, 0.80f);
+    const ImVec4 titleActive= Mix(bg, accent, 0.22f);
     const ImVec4 menuBg     = Darken(bg, 0.85f);
-    const ImVec4 tabBg      = Darken(accent, 0.40f);
+    const ImVec4 tabBg      = Mix(bg, accent, 0.12f);
+    const ImVec4 tabHovered = Mix(bg, accent, 0.35f);
+    const ImVec4 tabActive  = Mix(bg, accent, 0.65f);
 
     // Apply colors to all ImGui slots
     st.Colors[ImGuiCol_Text]                  = txt;
@@ -179,34 +185,34 @@ inline void UpdateImGuiStyle()
     st.Colors[ImGuiCol_BorderShadow]          = { 0.f, 0.f, 0.f, 0.f };
     st.Colors[ImGuiCol_FrameBg]               = frameBg;
     st.Colors[ImGuiCol_FrameBgHovered]        = frameBgHov;
-    st.Colors[ImGuiCol_FrameBgActive]         = WithAlpha(accent, 0.38f);
+    st.Colors[ImGuiCol_FrameBgActive]         = WithAlpha(accent, 0.35f);
     st.Colors[ImGuiCol_TitleBg]               = titleBg;
     st.Colors[ImGuiCol_TitleBgActive]         = titleActive;
-    st.Colors[ImGuiCol_TitleBgCollapsed]      = Darken(titleBg, 0.75f);
+    st.Colors[ImGuiCol_TitleBgCollapsed]      = Darken(titleBg, 0.80f);
     st.Colors[ImGuiCol_MenuBarBg]             = menuBg;
     st.Colors[ImGuiCol_ScrollbarBg]           = scrollbar;
-    st.Colors[ImGuiCol_ScrollbarGrab]         = accentDim;
+    st.Colors[ImGuiCol_ScrollbarGrab]         = Mix(bg, accent, 0.35f);
     st.Colors[ImGuiCol_ScrollbarGrabHovered]  = accent;
     st.Colors[ImGuiCol_ScrollbarGrabActive]   = accentAct;
     st.Colors[ImGuiCol_CheckMark]             = accent;
     st.Colors[ImGuiCol_SliderGrab]            = accent;
     st.Colors[ImGuiCol_SliderGrabActive]      = accentHov;
-    st.Colors[ImGuiCol_Button]                = accentDim;
-    st.Colors[ImGuiCol_ButtonHovered]         = accent;
+    st.Colors[ImGuiCol_Button]                = Mix(bg, accent, 0.22f);
+    st.Colors[ImGuiCol_ButtonHovered]         = Mix(bg, accent, 0.45f);
     st.Colors[ImGuiCol_ButtonActive]          = accentAct;
-    st.Colors[ImGuiCol_Header]                = accentFade;
-    st.Colors[ImGuiCol_HeaderHovered]         = WithAlpha(accent, 0.55f);
+    st.Colors[ImGuiCol_Header]                = WithAlpha(accent, 0.25f);
+    st.Colors[ImGuiCol_HeaderHovered]         = WithAlpha(accent, 0.45f);
     st.Colors[ImGuiCol_HeaderActive]          = accent;
-    st.Colors[ImGuiCol_Separator]             = WithAlpha(border, 0.70f);
+    st.Colors[ImGuiCol_Separator]             = WithAlpha(border, 0.75f);
     st.Colors[ImGuiCol_SeparatorHovered]      = accent;
     st.Colors[ImGuiCol_SeparatorActive]       = accentAct;
     st.Colors[ImGuiCol_ResizeGrip]            = WithAlpha(accent, 0.25f);
     st.Colors[ImGuiCol_ResizeGripHovered]     = WithAlpha(accent, 0.70f);
     st.Colors[ImGuiCol_ResizeGripActive]      = accent;
     st.Colors[ImGuiCol_Tab]                   = tabBg;
-    st.Colors[ImGuiCol_TabHovered]            = accentHov;
-    st.Colors[ImGuiCol_TabActive]             = accent;
-    st.Colors[ImGuiCol_TabUnfocused]          = Darken(tabBg, 0.75f);
+    st.Colors[ImGuiCol_TabHovered]            = tabHovered;
+    st.Colors[ImGuiCol_TabActive]             = tabActive;
+    st.Colors[ImGuiCol_TabUnfocused]          = Darken(tabBg, 0.85f);
     st.Colors[ImGuiCol_TabUnfocusedActive]    = tabBg;
     st.Colors[ImGuiCol_DockingPreview]        = WithAlpha(accent, 0.70f);
     st.Colors[ImGuiCol_DockingEmptyBg]        = Darken(bg, 0.60f);
@@ -214,7 +220,7 @@ inline void UpdateImGuiStyle()
     st.Colors[ImGuiCol_PlotLinesHovered]      = accentHov;
     st.Colors[ImGuiCol_PlotHistogram]         = accent;
     st.Colors[ImGuiCol_PlotHistogramHovered]  = accentHov;
-    st.Colors[ImGuiCol_TableHeaderBg]         = Brighten(bg, 1.25f);
+    st.Colors[ImGuiCol_TableHeaderBg]         = Brighten(bg, 1.20f);
     st.Colors[ImGuiCol_TableBorderStrong]     = WithAlpha(border, 0.85f);
     st.Colors[ImGuiCol_TableBorderLight]      = WithAlpha(border, 0.45f);
     st.Colors[ImGuiCol_TableRowBg]            = { 0.f, 0.f, 0.f, 0.f };
@@ -240,247 +246,197 @@ static inline void ApplyTheme(int idx)
         s_accent[i]   = t.accent[i];
         s_text[i]     = t.text[i];
     }
+    bool isLight = (t.bg[0] + t.bg[1] + t.bg[2]) > 1.8f;
     for (int i = 0; i < 3; i++) {
-        s_childBg[i]   = ClampF(t.bg[i] + 0.04f, 0.0f, 1.0f);
-        s_popupBg[i]   = ClampF(t.bg[i] + 0.02f, 0.0f, 1.0f);
-        s_border[i]    = ClampF(t.bg[i] + 0.18f, 0.0f, 1.0f);
-        s_scrollbar[i] = t.bg[i] * 0.65f;
+        s_childBg[i]   = isLight ? ClampF(t.bg[i] - 0.04f, 0.0f, 1.0f) : ClampF(t.bg[i] + 0.03f, 0.0f, 1.0f);
+        s_popupBg[i]   = isLight ? ClampF(t.bg[i] - 0.02f, 0.0f, 1.0f) : ClampF(t.bg[i] + 0.02f, 0.0f, 1.0f);
+        s_border[i]    = isLight ? ClampF(t.bg[i] - 0.15f, 0.0f, 1.0f) : ClampF(t.bg[i] + 0.14f, 0.0f, 1.0f);
+        s_scrollbar[i] = t.bg[i] * 0.70f;
     }
-    s_childBg[3]   = 0.60f;
-    s_popupBg[3]   = 0.96f;
+    s_childBg[3]   = 0.70f;
+    s_popupBg[3]   = 0.98f;
     s_border[3]    = 0.65f;
     s_scrollbar[3] = 1.00f;
 
-    s_textDisabled[0] = ClampF(t.text[0] * 0.52f, 0.0f, 1.0f);
-    s_textDisabled[1] = ClampF(t.text[1] * 0.52f, 0.0f, 1.0f);
-    s_textDisabled[2] = ClampF(t.text[2] * 0.54f, 0.0f, 1.0f);
+    s_textDisabled[0] = ClampF(t.text[0] * 0.55f, 0.0f, 1.0f);
+    s_textDisabled[1] = ClampF(t.text[1] * 0.55f, 0.0f, 1.0f);
+    s_textDisabled[2] = ClampF(t.text[2] * 0.55f, 0.0f, 1.0f);
     s_textDisabled[3] = 1.00f;
 
-    s_rounding     = t.rounding;
+    s_rounding = t.rounding;
     UpdateImGuiStyle();
 }
 
 // ============================================================
-//  Save / Load
+//  Save / Load / Reset
 // ============================================================
-inline void SaveSettings()
+static inline void SaveSettings()
 {
     std::ofstream f(s_cfgFile);
     if (!f.is_open()) return;
-    f << "v3\n";
-    auto w4 = [&](const float c[4]) { f << c[0] << " " << c[1] << " " << c[2] << " " << c[3] << "\n"; };
-    w4(s_windowBg); w4(s_childBg); w4(s_popupBg);
-    w4(s_accent); w4(s_text); w4(s_textDisabled); w4(s_border); w4(s_scrollbar);
-    f << s_rounding    << "\n" << s_framePad   << "\n" << s_itemSpacing << "\n"
-      << s_windowPad   << "\n" << s_borderSize << "\n" << s_alpha      << "\n";
-    f << s_activeTheme << "\n";
+
+    f << "[Theme]\n";
+    f << "activeTheme="   << s_activeTheme << "\n";
+    f << "windowBg="      << s_windowBg[0] << "," << s_windowBg[1] << "," << s_windowBg[2] << "," << s_windowBg[3] << "\n";
+    f << "childBg="       << s_childBg[0]  << "," << s_childBg[1]  << "," << s_childBg[2]  << "," << s_childBg[3]  << "\n";
+    f << "popupBg="       << s_popupBg[0]  << "," << s_popupBg[1]  << "," << s_popupBg[2]  << "," << s_popupBg[3]  << "\n";
+    f << "accent="        << s_accent[0]   << "," << s_accent[1]   << "," << s_accent[2]   << "," << s_accent[3]   << "\n";
+    f << "text="          << s_text[0]     << "," << s_text[1]     << "," << s_text[2]     << "," << s_text[3]     << "\n";
+    f << "textDisabled="  << s_textDisabled[0] << "," << s_textDisabled[1] << "," << s_textDisabled[2] << "," << s_textDisabled[3] << "\n";
+    f << "border="        << s_border[0]   << "," << s_border[1]   << "," << s_border[2]   << "," << s_border[3]   << "\n";
+    f << "scrollbar="     << s_scrollbar[0]<< "," << s_scrollbar[1]<< "," << s_scrollbar[2]<< "," << s_scrollbar[3]<< "\n";
+    f << "rounding="      << s_rounding    << "\n";
+    f << "framePad="      << s_framePad    << "\n";
+    f << "itemSpacing="   << s_itemSpacing << "\n";
+    f << "windowPad="     << s_windowPad   << "\n";
+    f << "borderSize="    << s_borderSize  << "\n";
+    f << "alpha="         << s_alpha       << "\n";
     f.close();
 }
 
-inline void LoadSettings()
+static inline void LoadSettings()
 {
     std::ifstream f(s_cfgFile);
-    if (!f.is_open()) return;
-    std::string tag; f >> tag;
-    if (tag != "v3") { f.close(); return; }
-    auto r4 = [&](float c[4]) { f >> c[0] >> c[1] >> c[2] >> c[3]; };
-    r4(s_windowBg); r4(s_childBg); r4(s_popupBg);
-    r4(s_accent); r4(s_text); r4(s_textDisabled); r4(s_border); r4(s_scrollbar);
-    f >> s_rounding >> s_framePad >> s_itemSpacing >> s_windowPad >> s_borderSize >> s_alpha;
-    f >> s_activeTheme;
+    if (!f.is_open())
+    {
+        ApplyTheme(0);
+        return;
+    }
+
+    std::string line;
+    auto ParseVec4 = [](const std::string& val, float out[4]) {
+        sscanf(val.c_str(), "%f,%f,%f,%f", &out[0], &out[1], &out[2], &out[3]);
+    };
+
+    while (std::getline(f, line))
+    {
+        size_t eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        std::string key = line.substr(0, eq);
+        std::string val = line.substr(eq + 1);
+
+        if      (key == "activeTheme")   s_activeTheme = atoi(val.c_str());
+        else if (key == "windowBg")      ParseVec4(val, s_windowBg);
+        else if (key == "childBg")       ParseVec4(val, s_childBg);
+        else if (key == "popupBg")       ParseVec4(val, s_popupBg);
+        else if (key == "accent")        ParseVec4(val, s_accent);
+        else if (key == "text")          ParseVec4(val, s_text);
+        else if (key == "textDisabled")  ParseVec4(val, s_textDisabled);
+        else if (key == "border")        ParseVec4(val, s_border);
+        else if (key == "scrollbar")     ParseVec4(val, s_scrollbar);
+        else if (key == "rounding")      s_rounding    = (float)atof(val.c_str());
+        else if (key == "framePad")      s_framePad    = (float)atof(val.c_str());
+        else if (key == "itemSpacing")   s_itemSpacing = (float)atof(val.c_str());
+        else if (key == "windowPad")     s_windowPad   = (float)atof(val.c_str());
+        else if (key == "borderSize")    s_borderSize  = (float)atof(val.c_str());
+        else if (key == "alpha")         s_alpha       = (float)atof(val.c_str());
+    }
     f.close();
     UpdateImGuiStyle();
 }
 
-inline void ResetDefaults() { ApplyTheme(0); }
+static inline void ResetDefaults()
+{
+    ApplyTheme(0);
+    SaveSettings();
+}
 
 // ============================================================
-//  Public API
+//  UI Component Functions
 // ============================================================
-inline void Enable()  { s_showGui = true;  }
-inline void Disable() { s_showGui = false; }
-inline bool IsOpen()  { return s_showGui;  }
+static inline void Open()    { s_showGui = true; }
+static inline void Close()   { s_showGui = false; }
+static inline void Enable()  { s_showGui = true; }
+static inline void Disable() { s_showGui = false; }
+static inline bool IsOpen()  { return s_showGui; }
 
-// ============================================================
-//  Helper: Thin separator with spacing
-// ============================================================
+static inline void SectionLabel(const char* label)
+{
+    ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_accent));
+    ImGui::TextUnformatted(label);
+    ImGui::PopStyleColor();
+}
+
 static inline void ThinSeparator()
 {
     ImGui::Spacing();
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
-    ImGui::Separator();
-    ImGui::PopStyleVar();
-    ImGui::Spacing();
-}
-
-// ============================================================
-//  Helper: Section label
-// ============================================================
-static inline void SectionLabel(const char* txt)
-{
-    ImVec4 tc = ToImVec4(s_accent);
-    ImGui::PushStyleColor(ImGuiCol_Text, Brighten(tc, 1.10f));
-    ImGui::TextUnformatted(txt);
-    ImGui::PopStyleColor();
     ImGui::Separator();
     ImGui::Spacing();
 }
 
-// ============================================================
-//  Render
-// ============================================================
 inline void Render()
 {
-    if (GetAsyncKeyState(VK_INSERT) & 1)
-        s_showGui = !s_showGui;
-
+    if (!ImGui::GetCurrentContext()) return;
     if (!s_showGui) return;
 
-    // ---- Window sizing ----
-    ImGui::SetNextWindowSize({ 480, 0 }, ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSizeConstraints({ 400, 280 }, { 680, 960 });
+    ImGui::SetNextWindowSize({ 540.0f, 480.0f }, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSizeConstraints({ 420.0f, 360.0f }, { 1200.0f, 900.0f });
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,   { s_windowPad, s_windowPad });
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,  s_rounding);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,    { 8.0f, 5.0f });
-
-    const bool open = ImGui::Begin("XrEUI Style & Color Manager", &s_showGui,
-        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-
-    ImGui::PopStyleVar(3);
-
-    if (!open) { ImGui::End(); return; }
-
-    // ---- Header panel ----
+    if (!ImGui::Begin("UI Customization", &s_showGui,
+        ImGuiWindowFlags_NoCollapse))
     {
-        ImVec4 accent4 = ToImVec4(s_accent);
-        ImGui::PushStyleColor(ImGuiCol_Button,        Darken(accent4, 0.52f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, accent4);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Darken(accent4, 0.75f));
-        if (ImGui::Button("  Hide [Insert]  ")) { Disable(); ImGui::PopStyleColor(3); ImGui::End(); return; }
-        ImGui::PopStyleColor(3);
-
-        ImGui::SameLine(0, 12);
-        ImGui::PushStyleColor(ImGuiCol_Text, WithAlpha(ToImVec4(s_textDisabled), 0.85f));
-        ImGui::PopStyleColor();
-
-        // Right-aligned active theme badge
-        if (s_activeTheme >= 0 && s_activeTheme < s_themeCount)
-        {
-            const char* tname = s_themes[s_activeTheme].name;
-            float tw = ImGui::CalcTextSize(tname).x + 12;
-            ImGui::SameLine(ImGui::GetContentRegionMax().x - tw);
-            ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_accent));
-            ImGui::TextUnformatted(tname);
-            ImGui::PopStyleColor();
-        }
-        else
-        {
-            const char* tname = "Custom Theme";
-            float tw = ImGui::CalcTextSize(tname).x + 12;
-            ImGui::SameLine(ImGui::GetContentRegionMax().x - tw);
-            ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_textDisabled));
-            ImGui::TextUnformatted(tname);
-            ImGui::PopStyleColor();
-        }
+        ImGui::End();
+        return;
     }
 
-    ThinSeparator();
-
-    // ================================================================
-    //  TAB BAR
-    // ================================================================
-    ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, s_rounding);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 12.f, 5.f });
-    if (ImGui::BeginTabBar("##main_tabs", ImGuiTabBarFlags_None))
+    if (ImGui::BeginTabBar("CustomTabBar"))
     {
-        ImGui::PopStyleVar(2);
-
-        // =========================================================
-        //  TAB: Themes
-        // =========================================================
         if (ImGui::BeginTabItem("  Presets  "))
         {
             ImGui::Spacing();
-            ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_textDisabled));
-            ImGui::TextUnformatted("Select a theme preset - changes apply instantly:");
-            ImGui::PopStyleColor();
+            SectionLabel("  Theme Gallery");
+            ImGui::TextDisabled("Select a preset studio theme to apply across the entire editor:");
             ImGui::Spacing();
 
-            const int cols = 3;
-            const float gap = ImGui::GetStyle().ItemSpacing.x;
-            const float bw  = (ImGui::GetContentRegionAvail().x - gap * (cols - 1)) / cols;
+            const float itemWidth  = 150.0f;
+            const float itemHeight = 65.0f;
+            const float spacing    = 10.0f;
+            float availW           = ImGui::GetContentRegionAvail().x;
+            int   cols             = (int)((availW + spacing) / (itemWidth + spacing));
+            if (cols < 1) cols = 1;
 
             for (int i = 0; i < s_themeCount; i++)
             {
-                if (i % cols != 0) ImGui::SameLine(0, gap);
+                if (i > 0 && (i % cols) != 0) ImGui::SameLine(0.0f, spacing);
 
                 const Theme& th = s_themes[i];
-                const bool   active = (i == s_activeTheme);
+                bool isActive = (s_activeTheme == i);
 
-                ImVec4 bc = { th.accent[0]*0.45f, th.accent[1]*0.45f, th.accent[2]*0.45f, 1.0f };
-                ImVec4 bh = { th.accent[0]*0.75f, th.accent[1]*0.75f, th.accent[2]*0.75f, 1.0f };
-                ImVec4 ba = { th.accent[0],        th.accent[1],        th.accent[2],        1.0f };
+                ImGui::PushID(i);
+                ImVec2 p0 = ImGui::GetCursorScreenPos();
+                ImVec2 p1 = { p0.x + itemWidth, p0.y + itemHeight };
 
-                if (active)
+                bool clicked = ImGui::InvisibleButton(th.name, { itemWidth, itemHeight });
+
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                ImU32 bgCol     = IM_COL32((int)(th.bg[0]*255),(int)(th.bg[1]*255),(int)(th.bg[2]*255), 245);
+                ImU32 accCol    = IM_COL32((int)(th.accent[0]*255),(int)(th.accent[1]*255),(int)(th.accent[2]*255), 255);
+                ImU32 txtCol    = IM_COL32((int)(th.text[0]*255),(int)(th.text[1]*255),(int)(th.text[2]*255), 255);
+                ImU32 borderCol = isActive ? accCol : IM_COL32(70, 75, 90, 180);
+
+                dl->AddRectFilled(p0, p1, bgCol, 6.0f);
+                dl->AddRect(p0, p1, borderCol, 6.0f, 0, isActive ? 2.0f : 1.0f);
+                dl->AddRectFilled({ p0.x + 8, p0.y + 8 }, { p0.x + itemWidth - 8, p0.y + 20 }, accCol, 3.0f);
+
+                char badge[64];
+                _snprintf(badge, sizeof(badge), "%s %s", th.icon, th.name);
+                dl->AddText({ p0.x + 10, p0.y + 26 }, txtCol, badge);
+
+                if (isActive)
                 {
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-                    ImGui::PushStyleColor(ImGuiCol_Border, ba);
+                    dl->AddText({ p0.x + itemWidth - 28, p0.y + 44 }, accCol, "[v]");
                 }
 
-                ImGui::PushStyleColor(ImGuiCol_Button,        bc);
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bh);
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ba);
-                ImGui::PushStyleColor(ImGuiCol_Text,          { th.text[0], th.text[1], th.text[2], 1.0f });
+                if (clicked) ApplyTheme(i);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Apply theme '%s'", th.name);
 
-                char bid[64];
-                _snprintf(bid, sizeof(bid), "%s %s##th%d", th.icon, th.name, i);
-                if (ImGui::Button(bid, { bw, 32.f }))
-                    ApplyTheme(i);
-
-                ImGui::PopStyleColor(4);
-                if (active)
-                {
-                    ImGui::PopStyleVar();
-                    ImGui::PopStyleColor();
-                }
-            }
-
-            ImGui::Spacing();
-            ThinSeparator();
-
-            ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_textDisabled));
-            ImGui::TextUnformatted("Accent tone preview:");
-            ImGui::PopStyleColor();
-            ImGui::SameLine(0, 10);
-
-            ImVec4 a = ToImVec4(s_accent);
-            ImVec4 swatchColors[5] = {
-                a,
-                Brighten(a, 1.18f),
-                Darken(a, 0.78f),
-                Darken(a, 0.52f),
-                WithAlpha(a, 0.30f)
-            };
-            const char* swatchTips[5] = { "Base", "Hovered", "Active", "Dim", "Fade" };
-            for (int s = 0; s < 5; s++)
-            {
-                char sid[16]; _snprintf(sid, sizeof(sid), "##sw%d", s);
-                if (s) ImGui::SameLine(0, 5);
-                ImGui::ColorButton(sid, swatchColors[s],
-                    ImGuiColorEditFlags_NoTooltip | (s == 4 ? ImGuiColorEditFlags_AlphaPreview : 0),
-                    { 42, 18 });
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("%s", swatchTips[s]);
+                ImGui::PopID();
             }
 
             ImGui::Spacing();
             ImGui::EndTabItem();
         }
 
-        // =========================================================
-        //  TAB: Colors
-        // =========================================================
         if (ImGui::BeginTabItem("  Palette  "))
         {
             ImGui::Spacing();
@@ -493,13 +449,12 @@ inline void Render()
                     ImGuiColorEditFlags_PickerHueWheel))
                 {
                     changed = true;
-                    s_activeTheme = -1; 
+                    s_activeTheme = -1;
                 }
                 if (tip && ImGui::IsItemHovered())
                     ImGui::SetTooltip("%s", tip);
             };
 
-            // --- Window ---
             if (ImGui::CollapsingHeader("  Window & Backgrounds", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::PushItemWidth(-1);
@@ -513,7 +468,6 @@ inline void Render()
                 ImGui::Spacing();
             }
 
-            // --- Text ---
             if (ImGui::CollapsingHeader("  Text & Labels", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::PushItemWidth(-1);
@@ -524,7 +478,6 @@ inline void Render()
                 ImGui::Spacing();
             }
 
-            // --- Accent ---
             if (ImGui::CollapsingHeader("  Accent Colors", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::PushItemWidth(-1);
@@ -532,37 +485,12 @@ inline void Render()
                 Row("Accent color##acc", "Buttons, selection, headers, sliders", s_accent);
                 ImGui::PopItemWidth();
                 ImGui::Spacing();
-                ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_textDisabled));
-                ImGui::TextUnformatted("Derived state tones:");
-                ImGui::PopStyleColor();
-                ImGui::SameLine(0, 10);
-                ImVec4 av = ToImVec4(s_accent);
-                struct { ImVec4 c; const char* lbl; } tones[] = {
-                    { av,                   "Base"    },
-                    { Brighten(av, 1.18f),  "Hovered" },
-                    { Darken(av, 0.78f),    "Active"  },
-                    { Darken(av, 0.52f),    "Dim"     },
-                    { WithAlpha(av,0.30f),  "Fade"    },
-                };
-                for (int i = 0; i < 5; i++)
-                {
-                    if (i) ImGui::SameLine(0, 5);
-                    char id[16]; _snprintf(id, sizeof(id), "##t%d", i);
-                    ImGui::ColorButton(id, tones[i].c,
-                        ImGuiColorEditFlags_NoTooltip | (i==4 ? ImGuiColorEditFlags_AlphaPreview : 0),
-                        { 40, 18 });
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tones[i].lbl);
-                }
-                ImGui::Spacing();
             }
 
             if (changed) UpdateImGuiStyle();
             ImGui::EndTabItem();
         }
 
-        // =========================================================
-        //  TAB: Geometry
-        // =========================================================
         if (ImGui::BeginTabItem("  Geometry  "))
         {
             ImGui::Spacing();
@@ -580,38 +508,11 @@ inline void Render()
             if (ImGui::SliderFloat("Opacity##op",      &s_alpha,       0.2f,  1.0f, "%.2f"))    { changed = true; }
             ImGui::PopItemWidth();
 
-            ThinSeparator();
-
-            SectionLabel("  Shape Presets");
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 10.f, 4.f });
-            struct ShapePreset { const char* label; float round; float border; };
-            static const ShapePreset shapes[] = {
-                { "Flat",      0.0f,  1.0f },
-                { "Soft",      5.0f,  1.0f },
-                { "Rounded",   8.0f,  1.0f },
-                { "Capsule",  12.0f,  0.0f },
-                { "Modern",    6.0f,  0.0f },
-            };
-            for (int i = 0; i < 5; i++)
-            {
-                if (i) ImGui::SameLine();
-                if (ImGui::SmallButton(shapes[i].label))
-                {
-                    s_rounding   = shapes[i].round;
-                    s_borderSize = shapes[i].border;
-                    UpdateImGuiStyle();
-                }
-            }
-            ImGui::PopStyleVar();
-
             if (changed) UpdateImGuiStyle();
             ImGui::Spacing();
             ImGui::EndTabItem();
         }
 
-        // =========================================================
-        //  TAB: Config
-        // =========================================================
         if (ImGui::BeginTabItem("  Config  "))
         {
             ImGui::Spacing();
@@ -644,23 +545,11 @@ inline void Render()
             if (ImGui::Button("Reset to Defaults", { -1.f, 30.f })) ResetDefaults();
             ImGui::PopStyleColor(3);
 
-            ThinSeparator();
-
-            ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_textDisabled));
-            ImGui::Text("Config file: %s", s_cfgFile);
-            ImGui::Spacing();
-            ImGui::TextWrapped("Tip: Style adjustments apply immediately. Click 'Save Settings' to preserve theme changes across editor sessions.");
-            ImGui::PopStyleColor();
-
             ImGui::Spacing();
             ImGui::EndTabItem();
         }
 
         ImGui::EndTabBar();
-    }
-    else
-    {
-        ImGui::PopStyleVar(2);
     }
 
     ImGui::End();

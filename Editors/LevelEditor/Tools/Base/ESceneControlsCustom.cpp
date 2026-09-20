@@ -211,6 +211,18 @@ bool TUI_CustomControl::MovingStart(TShiftState Shift)
         ObjectList lst;
         if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
         {
+            xr_vector<ObjectTransformState> snapTransforms;
+            for (CCustomObject* obj : lst)
+            {
+                ObjectTransformState state;
+                state.name = obj->GetName();
+                state.classID = obj->FClassID;
+                state.pos_before = obj->GetPosition();
+                state.rot_before = obj->GetRotation();
+                state.scale_before = obj->GetScale();
+                snapTransforms.push_back(state);
+            }
+
             if (lst.size() == 1)
             {
                 Fvector p, n;
@@ -220,7 +232,6 @@ bool TUI_CustomControl::MovingStart(TShiftState Shift)
                 {
                     for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
                         (*_F)->MoveTo(p, n);
-                    Scene->UndoSave();
                 }
             }
             else
@@ -232,6 +243,24 @@ bool TUI_CustomControl::MovingStart(TShiftState Shift)
                     if (LUI->PickGround(p, (*_F)->GetPosition(), D, 1, &n))
                         (*_F)->MoveTo(p, n);
                 }
+            }
+
+            bool anyChanged = false;
+            for (auto& state : snapTransforms)
+            {
+                CCustomObject* obj = Scene->FindObjectByName(state.name.c_str(), state.classID);
+                if (obj)
+                {
+                    state.pos_after = obj->GetPosition();
+                    state.rot_after = obj->GetRotation();
+                    state.scale_after = obj->GetScale();
+                    if (!state.pos_before.similar(state.pos_after, EPS))
+                        anyChanged = true;
+                }
+            }
+            if (anyChanged)
+            {
+                Scene->UndoSaveTransform("Move To Ground", snapTransforms);
             }
         }
         return false;
@@ -255,7 +284,22 @@ bool TUI_CustomControl::MovingStart(TShiftState Shift)
         m_MovingReminder.set(0, 0, 0);
     }
 
-    // начало трансформации — подавляем Modified() во время движения
+    m_PendingTransforms.clear();
+    ObjectList lst;
+    if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
+    {
+        for (CCustomObject* obj : lst)
+        {
+            ObjectTransformState state;
+            state.name = obj->GetName();
+            state.classID = obj->FClassID;
+            state.pos_before = obj->GetPosition();
+            state.rot_before = obj->GetRotation();
+            state.scale_before = obj->GetScale();
+            m_PendingTransforms.push_back(state);
+        }
+    }
+
     s_transformInProgress = true;
     return true;
 }
@@ -310,7 +354,32 @@ void TUI_CustomControl::MovingProcess(TShiftState _Shift)
 bool TUI_CustomControl::MovingEnd(TShiftState _Shift)
 {
     s_transformInProgress = false;
-    Scene->UndoSave();
+
+    bool anyChanged = false;
+    for (auto& state : m_PendingTransforms)
+    {
+        CCustomObject* obj = Scene->FindObjectByName(state.name.c_str(), state.classID);
+        if (obj)
+        {
+            state.pos_after = obj->GetPosition();
+            state.rot_after = obj->GetRotation();
+            state.scale_after = obj->GetScale();
+
+            if (!state.pos_before.similar(state.pos_after, EPS) ||
+                !state.rot_before.similar(state.rot_after, EPS) ||
+                !state.scale_before.similar(state.scale_after, EPS))
+            {
+                anyChanged = true;
+            }
+        }
+    }
+
+    if (anyChanged)
+    {
+        Scene->UndoSaveTransform("Move Object(s)", m_PendingTransforms);
+    }
+    m_PendingTransforms.clear();
+
     ExecCommand(COMMAND_UPDATE_PROPERTIES);
     ExecCommand(COMMAND_UPDATE_CAPTION);
     return true;
@@ -343,6 +412,22 @@ bool TUI_CustomControl::RotateStart(TShiftState Shift)
     else
         m_RotateVector.set(0, 1, 0);
     m_fRotateSnapAngle = 0;
+
+    m_PendingTransforms.clear();
+    ObjectList lst;
+    if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
+    {
+        for (CCustomObject* obj : lst)
+        {
+            ObjectTransformState state;
+            state.name = obj->GetName();
+            state.classID = obj->FClassID;
+            state.pos_before = obj->GetPosition();
+            state.rot_before = obj->GetRotation();
+            state.scale_before = obj->GetScale();
+            m_PendingTransforms.push_back(state);
+        }
+    }
 
     s_transformInProgress = true;
     return true;
@@ -382,7 +467,32 @@ void TUI_CustomControl::RotateProcess(TShiftState _Shift)
 bool TUI_CustomControl::RotateEnd(TShiftState _Shift)
 {
     s_transformInProgress = false;
-    Scene->UndoSave();
+
+    bool anyChanged = false;
+    for (auto& state : m_PendingTransforms)
+    {
+        CCustomObject* obj = Scene->FindObjectByName(state.name.c_str(), state.classID);
+        if (obj)
+        {
+            state.pos_after = obj->GetPosition();
+            state.rot_after = obj->GetRotation();
+            state.scale_after = obj->GetScale();
+
+            if (!state.pos_before.similar(state.pos_after, EPS) ||
+                !state.rot_before.similar(state.rot_after, EPS) ||
+                !state.scale_before.similar(state.scale_after, EPS))
+            {
+                anyChanged = true;
+            }
+        }
+    }
+
+    if (anyChanged)
+    {
+        Scene->UndoSaveTransform("Rotate Object(s)", m_PendingTransforms);
+    }
+    m_PendingTransforms.clear();
+
     ExecCommand(COMMAND_UPDATE_PROPERTIES);
     ExecCommand(COMMAND_UPDATE_CAPTION);
     return true;
@@ -401,6 +511,22 @@ bool TUI_CustomControl::ScaleStart(TShiftState Shift)
     }
     if (Scene->SelectionCount(true, cls) == 0)
         return false;
+
+    m_PendingTransforms.clear();
+    ObjectList lst;
+    if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
+    {
+        for (CCustomObject* obj : lst)
+        {
+            ObjectTransformState state;
+            state.name = obj->GetName();
+            state.classID = obj->FClassID;
+            state.pos_before = obj->GetPosition();
+            state.rot_before = obj->GetRotation();
+            state.scale_before = obj->GetScale();
+            m_PendingTransforms.push_back(state);
+        }
+    }
 
     s_transformInProgress = true;
     return true;
@@ -442,7 +568,32 @@ void TUI_CustomControl::ScaleProcess(TShiftState _Shift)
 bool TUI_CustomControl::ScaleEnd(TShiftState _Shift)
 {
     s_transformInProgress = false;
-    Scene->UndoSave();
+
+    bool anyChanged = false;
+    for (auto& state : m_PendingTransforms)
+    {
+        CCustomObject* obj = Scene->FindObjectByName(state.name.c_str(), state.classID);
+        if (obj)
+        {
+            state.pos_after = obj->GetPosition();
+            state.rot_after = obj->GetRotation();
+            state.scale_after = obj->GetScale();
+
+            if (!state.pos_before.similar(state.pos_after, EPS) ||
+                !state.rot_before.similar(state.rot_after, EPS) ||
+                !state.scale_before.similar(state.scale_after, EPS))
+            {
+                anyChanged = true;
+            }
+        }
+    }
+
+    if (anyChanged)
+    {
+        Scene->UndoSaveTransform("Scale Object(s)", m_PendingTransforms);
+    }
+    m_PendingTransforms.clear();
+
     ExecCommand(COMMAND_UPDATE_PROPERTIES);
     ExecCommand(COMMAND_UPDATE_CAPTION);
     return true;

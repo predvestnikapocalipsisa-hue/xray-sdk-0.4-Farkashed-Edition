@@ -150,20 +150,28 @@ void ESceneCustomOTool::SelectObjects(bool flag)
 
 void ESceneCustomOTool::RemoveSelection()
 {
-    ObjectIt _F = m_Objects.begin();
-    while (_F != m_Objects.end())
+    ObjectList del_list;
+    for (CCustomObject* obj : m_Objects)
     {
-        if ((*_F)->Selected() && !(*_F)->m_CO_Flags.test(CCustomObject::flObjectInGroup))
+        if (obj->Selected() && !obj->m_CO_Flags.test(CCustomObject::flObjectInGroup))
         {
-            if ((*_F)->OnSelectionRemove())
+            if (obj->OnSelectionRemove())
             {
-                ObjectIt _D = _F;
-                _F++;
-                CCustomObject *obj = *_D;
-                Scene->RemoveObject(obj, false, true);
-                xr_delete(obj);
+                del_list.push_back(obj);
             }
-            else
+        }
+    }
+
+    if (!del_list.empty())
+    {
+        Scene->UndoSaveDelete(del_list);
+        for (CCustomObject* obj : del_list)
+        {
+            Scene->RemoveObject(obj, false, true);
+            xr_delete(obj);
+        }
+    }
+}            else
             {
                 _F++;
             }

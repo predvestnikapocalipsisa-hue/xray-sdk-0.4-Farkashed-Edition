@@ -112,7 +112,7 @@ void EScene::AppendObject(CCustomObject *object, bool bUndo)
     if (bUndo)
     {
         object->Select(true);
-        UndoSave();
+        UndoSaveCreate(object);
     }
 
     if (ESceneSectorTool* sectorTool = dynamic_cast<ESceneSectorTool*>(GetOTool(OBJCLASS_SECTOR)))
@@ -146,7 +146,7 @@ bool EScene::RemoveObject(CCustomObject *object, bool bUndo, bool bDeleting)
         UI->UpdateScene();
     }
     if (bUndo)
-        UndoSave();
+        UndoSaveDelete(object);
     return true;
 }
 
@@ -688,5 +688,5 @@ extern "C" __declspec(dllexport) const char* GetCurrentLevelName() {
         return Scene->m_LevelOp.m_FNLevelPath.c_str();
     }
 
-    return "Новая сцена";
+    return " ";
 }
