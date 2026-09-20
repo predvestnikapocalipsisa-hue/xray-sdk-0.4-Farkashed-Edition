@@ -141,11 +141,13 @@ public:
     ObjClassID CurrentClassID();
 
     void ShowObjectList();
+    void MoveToCursor();
     virtual bool GetSelectionPosition(Fmatrix &result);
 
     // commands
     CCommandVar CommandChangeTarget(CCommandVar p1, CCommandVar p2);
     CCommandVar CommandShowObjectList(CCommandVar p1, CCommandVar p2);
+    CCommandVar CommandMoveToCursor(CCommandVar p1, CCommandVar p2);
     CCommandVar CommandEnableTarget(CCommandVar p1, CCommandVar p2);
     CCommandVar CommandShowTarget(CCommandVar p1, CCommandVar p2);
     CCommandVar CommandReadonlyTarget(CCommandVar p1, CCommandVar p2);

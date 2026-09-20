@@ -56,6 +56,8 @@ public:
     float snap_angle;
     float snap_move;
     float snap_moveto;
+    float ctrl_snap_angle;
+    float shift_fine_factor;
     // grid
     float grid_cell_size;
     u32 grid_cell_count;

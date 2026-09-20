@@ -1085,13 +1085,11 @@ BOOL SceneBuilder::BuildPointLight(b_light *b, const Flags32 &usage, svector<WOR
 BOOL SceneBuilder::BuildLight(CLight *e)
 {
     if (!e->m_Flags.is_any(ELight::flAffectStatic | ELight::flAffectDynamic))
-        return FALSE;
+        return TRUE;
 
-    if (!e->GetLControlName())
-    {
-        ELog.Msg(mtError, "Invalid light control name: light '%s'.", e->GetName());
-        return FALSE;
-    }
+    LPCSTR lcontrol_name = e->GetLControlName();
+    if (!lcontrol_name || !lcontrol_name[0])
+        lcontrol_name = LCONTROL_STATIC;
 
     b_light L;
     L.data.type = e->m_Type;
@@ -1106,7 +1104,7 @@ BOOL SceneBuilder::BuildLight(CLight *e)
     L.data.attenuation2 = e->m_Attenuation2;
     L.data.phi = e->m_Cone;
 
-    L.controller_ID = BuildLightControl(e->GetLControlName()); // BuildLightControl(LCONTROL_STATIC);
+    L.controller_ID = BuildLightControl(lcontrol_name);
 
     svector<u16, 16> *lpSectors = nullptr;
     if (e->m_Flags.is(ELight::flAffectDynamic))
@@ -1141,7 +1139,9 @@ BOOL SceneBuilder::BuildLight(CLight *e)
                     sectors.push_back((u16)_S->m_sector_num);
             }
             if (sectors.empty())
-                return FALSE;
+            {
+                sectors.push_back((u16)m_iDefaultSectorNum);
+            }
         }
         else
         {
@@ -1154,8 +1154,8 @@ BOOL SceneBuilder::BuildLight(CLight *e)
     case ELight::ltPoint:
         return BuildPointLight(&L, e->m_Flags, lpSectors, e->m_FuzzyData ? &e->m_FuzzyData->m_Positions : 0, &e->_Transform());
     default:
-        THROW2("Invalid light type.");
-        return FALSE;
+        ELog.Msg(mtError, "Invalid light type for '%s'.", e->GetName());
+        return TRUE;
     }
 }
 //------------------------------------------------------------------------------

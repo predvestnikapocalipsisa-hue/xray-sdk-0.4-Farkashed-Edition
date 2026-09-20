@@ -383,6 +383,32 @@ void CLevelTool::Render()
 
 void CLevelTool::ShowObjectList()
 {
+    if (UIObjectList::IsOpen())
+        UIObjectList::Close();
+    else
+        UIObjectList::Show();
+}
+
+void CLevelTool::MoveToCursor()
+{
+    UI->m_CurrentCp = UI->GetRenderMousePosition();
+    EDevice.m_Camera.MouseRayFromPoint(UI->m_CurrentRStart, UI->m_CurrentRDir, UI->m_CurrentCp);
+
+    Fvector p, n;
+    if (!LUI->PickGround(p, UI->m_CurrentRStart, UI->m_CurrentRDir, 1, &n))
+    {
+        p.mad(UI->m_CurrentRStart, UI->m_CurrentRDir, 10.0f);
+        n.set(0, 1, 0);
+    }
+
+    ObjectList lst;
+    if (Scene->GetQueryObjects(lst, CurrentClassID(), 1, 1, 0))
+    {
+        for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
+            (*_F)->MoveTo(p, n);
+        Scene->UndoSave();
+        UI->RedrawScene();
+    }
 }
 
 void CLevelTool::RealUpdateObjectList()

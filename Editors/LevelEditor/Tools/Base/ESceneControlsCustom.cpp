@@ -264,14 +264,22 @@ bool TUI_CustomControl::DefaultMovingProcess(TShiftState Shift, Fvector& amount)
 {
     if ((Shift & ssLeft) || (Shift & ssRight))
     {
-        amount.mul(m_MovingXVector, UI->m_MouseSM * UI->m_DeltaCpH.x);
-        amount.mad(amount, m_MovingYVector, -UI->m_MouseSM * UI->m_DeltaCpH.y);
+        float mouseSM = UI->m_MouseSM;
+        float moveSnap = Tools->m_MoveSnap;
+        if (Shift & ssShift)
+        {
+            mouseSM *= Tools->m_ShiftFineFactor;
+            moveSnap *= Tools->m_ShiftFineFactor;
+        }
+
+        amount.mul(m_MovingXVector, mouseSM * UI->m_DeltaCpH.x);
+        amount.mad(amount, m_MovingYVector, -mouseSM * UI->m_DeltaCpH.y);
 
         if (Tools->GetSettings(etfMSnap))
         {
-            CHECK_SNAP(m_MovingReminder.x, amount.x, Tools->m_MoveSnap);
-            CHECK_SNAP(m_MovingReminder.y, amount.y, Tools->m_MoveSnap);
-            CHECK_SNAP(m_MovingReminder.z, amount.z, Tools->m_MoveSnap);
+            CHECK_SNAP(m_MovingReminder.x, amount.x, moveSnap);
+            CHECK_SNAP(m_MovingReminder.y, amount.y, moveSnap);
+            CHECK_SNAP(m_MovingReminder.z, amount.z, moveSnap);
         }
 
         if (!(etAxisX == Tools->GetAxis()) && !(etAxisZX == Tools->GetAxis()) && !(etAxisXY == Tools->GetAxis()) && !(etAxisCAM == Tools->GetAxis()))
@@ -344,10 +352,20 @@ void TUI_CustomControl::RotateProcess(TShiftState _Shift)
 {
     if (_Shift & ssLeft)
     {
-        float amount = -UI->m_DeltaCpH.x * UI->m_MouseSR;
+        float mouseSR = UI->m_MouseSR;
+        if (_Shift & ssShift)
+            mouseSR *= Tools->m_ShiftFineFactor;
 
-        if (Tools->GetSettings(etfASnap))
-            CHECK_SNAP(m_fRotateSnapAngle, amount, Tools->m_RotateSnapAngle);
+        float amount = -UI->m_DeltaCpH.x * mouseSR;
+
+        bool bSnap = Tools->GetSettings(etfASnap) || (_Shift & ssCtrl);
+        if (bSnap)
+        {
+            float snapAngle = (_Shift & ssCtrl) ? Tools->m_CtrlRotateSnapAngle : Tools->m_RotateSnapAngle;
+            if (_Shift & ssShift)
+                snapAngle *= Tools->m_ShiftFineFactor;
+            CHECK_SNAP(m_fRotateSnapAngle, amount, snapAngle);
+        }
 
         ObjectList lst;
         if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
@@ -390,7 +408,11 @@ bool TUI_CustomControl::ScaleStart(TShiftState Shift)
 
 void TUI_CustomControl::ScaleProcess(TShiftState _Shift)
 {
-    float dy = UI->m_DeltaCpH.x * UI->m_MouseSS;
+    float mouseSS = UI->m_MouseSS;
+    if (_Shift & ssShift)
+        mouseSS *= Tools->m_ShiftFineFactor;
+
+    float dy = UI->m_DeltaCpH.x * mouseSS;
     if (dy > 1.f)
         dy = 1.f;
     else if (dy < -1.f)

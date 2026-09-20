@@ -30,6 +30,8 @@ CToolCustom *Tools = 0;
 CToolCustom::CToolCustom()
 {
     m_bReady = false;
+    m_CtrlRotateSnapAngle = deg2rad(15.f);
+    m_ShiftFineFactor = 0.1f;
     m_Action = etaSelect;
     m_Settings.assign(etfNormalAlign | etfGSnap | etfOSnap | etfMTSnap | etfVSnap | etfASnap | etfMSnap);
     m_Axis = etAxisZX;
@@ -61,6 +63,8 @@ void CToolCustom::OnDestroy()
     Lib.RemoveEditObject(m_pAxisMoveObject);
     VERIFY(m_bReady);
     m_bReady = false;
+    m_CtrlRotateSnapAngle = deg2rad(15.f);
+    m_ShiftFineFactor = 0.1f;
 }
 //---------------------------------------------------------------------------
 
@@ -231,14 +235,22 @@ void CToolCustom::MouseMove(TShiftState Shift)
         break;
     case etaMove:
     {
-        m_MovedAmount.mul(m_MoveXVector, UI->m_MouseSM * UI->m_DeltaCpH.x);
-        m_MovedAmount.mad(m_MoveYVector, -UI->m_MouseSM * UI->m_DeltaCpH.y);
+        float mouseSM = UI->m_MouseSM;
+        float moveSnap = m_MoveSnap;
+        if (Shift & ssShift)
+        {
+            mouseSM *= m_ShiftFineFactor;
+            moveSnap *= m_ShiftFineFactor;
+        }
+
+        m_MovedAmount.mul(m_MoveXVector, mouseSM * UI->m_DeltaCpH.x);
+        m_MovedAmount.mad(m_MoveYVector, -mouseSM * UI->m_DeltaCpH.y);
 
         if (m_Settings.is(etfMSnap))
         {
-            CHECK_SNAP(m_MoveReminder.x, m_MovedAmount.x, m_MoveSnap);
-            CHECK_SNAP(m_MoveReminder.y, m_MovedAmount.y, m_MoveSnap);
-            CHECK_SNAP(m_MoveReminder.z, m_MovedAmount.z, m_MoveSnap);
+            CHECK_SNAP(m_MoveReminder.x, m_MovedAmount.x, moveSnap);
+            CHECK_SNAP(m_MoveReminder.y, m_MovedAmount.y, moveSnap);
+            CHECK_SNAP(m_MoveReminder.z, m_MovedAmount.z, moveSnap);
         }
 
         if (!(etAxisX == m_Axis) && !(etAxisZX == m_Axis) && !(etAxisXY == m_Axis) && !(etAxisCAM == m_Axis))
@@ -251,14 +263,29 @@ void CToolCustom::MouseMove(TShiftState Shift)
     break;
     case etaRotate:
     {
-        m_RotateAmount = -UI->m_DeltaCpH.x * UI->m_MouseSR;
-        if (m_Settings.is(etfASnap))
-            CHECK_SNAP(m_fRotateSnapValue, m_RotateAmount, m_RotateSnapAngle);
+        float mouseSR = UI->m_MouseSR;
+        if (Shift & ssShift)
+            mouseSR *= m_ShiftFineFactor;
+
+        m_RotateAmount = -UI->m_DeltaCpH.x * mouseSR;
+
+        bool bSnap = m_Settings.is(etfASnap) || (Shift & ssCtrl);
+        if (bSnap)
+        {
+            float snapAngle = (Shift & ssCtrl) ? m_CtrlRotateSnapAngle : m_RotateSnapAngle;
+            if (Shift & ssShift)
+                snapAngle *= m_ShiftFineFactor;
+            CHECK_SNAP(m_fRotateSnapValue, m_RotateAmount, snapAngle);
+        }
     }
     break;
     case etaScale:
     {
-        float dy = UI->m_DeltaCpH.x * UI->m_MouseSS;
+        float mouseSS = UI->m_MouseSS;
+        if (Shift & ssShift)
+            mouseSS *= m_ShiftFineFactor;
+
+        float dy = UI->m_DeltaCpH.x * mouseSS;
         if (dy > 1.f)
             dy = 1.f;
         else if (dy < -1.f)
@@ -593,7 +620,7 @@ ETAxis CToolCustom::PickGizmo(const Fvector &start, const Fvector &dir)
             }
         }
 
-        float screenRadius = rRadius * 1.2f; // Совпадает с RenderGizmo
+        float screenRadius = rRadius * 1.2f; //   RenderGizmo
         if (RayPlaneIntersection(start, dir, center, EDevice.m_Camera.GetDirection(), hitCam))
         {
             float d = abs(hitCam.distance_to(center) - screenRadius);

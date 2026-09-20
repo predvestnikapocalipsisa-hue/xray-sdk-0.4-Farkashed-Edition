@@ -33,6 +33,8 @@ void fix_texture_name(LPSTR fn)
 
 int get_texture_load_lod(LPCSTR fn)
 {
+	if (!pSettings->section_exist("reduce_lod_texture_list"))
+		return psTextureLOD;
 	CInifile::Sect& sect = pSettings->r_section("reduce_lod_texture_list");
 	CInifile::SectCIt it_ = sect.Data.begin();
 	CInifile::SectCIt it_e_ = sect.Data.end();

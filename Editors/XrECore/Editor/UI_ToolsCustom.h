@@ -85,6 +85,8 @@ public:
     float m_MoveSnap;
     float m_MoveSnapTo;
     float m_RotateSnapAngle;
+    float m_CtrlRotateSnapAngle;
+    float m_ShiftFineFactor;
 
 public:
     float fFogness;

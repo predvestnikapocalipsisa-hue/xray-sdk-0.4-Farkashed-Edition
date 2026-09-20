@@ -41,6 +41,12 @@ CCommandVar CLevelTool::CommandShowObjectList(CCommandVar p1, CCommandVar p2)
         ShowObjectList();
     return TRUE;
 }
+CCommandVar CLevelTool::CommandMoveToCursor(CCommandVar p1, CCommandVar p2)
+{
+    if (LUI->GetEState() == esEditScene)
+        MoveToCursor();
+    return TRUE;
+}
 
 //------------------------------------------------------------------------------
 // Main commands
@@ -1012,6 +1018,7 @@ void CLevelMain::RegisterCommands()
     REGISTER_CMD_C(COMMAND_MULTI_RENAME_OBJECTS, LTools, CLevelTool::CommandMultiRenameObjects);
 
     REGISTER_CMD_CE(COMMAND_SHOW_OBJECTLIST, "Scene\\Show Object List", LTools, CLevelTool::CommandShowObjectList, false);
+    REGISTER_CMD_CE(COMMAND_MOVE_TO_CURSOR, "Scene\\Move To Cursor", LTools, CLevelTool::CommandMoveToCursor, false);
     // common
     REGISTER_CMD_S(COMMAND_LIBRARY_EDITOR, CommandLibraryEditor);
     REGISTER_CMD_S(COMMAND_LANIM_EDITOR, CommandLAnimEditor);

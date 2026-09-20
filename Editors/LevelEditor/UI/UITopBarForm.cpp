@@ -3,10 +3,10 @@
 #include <string>
 
 // ------------------------------------------------------------------
-// Словарь подсказок для кнопок топбара.
-// Ключ — имя кнопки (то самое "Name" из UITopBarForm_ButtonList.h),
-// значение — текст, который увидит пользователь при наведении.
-// Если для кнопки нет записи — подсказка просто не покажется.
+//     .
+//     (  "Name"  UITopBarForm_ButtonList.h),
+//   ,     .
+//          .
 // ------------------------------------------------------------------
 static const char* GetTopBarTooltip(const char* name)
 {
@@ -55,8 +55,8 @@ static const char* GetTopBarTooltip(const char* name)
 	return it != tooltips.end() ? it->second : nullptr;
 }
 
-// Небольшой хелпер, чтобы не дублировать одну и ту же конструкцию
-// if (ImGui::IsItemHovered()) if (tip) SetTooltip(...) в каждом макросе.
+//  ,        
+// if (ImGui::IsItemHovered()) if (tip) SetTooltip(...)   .
 static void ShowTopBarTooltipIfHovered(const char* name)
 {
 	if (ImGui::IsItemHovered())
@@ -269,11 +269,11 @@ void UITopBarForm::ClickZoom()
 
 void UITopBarForm::ClickRunInGame()
 {
-	// Сначала получаем полный путь через алиас $maps$
+	//       $maps$
 	string_path full_map_path;
 	FS.update_path(full_map_path, "$maps$", "ingame.level");
 
-	// Сохраняем именно по полному пути, а не относительным именем
+	//     ,    
 	ExecCommand(COMMAND_SAVE_INGAME, xr_string(full_map_path));
 
 	char module_path[MAX_PATH];
@@ -373,10 +373,10 @@ void UITopBarForm::ClickScale()
 }
 void UITopBarForm::ClickX()
 {
-	// Если X уже выбран, то при повторном клике сбрасываем в Undefined
+	//  X  ,       Undefined
 	ETAxis newAxis = (Tools->GetAxis() == etAxisX) ? etAxisUndefined : etAxisX;
 	ExecCommand(COMMAND_CHANGE_AXIS, newAxis);
-	RefreshBar(); // Обновляем состояние кнопок (подсветку)
+	RefreshBar(); //    ()
 }
 
 void UITopBarForm::ClickY()

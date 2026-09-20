@@ -36,6 +36,8 @@ CCustomPreferences::CCustomPreferences()
     snap_angle = deg2rad(5.f);
     snap_move = 0.1f;
     snap_moveto = 0.5f;
+    ctrl_snap_angle = deg2rad(15.f);
+    shift_fine_factor = 0.1f;
     // grid
     grid_cell_size = 1.f;
     grid_cell_count = 100;
@@ -57,6 +59,8 @@ void CCustomPreferences::ApplyValues()
     Tools->m_MoveSnap = snap_move;
     Tools->m_MoveSnapTo = snap_moveto;
     Tools->m_RotateSnapAngle = snap_angle;
+    Tools->m_CtrlRotateSnapAngle = ctrl_snap_angle;
+    Tools->m_ShiftFineFactor = shift_fine_factor;
 
     EDevice.m_Camera.SetViewport(view_np, view_fp, rad2deg(view_fov));
     Tools->SetFog(fog_color, fog_fogness);
@@ -124,7 +128,9 @@ void CCustomPreferences::OnKeyboardCommonFileClick(ButtonValue *B, bool &bModif,
         if (EFS.GetOpenName(EDevice.m_hWnd, "$import$", fn, false, NULL, 6))
         {
             CInifile *I = xr_new<CInifile>(fn.c_str(), TRUE, TRUE, TRUE);
-            LoadShortcuts(I);
+            ctrl_snap_angle = R_FLOAT_SAFE("editor_prefs", "ctrl_snap_angle", ctrl_snap_angle);
+    shift_fine_factor = R_FLOAT_SAFE("editor_prefs", "shift_fine_factor", shift_fine_factor);
+    LoadShortcuts(I);
             xr_delete(I);
             // m_ItemProps->RefreshForm();
         }
@@ -172,6 +178,8 @@ void CCustomPreferences::FillProp(PropItemVec &props)
     PHelper().CreateAngle(props, "Tools\\Snap\\Angle", &snap_angle, 0, PI_MUL_2);
     PHelper().CreateFloat(props, "Tools\\Snap\\Move", &snap_move, 0.01f, 1000.f);
     PHelper().CreateFloat(props, "Tools\\Snap\\Move To", &snap_moveto, 0.01f, 1000.f);
+    PHelper().CreateAngle(props, "Tools\\Snap\\Ctrl Angle Snap", &ctrl_snap_angle, 0, PI_MUL_2);
+    PHelper().CreateFloat(props, "Tools\\Snap\\Shift Fine Factor", &shift_fine_factor, 0.001f, 1.f);
 
     PHelper().CreateFloat(props, "Viewport\\Camera\\Move Sens", &cam_sens_move);
     PHelper().CreateFloat(props, "Viewport\\Camera\\Rotate Sens", &cam_sens_rot);
@@ -284,6 +292,8 @@ void CCustomPreferences::Load(CInifile *I)
     sWeather = R_STRING_SAFE("editor_prefs", "weather", shared_str(""));
     // load shortcuts
 
+    ctrl_snap_angle = R_FLOAT_SAFE("editor_prefs", "ctrl_snap_angle", ctrl_snap_angle);
+    shift_fine_factor = R_FLOAT_SAFE("editor_prefs", "shift_fine_factor", shift_fine_factor);
     LoadShortcuts(I);
 
     UI->LoadSettings(I);
@@ -318,6 +328,8 @@ void CCustomPreferences::Save(CInifile *I)
     I->w_float("editor_prefs", "bp_depth_tolerance", bp_depth_tolerance);
 
     I->w_float("editor_prefs", "snap_angle", snap_angle);
+    I->w_float("editor_prefs", "ctrl_snap_angle", ctrl_snap_angle);
+    I->w_float("editor_prefs", "shift_fine_factor", shift_fine_factor);
     I->w_float("editor_prefs", "snap_move", snap_move);
     I->w_float("editor_prefs", "snap_moveto", snap_moveto);
 

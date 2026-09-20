@@ -30,6 +30,7 @@ UIContentBrowser::UIContentBrowser()
 
 UIContentBrowser::~UIContentBrowser()
 {
+    SaveUserState();
     if (m_RemoveTexture) m_RemoveTexture->Release();
     if (m_RealTexture)   m_RealTexture->Release();
     m_FolderHelper.ReleaseThumbnails();
@@ -399,7 +400,8 @@ void UIContentBrowser::Draw()
     ImGui::SliderFloat("##scale", &m_TileScale, 0.5f, 2.f, "%.1fx");
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Tile size");
     ImGui::SameLine(0, 8);
-    ImGui::Checkbox("Preview", &m_bShowPreview);
+    if (ImGui::Checkbox("Preview", &m_bShowPreview))
+        SaveUserState();
 
     ImGui::Separator();
     DrawBreadcrumb();
