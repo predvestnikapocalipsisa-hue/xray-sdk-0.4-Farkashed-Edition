@@ -795,6 +795,7 @@ CCommandVar CommandDeleteSelection(CCommandVar p1, CCommandVar p2)
     if (!Scene->locked())
     {
         Scene->RemoveSelection(LTools->CurrentClassID());
+        Scene->UndoSave();
         return TRUE;
     }
     else

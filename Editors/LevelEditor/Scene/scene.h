@@ -250,28 +250,6 @@ struct UndoItem
 
 #pragma pack(pop)
 
-class IUndoCommand
-{
-public:
-	virtual ~IUndoCommand() {}
-	virtual void Undo() = 0;
-	virtual void Redo() = 0;
-	virtual LPCSTR GetName() const = 0;
-};
-
-struct ObjectTransformState
-{
-	shared_str name;
-	ObjClassID classID;
-	Fvector pos_before;
-	Fvector rot_before;
-	Fvector scale_before;
-	Fvector pos_after;
-	Fvector rot_after;
-	Fvector scale_after;
-};
-
-
 
 
 class TProperties;
@@ -382,9 +360,9 @@ protected:
 
 
 
-	xr_deque<IUndoCommand*> m_UndoStack;
+	xr_deque<UndoItem> m_UndoStack;
 
-	xr_deque<IUndoCommand*> m_RedoStack;
+	xr_deque<UndoItem> m_RedoStack;
 
 
 
@@ -719,18 +697,6 @@ public:
 	void UndoClear();
 
 	void UndoSave();
-
-	void UndoSaveCommand(IUndoCommand* cmd);
-
-	void UndoSaveTransform(LPCSTR action_name, const xr_vector<ObjectTransformState>& states);
-
-	void UndoSaveCreate(CCustomObject* object);
-
-	void UndoSaveCreate(const ObjectList& objects);
-
-	void UndoSaveDelete(CCustomObject* object);
-
-	void UndoSaveDelete(const ObjectList& objects);
 
 	bool Undo();
 

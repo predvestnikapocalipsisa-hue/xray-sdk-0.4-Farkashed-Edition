@@ -250,7 +250,7 @@ void UIMainMenuForm::Draw()
                 }
                 if (ImGui::MenuItem("SDK Version", ""))
                 {
-                    MessageBoxA(NULL, "Current SDK version: 4.5", "Information", MB_OK | MB_ICONINFORMATION);
+                    MessageBoxA(NULL, "Current SDK version: 4.4.1", "Information", MB_OK | MB_ICONINFORMATION);
                 }
             }
             ImGui::EndMenu();

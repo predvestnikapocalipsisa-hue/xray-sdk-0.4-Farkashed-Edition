@@ -1421,29 +1421,35 @@ void CDrawUtilities::DrawAxis(const Fmatrix& T)
 {
     VERIFY(EDevice.b_is_Ready);
 
-    if (!m_axis_object)
-        m_axis_object = Lib.CreateEditObject("editor\\axis");
+    static int   _wh = 50;    // Смещение от угла экрана (пиксели)
+    static float _kl = 1.0f;  // Дистанция от плоскости камеры
+    static float _sz = 0.04f; // Длина осей
 
-    if (m_axis_object)
-    {
-        Fmatrix M = Fidentity;
-        Fmatrix S;
-        S.scale(0.04f, 0.04f, 0.04f);
-        M.mulB_44(S);
+    Ivector2 pt;
+    pt.x = _wh;
+    pt.y = iFloor(UI->GetRenderHeight() - _wh);
 
-        Fvector dir;
-        Ivector2 pt;
+    Fvector origin, dir;
+    EDevice.m_Camera.MouseRayFromPoint(origin, dir, pt);
+    origin.mad(dir, _kl);
 
-        static int _wh = 50;
-        static float _kl = 1.0f;
+    RCache.set_xform_world(Fidentity);
+    DU_DRAW_SH(EDevice.m_WireShader);
 
-        pt.x = _wh;
-        pt.y = iFloor(UI->GetRenderHeight() - _wh);
+    // Фиксированные мировые направления (без влияния mView)
+    Fvector endX = Fvector().mad(origin, Fvector().set(1.0f, 0.0f, 0.0f), _sz);
+    Fvector endY = Fvector().mad(origin, Fvector().set(0.0f, 1.0f, 0.0f), _sz);
+    Fvector endZ = Fvector().mad(origin, Fvector().set(0.0f, 0.0f, 1.0f), _sz);
 
-        EDevice.m_Camera.MouseRayFromPoint(M.c, dir, pt);
-        M.c.mad(dir, _kl);
-        m_axis_object->Render(M, 2, false);
-    }
+    // Отрисовка линий и подписей
+    DrawLine(origin, endX, 0xFFFF3030);
+    OutText(endX, "x", 0xFFFF6060, 0xFF000000);
+
+    DrawLine(origin, endY, 0xFF30FF30);
+    OutText(endY, "y", 0xFF60FF60, 0xFF000000);
+
+    DrawLine(origin, endZ, 0xFF3060FF);
+    OutText(endZ, "z", 0xFF6090FF, 0xFF000000);
 }
 
 void CDrawUtilities::DrawObjectAxis(const Fmatrix &T, float sz, BOOL sel)
