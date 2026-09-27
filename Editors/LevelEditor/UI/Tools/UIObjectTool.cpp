@@ -1,5 +1,105 @@
 #include "stdafx.h"
 
+namespace
+{
+    inline bool SafeCopy(char* dst, size_t dst_size, const char* src)
+    {
+        if (!dst || dst_size == 0)
+            return false;
+
+        if (!src)
+        {
+            dst[0] = '\0';
+            return true;
+        }
+
+        size_t len = strlen(src);
+        if (len >= dst_size)
+        {
+            memcpy(dst, src, dst_size - 1);
+            dst[dst_size - 1] = '\0';
+            return false; // строка была усечена
+        }
+
+        memcpy(dst, src, len + 1);
+        return true;
+    }
+
+    bool SafeCreateLODTexture(CEditableObject* O, const char* tex_name, int quality)
+    {
+        if (!O || !tex_name || !*tex_name)
+            return false;
+
+        bool ok = true;
+        __try
+        {
+            ImageLib.CreateLODTexture(O, tex_name, LOD_IMAGE_SIZE, LOD_IMAGE_SIZE,
+                LOD_SAMPLE_COUNT, O->Version(), quality);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            ok = false;
+        }
+        return ok;
+    }
+
+    bool SafeOnDeviceDestroy(CEditableObject* O)
+    {
+        if (!O)
+            return false;
+
+        bool ok = true;
+        __try
+        {
+            O->OnDeviceDestroy();
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            ok = false;
+        }
+        return ok;
+    }
+
+    template <typename KeyT, typename ThumbType, typename T>
+    bool SafeCreateThumbnail(KeyT key, ThumbType type, T** out_thumb)
+    {
+        if (!out_thumb)
+            return false;
+
+        *out_thumb = nullptr;
+        bool ok = true;
+        __try
+        {
+            *out_thumb = ImageLib.CreateThumbnail(key, type);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            *out_thumb = nullptr;
+            ok = false;
+        }
+        return ok;
+    }
+
+    bool SafeSetReference(CSceneObject* obj, const char* ref_name, CEditableObject** out_ref)
+    {
+        if (!obj || !ref_name || !out_ref)
+            return false;
+
+        *out_ref = nullptr;
+        bool ok = true;
+        __try
+        {
+            *out_ref = obj->SetReference(ref_name);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            *out_ref = nullptr;
+            ok = false;
+        }
+        return ok;
+    }
+}
+
 UIObjectTool::UIObjectTool()
 {
     m_selPercent = 0.f;
@@ -218,7 +318,7 @@ void UIObjectTool::RefreshList()
         for (; it != _E; it++)
         {
             xr_string fn;
-            ListItem *I = LHelper().CreateItem(items, it->name.c_str(), 0, ListItem::flDrawThumbnail, 0);
+            ListItem* I = LHelper().CreateItem(items, it->name.c_str(), 0, ListItem::flDrawThumbnail, 0);
         }
     }
     if (m_RealTexture)
@@ -253,27 +353,55 @@ void UIObjectTool::OnDrawUI()
         {
             if (change)
             {
-                Fvector pos = {0.f, 0.f, 0.f};
-                Fvector up = {0.f, 1.f, 0.f};
+                Fvector pos = { 0.f, 0.f, 0.f };
+                Fvector up = { 0.f, 1.f, 0.f };
                 Scene->SelectObjects(false, OBJCLASS_SCENEOBJECT);
 
-                SPBItem *pb = UI->ProgressStart(lst.size(), "Append object: ");
+                u32 okCnt = 0;
+                u32 failCnt = 0;
+                SPBItem* pb = UI->ProgressStart(lst.size(), "Append object: ");
                 for (AStringIt it = lst.begin(); it != lst.end(); it++)
                 {
+                    if (it->empty())
+                    {
+                        failCnt++;
+                        continue;
+                    }
+
                     string256 namebuffer;
                     Scene->GenObjectName(OBJCLASS_SCENEOBJECT, namebuffer, it->c_str());
-                    CSceneObject *obj = xr_new<CSceneObject>((LPVOID)0, namebuffer);
-                    CEditableObject *ref = obj->SetReference(it->c_str());
-                    if (!ref)
+                    CSceneObject* obj = xr_new<CSceneObject>((LPVOID)0, namebuffer);
+                    if (!obj)
                     {
-                        ELog.DlgMsg(mtError, "TfraObject:: Can't load reference object.");
-                        xr_delete(obj);
-                        return;
+                        ELog.Msg(mtError, "Multiple Append: не удалось создать объект '%s', пропуск.", it->c_str());
+                        failCnt++;
+                        continue;
                     }
+
+                    CEditableObject* ref = nullptr;
+                    bool ref_ok = SafeSetReference(obj, it->c_str(), &ref);
+
+                    if (!ref_ok || !ref)
+                    {
+                        ELog.Msg(mtError, "Multiple Append: не удалось загрузить референс-объект '%s', пропуск.",
+                            it->c_str());
+                        xr_delete(obj);
+                        failCnt++;
+                        continue;
+                    }
+
                     obj->MoveTo(pos, up);
                     Scene->AppendObject(obj);
+                    okCnt++;
                 }
                 UI->ProgressEnd(pb);
+
+                if (failCnt)
+                {
+                    ELog.DlgMsg(mtInformation,
+                        "Multiple Append: добавлено %u, пропущено с ошибкой %u (см. лог).",
+                        okCnt, failCnt);
+                }
             }
             m_MultiAppend = false;
         }
@@ -288,7 +416,7 @@ void UIObjectTool::OnDrawUI()
         UIPropertiesModal::Update();
     }
 }
-void UIObjectTool::OnItemFocused(ListItem *item)
+void UIObjectTool::OnItemFocused(ListItem* item)
 {
     if (m_RealTexture)
         m_RemoveTexture = m_RealTexture;
@@ -298,13 +426,21 @@ void UIObjectTool::OnItemFocused(ListItem *item)
     if (item)
     {
         m_Current = item->Key();
-        auto *m_Thm = ImageLib.CreateThumbnail(m_Current, EImageThumbnail::ETObject);
-        if (m_Thm)
+        if (m_Current)
         {
-            m_Thm->Update(m_RealTexture);
-            PropItemVec Info;
-            m_Thm->FillInfo(Info);
-            m_Props->AssignItems(Info);
+            decltype(ImageLib.CreateThumbnail(m_Current, EImageThumbnail::ETObject)) m_Thm = nullptr;
+            bool ok = SafeCreateThumbnail(m_Current, EImageThumbnail::ETObject, &m_Thm);
+            if (m_Thm)
+            {
+                m_Thm->Update(m_RealTexture);
+                PropItemVec Info;
+                m_Thm->FillInfo(Info);
+                m_Props->AssignItems(Info);
+            }
+            else if (!ok)
+            {
+                ELog.Msg(mtError, "OnItemFocused: не удалось создать превью для '%s' (перехвачено), пропуск.", m_Current);
+            }
         }
     }
 }
@@ -318,10 +454,12 @@ void UIObjectTool::SelByRefObject(bool flag)
         ObjectIt _E = Scene->LastObj(OBJCLASS_SCENEOBJECT);
         for (; _F != _E; _F++)
         {
+            if (!(*_F))
+                continue;
             if ((*_F)->Visible())
             {
-                CSceneObject *_O = (CSceneObject *)(*_F);
-                if (_O->RefCompare(N))
+                CSceneObject* _O = (CSceneObject*)(*_F);
+                if (_O && _O->RefCompare(N))
                     _O->Select(flag);
             }
         }
@@ -336,23 +474,32 @@ void UIObjectTool::MultiSelByRefObject(bool clear_prev)
     {
         for (ObjectIt it = objlist.begin(); it != objlist.end(); it++)
         {
-            LPCSTR N = ((CSceneObject *)*it)->RefName();
+            if (!(*it))
+                continue;
+
+            LPCSTR N = ((CSceneObject*)*it)->RefName();
+            if (!N)
+                continue;
+
             ObjectIt _F = Scene->FirstObj(OBJCLASS_SCENEOBJECT);
             ObjectIt _E = Scene->LastObj(OBJCLASS_SCENEOBJECT);
             for (; _F != _E; _F++)
             {
-                CSceneObject *_O = (CSceneObject *)(*_F);
-                if ((*_F)->Visible() && _O->RefCompare(N))
+                if (!(*_F))
+                    continue;
+
+                CSceneObject* _O = (CSceneObject*)(*_F);
+                if (_O && (*_F)->Visible() && _O->RefCompare(N))
                 {
                     if (clear_prev)
                     {
                         _O->Select(false);
-                        sellist.push_back((u32 *)_O);
+                        sellist.push_back((u32*)_O);
                     }
                     else
                     {
                         if (!_O->Selected())
-                            sellist.push_back((u32 *)_O);
+                            sellist.push_back((u32*)_O);
                     }
                 }
             }
@@ -360,12 +507,22 @@ void UIObjectTool::MultiSelByRefObject(bool clear_prev)
         std::sort(sellist.begin(), sellist.end());
         sellist.erase(std::unique(sellist.begin(), sellist.end()), sellist.end());
         std::random_shuffle(sellist.begin(), sellist.end());
-        int max_k = iFloor(float(sellist.size()) / 100.f * float(m_selPercent) + 0.5f);
-        int k = 0;
-        for (LPU32It o_it = sellist.begin(); k < max_k; o_it++, k++)
+
+        if (!sellist.empty())
         {
-            CSceneObject *_O = (CSceneObject *)(*o_it);
-            _O->Select(true);
+            int max_k = iFloor(float(sellist.size()) / 100.f * float(m_selPercent) + 0.5f);
+            if (max_k < 0)
+                max_k = 0;
+            if (max_k > (int)sellist.size())
+                max_k = (int)sellist.size();
+
+            int k = 0;
+            for (LPU32It o_it = sellist.begin(); k < max_k && o_it != sellist.end(); o_it++, k++)
+            {
+                CSceneObject* _O = (CSceneObject*)(*o_it);
+                if (_O)
+                    _O->Select(true);
+            }
         }
     }
 }
@@ -377,9 +534,13 @@ void UIObjectTool::ClearSurface(bool selected)
         ObjectIt _E = Scene->LastObj(OBJCLASS_SCENEOBJECT);
         for (; _F != _E; _F++)
         {
+            if (!(*_F))
+                continue;
             if ((*_F)->Visible())
             {
-                CSceneObject *_O = (CSceneObject *)(*_F);
+                CSceneObject* _O = (CSceneObject*)(*_F);
+                if (!_O)
+                    continue;
                 if ((_O->Selected() && _O->Visible()) || !selected)
                 {
                     _O->ClearSurface();
@@ -422,22 +583,51 @@ void UIObjectTool::GenerateLODs(bool bOnlyMissing, int quality)
 
     for (CEditableObject* O : mu_objects)
     {
+        if (!O)
+            continue;
+
         bool bNeedGen = true;
+
         if (bOnlyMissing)
         {
             xr_string lod_name = O->GetLODTextureName();
-            xr_string l_name = lod_name.c_str();
-            string_path fn_dds, fn_nm_dds;
-            FS.update_path(fn_dds, _game_textures_, EFS.ChangeFileExt(l_name, ".dds").c_str());
-            l_name += "_nm";
-            FS.update_path(fn_nm_dds, _game_textures_, EFS.ChangeFileExt(l_name, ".dds").c_str());
-
-            int age = FS.get_file_age(fn_dds);
-            int age_nm = FS.get_file_age(fn_nm_dds);
-
-            if (age != -1 && age_nm != -1)
+            if (lod_name.empty())
             {
-                bNeedGen = false;
+                bNeedGen = true;
+            }
+            else
+            {
+                xr_string l_name = lod_name.c_str();
+                string_path fn_dds, fn_nm_dds;
+
+                xr_string base_ext = EFS.ChangeFileExt(l_name, ".dds");
+                if (base_ext.size() >= sizeof(fn_dds))
+                {
+                    LPCSTR nm = O->GetName();
+                    ELog.Msg(mtError, "GenerateLODs: слишком длинный путь текстуры для объекта '%s', пропуск.",
+                        nm ? nm : "<unnamed>");
+                    continue;
+                }
+                FS.update_path(fn_dds, _game_textures_, base_ext.c_str());
+
+                l_name += "_nm";
+                xr_string nm_ext = EFS.ChangeFileExt(l_name, ".dds");
+                if (nm_ext.size() >= sizeof(fn_nm_dds))
+                {
+                    LPCSTR nm = O->GetName();
+                    ELog.Msg(mtError, "GenerateLODs: слишком длинный путь normal-map текстуры для объекта '%s', пропуск.",
+                        nm ? nm : "<unnamed>");
+                    continue;
+                }
+                FS.update_path(fn_nm_dds, _game_textures_, nm_ext.c_str());
+
+                int age = FS.get_file_age(fn_dds);
+                int age_nm = FS.get_file_age(fn_nm_dds);
+
+                if (age != -1 && age_nm != -1)
+                {
+                    bNeedGen = false;
+                }
             }
         }
 
@@ -454,28 +644,73 @@ void UIObjectTool::GenerateLODs(bool bOnlyMissing, int quality)
     }
 
     u32 lodsCnt = 0;
+    u32 failCnt = 0;
     SPBItem* pb = UI->ProgressStart(target_objects.size(), "Generating LODs...");
 
     for (CEditableObject* O : target_objects)
     {
-        pb->Inc(O->GetName());
+        if (!O)
+        {
+            failCnt++;
+            if (pb) pb->Inc();
+            continue;
+        }
+
+        LPCSTR obj_name = O->GetName();
+        if (!obj_name)
+            obj_name = "<unnamed>";
+
+        if (pb)
+            pb->Inc(obj_name);
+
+        xr_string tex_name = EFS.ChangeFileExt(obj_name, "");
+
+        string_path tmp;
+        bool copied_ok = SafeCopy(tmp, sizeof(tmp), tex_name.c_str());
+        if (!copied_ok)
+        {
+            ELog.Msg(mtError, "GenerateLODs: имя объекта '%s' слишком длинное для буфера, пропуск.", obj_name);
+            failCnt++;
+            continue;
+        }
+        _ChangeSymbol(tmp, '\\', '_');
+
+        tex_name = xr_string("lod_") + tmp;
+
+        if (tex_name.size() <= 4) // "lod_" или короче -> имя не построилось
+        {
+            ELog.Msg(mtError, "GenerateLODs: не удалось построить имя текстуры для объекта '%s', пропуск.", obj_name);
+            failCnt++;
+            continue;
+        }
+        xr_string final_tex_name = ImageLib.UpdateFileName(tex_name);
+
+        if (final_tex_name.empty())
+        {
+            ELog.Msg(mtError, "GenerateLODs: пустое итоговое имя текстуры для объекта '%s', пропуск.", obj_name);
+            failCnt++;
+            continue;
+        }
 
         BOOL bLod = O->m_objectFlags.is(CEditableObject::eoUsingLOD);
         O->m_objectFlags.set(CEditableObject::eoUsingLOD, FALSE);
 
-        xr_string tex_name = EFS.ChangeFileExt(O->GetName(), "");
-        string_path tmp;
-        strcpy(tmp, tex_name.c_str());
-        _ChangeSymbol(tmp, '\\', '_');
-        tex_name = xr_string("lod_") + tmp;
-        tex_name = ImageLib.UpdateFileName(tex_name);
+        bool created = SafeCreateLODTexture(O, final_tex_name.c_str(), quality);
 
-        ImageLib.CreateLODTexture(O, tex_name.c_str(), LOD_IMAGE_SIZE, LOD_IMAGE_SIZE, LOD_SAMPLE_COUNT, O->Version(), quality);
-        O->OnDeviceDestroy();
+        SafeOnDeviceDestroy(O);
+
         O->m_objectFlags.set(CEditableObject::eoUsingLOD, bLod);
 
-        ELog.Msg(mtInformation, "LOD for object '%s' successfully created.", O->GetName());
-        lodsCnt++;
+        if (created)
+        {
+            ELog.Msg(mtInformation, "LOD for object '%s' successfully created.", obj_name);
+            lodsCnt++;
+        }
+        else
+        {
+            ELog.Msg(mtError, "GenerateLODs: генерация LOD завершилась неудачно для объекта '%s', пропуск.", obj_name);
+            failCnt++;
+        }
 
         if (UI->NeedAbort())
             break;
@@ -485,4 +720,7 @@ void UIObjectTool::GenerateLODs(bool bOnlyMissing, int quality)
 
     if (lodsCnt)
         ELog.DlgMsg(mtInformation, "'%u' LOD's successfully created.", lodsCnt);
+
+    if (failCnt)
+        ELog.DlgMsg(mtInformation, "'%u' object(s) skipped due to errors (see log for details).", failCnt);
 }
