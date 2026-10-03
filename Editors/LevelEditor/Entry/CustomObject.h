@@ -106,7 +106,7 @@ public:
     void OnMotionFilesClick(ButtonValue *value, bool &bModif, bool &bSafe);
     void OnMotionControlClick(ButtonValue *value, bool &bModif, bool &bSafe);
     void OnMotionFrameChange(PropValue *value);
-    void OnMotionKeyTimeChange(PropValue *value);
+    void OnMotionKeyTimeApply(ButtonValue *value, bool &bModif, bool &bSafe);
 
     void OnMotionCurrentFrameChange(PropValue *value);
     void OnMotionCameraViewChange(PropValue *value);

@@ -302,7 +302,7 @@ void CCustomObject::OnMotionFrameChange(PropValue *value)
     ExecCommand(COMMAND_UPDATE_PROPERTIES);
 }
 
-void CCustomObject::OnMotionKeyTimeChange(PropValue *value)
+void CCustomObject::OnMotionKeyTimeApply(ButtonValue *value, bool &bModif, bool &bSafe)
 {
     float t = m_MotionParams->tmp;
     Fvector P, R;
@@ -311,6 +311,10 @@ void CCustomObject::OnMotionKeyTimeChange(PropValue *value)
 
     m_Motion->DeleteKey(m_MotionParams->t_current);
     m_Motion->CreateKey(t, P, R);
+    m_MotionParams->t_current = t;
+    AnimationUpdate(m_MotionParams->Frame());
+    ExecCommand(COMMAND_UPDATE_PROPERTIES);
+    bModif = true;
 }
 
 void CCustomObject::OnMotionCurrentFrameChange(PropValue *value)
@@ -362,7 +366,8 @@ void CCustomObject::AnimationFillProp(LPCSTR pref, PropItemVec &items)
         V->OnChangeEvent.bind(this, &CCustomObject::OnMotionCurrentFrameChange);
 
         V = PHelper().CreateFloat(items, PrepareKey(pref, "Motion\\ChangeKeyTime(sec)"), &m_MotionParams->tmp, -10000.f, 10000.f, 1.f / 30.f, 3);
-        V->OnChangeEvent.bind(this, &CCustomObject::OnMotionKeyTimeChange);
+        ButtonValue *applyKeyTime = PHelper().CreateButton(items, PrepareKey(pref, "Motion\\ChangeKeyTimeApply"), "Apply", 0);
+        applyKeyTime->OnBtnClickEvent.bind(this, &CCustomObject::OnMotionKeyTimeApply);
 
         PHelper().CreateCaption(items, PrepareKey(pref, "Motion\\Key Count"), shared_str().printf("%d", m_Motion->KeyCount()));
         PHelper().CreateCaption(items, PrepareKey(pref, "Motion\\Length (sec)"), shared_str().printf("%3.2f", m_Motion->GetLength()));
