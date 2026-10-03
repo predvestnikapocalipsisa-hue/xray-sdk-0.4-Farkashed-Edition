@@ -41,11 +41,15 @@ namespace XrSE_Factory
 {
 	FACTORY_API ISE_Abstract *create_entity(LPCSTR section)
 	{
+		if (Core.SDKFallback)
+			return nullptr;
 		return (F_entity_Create(section));
 	}
 
 	FACTORY_API void destroy_entity(ISE_Abstract *&abstract)
 	{
+		if (!abstract)
+			return;
 		CSE_Abstract *object = smart_cast<CSE_Abstract *>(abstract);
 		F_entity_Destroy(object);
 		abstract = 0;

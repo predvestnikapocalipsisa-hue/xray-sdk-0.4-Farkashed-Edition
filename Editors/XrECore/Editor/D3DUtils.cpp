@@ -246,7 +246,7 @@ void CDrawUtilities::OnDeviceCreate()
     vs_TL.create(FVF::F_TL, RCache.Vertex.Buffer(), RCache.Index.Buffer());
     vs_LIT.create(FVF::F_LIT, RCache.Vertex.Buffer(), RCache.Index.Buffer());
 
-    m_Font = xr_new<CGameFont>("hud_font_small");
+    m_Font = Core.SDKFallback ? nullptr : xr_new<CGameFont>("hud_font_small");
 
     m_axis_object = NULL;
 }
@@ -747,7 +747,7 @@ void CDrawUtilities::dbgDrawPlacement(const Fvector &p, int sz, u32 clr, LPCSTR 
         labelFrame = EDevice.dwFrame;
         labelsDrawn = 0;
     }
-    if (caption && caption[0] && labelsDrawn < 64)
+    if (caption && caption[0] && m_Font && labelsDrawn < 64)
     {
         m_Font->SetColor(clr_font);
         m_Font->Out(c.x, c.y + s, "%s", caption);
@@ -1555,6 +1555,8 @@ void CDrawUtilities::DrawObjectAxis(const Fmatrix &T, float sz, BOOL sel)
     DU_DRAW_DP(D3DPT_LINELIST, vs_TL, vBase, 3);
     DU_DRAW_RS(D3DRS_SHADEMODE, SHADE_MODE);
 
+    if (!m_Font)
+        return;
     m_Font->SetColor(sel ? 0xFF000000 : 0xFF909090);
     m_Font->Out(r.x, r.y, "x");
     m_Font->Out(n.x, n.y, "y");
@@ -1739,11 +1741,14 @@ void CDrawUtilities::DrawJoint(const Fvector &p, float radius, u32 clr)
 
 void CDrawUtilities::OnRender()
 {
-    m_Font->OnRender();
+    if (m_Font)
+        m_Font->OnRender();
 }
 
 void CDrawUtilities::OutText(const Fvector &pos, LPCSTR text, u32 color, u32 shadow_color)
 {
+    if (!m_Font)
+        return;
     Fvector p;
     float w = pos.x * EDevice.mFullTransform._14 + pos.y * EDevice.mFullTransform._24 + pos.z * EDevice.mFullTransform._34 + EDevice.mFullTransform._44;
     if (w >= 0)

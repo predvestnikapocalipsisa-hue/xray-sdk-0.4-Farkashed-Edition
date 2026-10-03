@@ -251,6 +251,13 @@ struct XRCORE_API xrCore
 	string64 CompName;
 	string512 Params;
 	bool SocSdk; // cop if false
+	bool SDKFallback;
+	bool SDKHasGameConfig;
+	bool SDKHasShaders;
+	void ReportMissingSDKFile(const char* path);
+	bool SDKFileAvailable(const char* alias, const char* name);
+	const char* SDKStructure();
+	void ShowSDKStructure();
 
 	void InitCore(const char* AppName, LogCallback cb = nullptr);
 	void DestroyCore();

@@ -34,7 +34,7 @@ void UIMainMenuForm::Draw()
 
             ImGui::Separator();
 
-            if (ImGui::MenuItem("Open...", ""))
+            if (ImGui::MenuItem("Open...", "", false, SDKCommandAvailable(COMMAND_LOAD)))
             {
                 xr_string prev = LTools->m_LastFileName.c_str();
                 ExecCommand(COMMAND_LOAD);
@@ -43,7 +43,7 @@ void UIMainMenuForm::Draw()
                     UISceneTabBar::OnSceneLoaded(next.c_str(), nullptr);
             }
 
-            if (ImGui::MenuItem("Open in New Tab...", ""))
+            if (ImGui::MenuItem("Open in New Tab...", "", false, SDKCommandAvailable(COMMAND_LOAD)))
             {
                 if (Scene->IfModified())
                 {

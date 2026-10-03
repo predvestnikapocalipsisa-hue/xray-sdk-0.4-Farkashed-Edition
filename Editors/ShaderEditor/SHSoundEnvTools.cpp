@@ -205,6 +205,11 @@ void CSHSoundEnvTools::Load()
 
 bool CSHSoundEnvTools::Save()
 {
+    if (Core.SDKFallback)
+    {
+        ELog.DlgMsg(mtInformation, "Saving SDK libraries is disabled in fallback mode.");
+        return false;
+    }
     ApplyChanges();
     m_bLockUpdate = TRUE;
 

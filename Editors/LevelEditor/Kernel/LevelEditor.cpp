@@ -9,7 +9,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         Debug._initialize(false);
 
     Core.InitCore("level", ELogCallback);
-    XrSE_Factory::initialize();
+    const bool sdkFactoryInitialized = !Core.SDKFallback;
+    if (sdkFactoryInitialized)
+        XrSE_Factory::initialize();
 
     LTools = xr_new<CLevelTool>();
     Tools = LTools;
@@ -89,7 +91,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     xr_delete(MainForm);
-    XrSE_Factory::destroy();
+    if (sdkFactoryInitialized)
+        XrSE_Factory::destroy();
     Core.DestroyCore();
     return 0;
 }
