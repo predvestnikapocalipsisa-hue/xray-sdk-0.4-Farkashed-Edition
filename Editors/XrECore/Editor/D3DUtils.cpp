@@ -715,6 +715,9 @@ void CDrawUtilities::dbgDrawPlacement(const Fvector &p, int sz, u32 clr, LPCSTR 
     c.x = (float)iFloor(_x2real(c.x));
     c.y = (float)iFloor(_y2real(-c.y));
 
+    if (c.x < -s || c.x > EDevice.m_RenderWidth + s || c.y < -s || c.y > EDevice.m_RenderHeight + s)
+        return;
+
     _VertexStream *Stream = &RCache.Vertex;
     u32 vBase;
     FVF::TL *pv = (FVF::TL *)Stream->Lock(5, vs_TL->vb_stride, vBase);
@@ -737,10 +740,18 @@ void CDrawUtilities::dbgDrawPlacement(const Fvector &p, int sz, u32 clr, LPCSTR 
 
     // Render it as line strip
     DU_DRAW_DP(D3DPT_LINESTRIP, vs_TL, vBase, 4);
-    if (caption)
+    static u32 labelFrame = 0xffffffff;
+    static u32 labelsDrawn = 0;
+    if (labelFrame != EDevice.dwFrame)
+    {
+        labelFrame = EDevice.dwFrame;
+        labelsDrawn = 0;
+    }
+    if (caption && caption[0] && labelsDrawn < 64)
     {
         m_Font->SetColor(clr_font);
         m_Font->Out(c.x, c.y + s, "%s", caption);
+        ++labelsDrawn;
     }
 }
 
@@ -931,6 +942,7 @@ void CDrawUtilities::DrawFace(const Fvector &p0, const Fvector &p1, const Fvecto
 //----------------------------------------------------
 
 static const u32 MAX_VERT_COUNT = 0xFFFF;
+static const u32 MAX_LINE_VERT_COUNT = 4096;
 void CDrawUtilities::DD_DrawFace_begin(BOOL bWire)
 {
     VERIFY(m_DD_pv_start == 0);
@@ -970,6 +982,42 @@ void CDrawUtilities::DD_DrawFace_end()
 }
 //----------------------------------------------------
 
+void CDrawUtilities::DD_DrawLine_begin()
+{
+    VERIFY(m_DD_line_start == 0);
+    m_DD_line_start = (FVF::L *)RCache.Vertex.Lock(MAX_LINE_VERT_COUNT, vs_L->vb_stride, m_DD_line_base);
+    m_DD_line_pv = m_DD_line_start;
+}
+
+void CDrawUtilities::DD_DrawLine_flush(BOOL try_again)
+{
+    const u32 vertexCount = u32(m_DD_line_pv - m_DD_line_start);
+    RCache.Vertex.Unlock(vertexCount, vs_L->vb_stride);
+    if (vertexCount)
+        DU_DRAW_DP(D3DPT_LINELIST, vs_L, m_DD_line_base, vertexCount / 2);
+    if (try_again)
+    {
+        m_DD_line_start = (FVF::L *)RCache.Vertex.Lock(MAX_LINE_VERT_COUNT, vs_L->vb_stride, m_DD_line_base);
+        m_DD_line_pv = m_DD_line_start;
+    }
+}
+
+void CDrawUtilities::DD_DrawLine_push(const Fvector &p0, const Fvector &p1, u32 clr)
+{
+    if (m_DD_line_pv - m_DD_line_start >= MAX_LINE_VERT_COUNT - 2)
+        DD_DrawLine_flush(TRUE);
+    m_DD_line_pv->set(p0, clr);
+    ++m_DD_line_pv;
+    m_DD_line_pv->set(p1, clr);
+    ++m_DD_line_pv;
+}
+
+void CDrawUtilities::DD_DrawLine_end()
+{
+    DD_DrawLine_flush(FALSE);
+    m_DD_line_start = 0;
+    m_DD_line_pv = 0;
+}
 void CDrawUtilities::DrawCylinder(const Fmatrix &parent, const Fvector &center, const Fvector &dir, float height, float radius, u32 clr_s, u32 clr_w, BOOL bSolid, BOOL bWire)
 {
     Fmatrix mScale;

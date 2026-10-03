@@ -65,12 +65,19 @@ protected:
     FVF::L *m_DD_pv_start;
     u32 m_DD_base;
     BOOL m_DD_wire;
+    FVF::L *m_DD_line_pv;
+    FVF::L *m_DD_line_start;
+    u32 m_DD_line_base;
     void DD_DrawFace_flush(BOOL try_again);
+    void DD_DrawLine_flush(BOOL try_again);
 
 public:
     void DD_DrawFace_begin(BOOL bWire);
     void DD_DrawFace_push(const Fvector &p0, const Fvector &p1, const Fvector &p2, u32 clr);
     void DD_DrawFace_end();
+    void DD_DrawLine_begin();
+    void DD_DrawLine_push(const Fvector &p0, const Fvector &p1, u32 clr);
+    void DD_DrawLine_end();
 
 public:
     CDrawUtilities()
@@ -82,6 +89,9 @@ public:
         m_DD_pv_start = 0;
         m_DD_base = 0;
         m_Font = 0;
+        m_DD_line_pv = 0;
+        m_DD_line_start = 0;
+        m_DD_line_base = 0;
     }
 
     void OnDeviceCreate();

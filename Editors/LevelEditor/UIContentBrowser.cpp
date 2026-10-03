@@ -50,6 +50,29 @@ void UIContentBrowser::SetMode(EContentBrowserMode mode)
     Refresh();
 }
 
+void UIContentBrowser::RefreshObjects()
+{
+    // Reload cached editable objects from their original files, then rebuild
+    // scene-instance surfaces and refresh every object list that is visible.
+    Lib.ReloadObjects();
+
+    ESceneObjectTool* objectTool = dynamic_cast<ESceneObjectTool*>(Scene->GetTool(OBJCLASS_SCENEOBJECT));
+    if (objectTool)
+        objectTool->ReloadReferences();
+
+    Scene->OnObjectsUpdate();
+    LTools->OnObjectsUpdate();
+
+    if (objectTool && objectTool->pForm)
+    {
+        UIObjectTool* objectForm = dynamic_cast<UIObjectTool*>(objectTool->pForm);
+        if (objectForm)
+            objectForm->RefreshList();
+    }
+
+    m_FolderHelper.ReleaseThumbnails();
+    Refresh();
+}
 static xr_string UTF8ToLower(const char* str)
 {
     if (!str || !str[0]) return "";
@@ -411,6 +434,8 @@ void UIContentBrowser::Draw()
     ImGui::TextDisabled("[%s]", modeLabel);
     ImGui::SameLine(0, 8);
     if (ImGui::SmallButton("Refresh")) Refresh();
+    ImGui::SameLine(0, 4);
+    if (ImGui::SmallButton("Sync Objects")) RefreshObjects();
     ImGui::SameLine(0, 8);
     ImGui::TextDisabled("|"); ImGui::SameLine(0, 8);
     ImGui::SetNextItemWidth(180);
