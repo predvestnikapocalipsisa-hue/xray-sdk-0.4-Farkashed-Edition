@@ -130,8 +130,12 @@
 #include <set>
 #include <map>
 
+#ifdef STLPORT
 #include <hash_map>
 #include <hash_set>
+#else
+#include <unordered_map>
+#endif
 
 #include <string>
 #pragma warning(pop)

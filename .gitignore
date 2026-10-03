@@ -1,2 +1,23 @@
 .vs/
 output/
+
+# Мусор от компилятора
+*.pch*
+
+# Прекомпилы
+*.ipch
+
+# Всякий ненужный мусор:
+*.VC.*
+*.suo
+*.user
+*.exp
+*.aps
+*.TMP
+
+# Виндовские кеши
+Thumbs.db
+ehthumbs.db
+
+# Тоже кеш
+Desktop.ini

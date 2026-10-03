@@ -357,8 +357,8 @@ public:
 	u32 size() const { return (u32) __super::size(); }
 };
 #else
-template <typename K, class V, class _Traits = stdext::hash_compare<K, std::less<K>>, typename allocator = xalloc<std::pair<K, V>>>
-class xr_hash_map : public stdext::hash_map<K, V, _Traits, allocator>
+template <typename K, class V, class Hash = std::hash<K>, typename allocator = xalloc<std::pair<const K, V>>>
+class xr_hash_map : public std::unordered_map<K, V, Hash, std::equal_to<K>, allocator>
 {
 public:
 	u32 size() const { return (u32) __super::size(); }
@@ -373,11 +373,11 @@ inline std::pair<_Ty1, _Ty2> mk_pair(_Ty1 _Val1, _Ty2 _Val2)
 	return (std::pair<_Ty1, _Ty2>(_Val1, _Val2));
 }
 
-struct pred_str : public std::binary_function<char *, char *, bool>
+struct pred_str
 {
 	IC bool operator()(const char *x, const char *y) const { return xr_strcmp(x, y) < 0; }
 };
-struct pred_stri : public std::binary_function<char *, char *, bool>
+struct pred_stri
 {
 	IC bool operator()(const char *x, const char *y) const { return stricmp(x, y) < 0; }
 };
