@@ -18,20 +18,23 @@ UINumericVectorForm::~UINumericVectorForm()
 void UINumericVectorForm::Draw()
 {
 	ImGui::Begin(m_Title.c_str(), 0, ImGuiWindowFlags_::ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+	char fmt[16];
+	xr_sprintf(fmt, "%%.%df", m_Decimal);
+
 	ImGui::BeginGroup();
-	ImGui::InputFloat("X", &m_Edit.x, 0.01, 0.1, m_Decimal);
+	ImGui::DragFloat("X", &m_Edit.x, 0.05f, 0.0f, 0.0f, fmt);
 	ImGui::SameLine(0);
 	if (ImGui::Button("Ok"))
 		CLBOk();
 	ImGui::EndGroup();
 	ImGui::BeginGroup();
-	ImGui::InputFloat("Y", &m_Edit.y, 0.01, 0.1, m_Decimal);
+	ImGui::DragFloat("Y", &m_Edit.y, 0.05f, 0.0f, 0.0f, fmt);
 	ImGui::SameLine(0);
-	if (ImGui::Button("Cancek"))
+	if (ImGui::Button("Cancel"))
 		CLBCancel();
 	ImGui::EndGroup();
 	ImGui::BeginGroup();
-	ImGui::InputFloat("Z", &m_Edit.z, 0.01, 0.1, m_Decimal);
+	ImGui::DragFloat("Z", &m_Edit.z, 0.05f, 0.0f, 0.0f, fmt);
 	ImGui::SameLine(0);
 	if (m_Reset)
 		if (ImGui::Button("Reset"))

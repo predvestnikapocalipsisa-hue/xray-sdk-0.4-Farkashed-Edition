@@ -1,5 +1,13 @@
 #include "stdafx.h"
 
+// Clipboard buffers for Transform copy/paste
+static bool g_clipboard_position_valid = false;
+static bool g_clipboard_rotation_valid = false;
+static bool g_clipboard_scale_valid   = false;
+static Fvector g_clipboard_position = {0, 0, 0};
+static Fvector g_clipboard_rotation = {0, 0, 0};
+static Fvector g_clipboard_scale    = {1, 1, 1};
+
 // static part
 void CCustomObject::SnapMove(Fvector &pos, Fvector &rot, const Fmatrix &rotRP, const Fvector &amount)
 {
@@ -213,6 +221,58 @@ void CCustomObject::OnNumChangeScale(PropValue *sender)
 {
     NumSetScale(EScale);
 }
+
+// Copy/Paste handlers: btn_num 0 = Copy, 1 = Paste
+void CCustomObject::OnCopyPastePosition(ButtonValue *value, bool &bModif, bool &bSafe)
+{
+    if (value->btn_num == 0) // Copy
+    {
+        g_clipboard_position = GetPosition();
+        g_clipboard_position_valid = true;
+    }
+    else // Paste
+    {
+        if (!g_clipboard_position_valid) return;
+        SetPosition(g_clipboard_position);
+        UpdateTransform();
+        bModif = true;
+        ExecCommand(COMMAND_UPDATE_PROPERTIES);
+    }
+}
+
+void CCustomObject::OnCopyPasteRotation(ButtonValue *value, bool &bModif, bool &bSafe)
+{
+    if (value->btn_num == 0) // Copy
+    {
+        g_clipboard_rotation = GetRotation();
+        g_clipboard_rotation_valid = true;
+    }
+    else // Paste
+    {
+        if (!g_clipboard_rotation_valid) return;
+        SetRotation(g_clipboard_rotation);
+        UpdateTransform();
+        bModif = true;
+        ExecCommand(COMMAND_UPDATE_PROPERTIES);
+    }
+}
+
+void CCustomObject::OnCopyPasteScale(ButtonValue *value, bool &bModif, bool &bSafe)
+{
+    if (value->btn_num == 0) // Copy
+    {
+        g_clipboard_scale = GetScale();
+        g_clipboard_scale_valid = true;
+    }
+    else // Paste
+    {
+        if (!g_clipboard_scale_valid) return;
+        SetScale(g_clipboard_scale);
+        UpdateTransform();
+        bModif = true;
+        ExecCommand(COMMAND_UPDATE_PROPERTIES);
+    }
+}
 void CCustomObject::OnNameChange(PropValue *sender)
 {
     SetName(EName.c_str());
@@ -239,12 +299,24 @@ void CCustomObject::FillProp(LPCSTR pref, PropItemVec &items)
     EPosition = GetPosition();
     V = PHelper().CreateVector(items, PrepareKey(pref, "Transform\\Position"), &EPosition, -10000, 10000, 0.0001f, 4);
     V->OnChangeEvent.bind(this, &CCustomObject::OnNumChangePosition);
+    {
+        ButtonValue *B = PHelper().CreateButton(items, PrepareKey(pref, "Transform\\Position Copy/Paste"), "C,P", 0);
+        B->OnBtnClickEvent.bind(this, &CCustomObject::OnCopyPastePosition);
+    }
     ERotation = GetRotation();
     V = PHelper().CreateAngle3(items, PrepareKey(pref, "Transform\\Rotation"), &ERotation, -10000, 10000, 0.0001f, 4);
     V->OnChangeEvent.bind(this, &CCustomObject::OnNumChangeRotation);
+    {
+        ButtonValue *B = PHelper().CreateButton(items, PrepareKey(pref, "Transform\\Rotation Copy/Paste"), "C,P", 0);
+        B->OnBtnClickEvent.bind(this, &CCustomObject::OnCopyPasteRotation);
+    }
     EScale = GetScale();
     V = PHelper().CreateVector(items, PrepareKey(pref, "Transform\\Scale"), &EScale, 0.01, 10000, 0.0001f, 4);
     V->OnChangeEvent.bind(this, &CCustomObject::OnNumChangeScale);
+    {
+        ButtonValue *B = PHelper().CreateButton(items, PrepareKey(pref, "Transform\\Scale Copy/Paste"), "C,P", 0);
+        B->OnBtnClickEvent.bind(this, &CCustomObject::OnCopyPasteScale);
+    }
 
     if (m_CO_Flags.test(flObjectInGroup))
     {

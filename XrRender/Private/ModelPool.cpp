@@ -563,8 +563,14 @@ IC bool _IsValidShader(dxRender_Visual *visual, u32 priority, bool strictB2F)
 }
 IC bool _IsValidShaderSkeleton(dxRender_Visual *visual, u32 priority, bool strictB2F)
 {
-	if (visual->shader && visual->shader->E[1])
-		return (priority == visual->shader->E[1]->flags.iPriority) && (strictB2F == visual->shader->E[1]->flags.bStrictB2F);
+	// In editor: prefer E[1] (shadow pass) but fall back to E[0] (color pass)
+	// so models with single-pass shaders (no shadow pass) are still visible
+	if (visual->shader)
+	{
+		ref_selement elem = visual->shader->E[1] ? visual->shader->E[1] : visual->shader->E[0];
+		if (elem)
+			return (priority == elem->flags.iPriority) && (strictB2F == elem->flags.bStrictB2F);
+	}
 	return false;
 }
 
@@ -598,7 +604,9 @@ void CModelPool::Render(dxRender_Visual *m_pVisual, const Fmatrix &mTransform, i
 				{
 					if (_IsValidShaderSkeleton(*I, priority, strictB2F))
 					{
-						RCache.set_Element((*I)->shader->E[1]);
+						// Use E[1] (shadow pass) if available, else E[0] (color pass)
+						ref_selement elem = (*I)->shader->E[1] ? (*I)->shader->E[1] : (*I)->shader->E[0];
+						RCache.set_Element(elem);
 						RCache.set_xform_world(mTransform);
 						(*I)->Render(m_fLOD);
 					}

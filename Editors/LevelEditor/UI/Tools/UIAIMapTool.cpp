@@ -36,6 +36,15 @@ void UIAIMapTool::Draw()
 					Scene->UndoSave();
 				}
 			}
+			if (ImGui::Button("Auto-fill Graph Points", ImVec2(-1, 0)))
+			{
+				ESceneSpawnTool* spawn_tool = dynamic_cast<ESceneSpawnTool*>(Scene->GetOTool(OBJCLASS_SPAWNPOINT));
+				if (spawn_tool)
+				{
+					int count = spawn_tool->GenerateGraphPoints(15.0f, 0, false);
+					ELog.Msg(mtInformation, "Generated %d graph point(s).", count);
+				}
+			}
 		}
 		ImGui::Separator();
 		{

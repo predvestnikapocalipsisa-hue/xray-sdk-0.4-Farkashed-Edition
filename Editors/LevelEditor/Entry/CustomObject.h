@@ -137,6 +137,10 @@ public:
     void OnNumChangeRotation(PropValue *sender);
     void OnNumChangeScale(PropValue *sender);
 
+    void OnCopyPastePosition(ButtonValue *value, bool &bModif, bool &bSafe);
+    void OnCopyPasteRotation(ButtonValue *value, bool &bModif, bool &bSafe);
+    void OnCopyPasteScale(ButtonValue *value, bool &bModif, bool &bSafe);
+
     virtual void DeleteThis() { m_RT_Flags.set(flRT_NeedSelfDelete, TRUE); }
 
 public:

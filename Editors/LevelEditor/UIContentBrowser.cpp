@@ -86,7 +86,7 @@ void UIContentBrowser::Refresh()
             LHelper().CreateItem(items, name.c_str(), 0, ListItem::flDrawThumbnail, 0);
         }
     }
-    else
+    else if (m_Mode == CBM_SPAWN)
     {
         LHelper().CreateItem(items, RPOINT_CHOOSE_NAME, 0, 0, RPOINT_CHOOSE_NAME);
         LHelper().CreateItem(items, ENVMOD_CHOOSE_NAME, 0, 0, ENVMOD_CHOOSE_NAME);
@@ -102,6 +102,19 @@ void UIContentBrowser::Refresh()
                         ListItem::flDrawThumbnail,
                         (LPVOID) * (*it)->Name);
             }
+        }
+        m_FolderHelper.ReleaseThumbnails();
+    }
+    else
+    {
+        FS_FileSet lst;
+        FS.file_list(lst, _groups_, FS_ListFiles, "*.group");
+        for (auto& it : lst)
+        {
+            xr_string name = it.name;
+            size_t dot = name.rfind('.');
+            if (dot != xr_string::npos) name.resize(dot);
+            LHelper().CreateItem(items, name.c_str(), 0, 0, (LPVOID)0);
         }
         m_FolderHelper.ReleaseThumbnails();
     }
@@ -143,7 +156,7 @@ void UIContentBrowser::OnItemFocused(ListItem* item)
             if (t) t->SelectRef(*m_CurrentItem);
         }
     }
-    else
+    else if (m_Mode == CBM_SPAWN)
     {
         ExecCommand(COMMAND_CHANGE_TARGET, OBJCLASS_SPAWNPOINT);
         ExecCommand(COMMAND_CHANGE_ACTION, etaAdd);
@@ -154,6 +167,12 @@ void UIContentBrowser::OnItemFocused(ListItem* item)
             UISpawnTool* t = dynamic_cast<UISpawnTool*>(base->pForm);
             if (t) t->SelectRef(*m_CurrentItem);
         }
+    }
+    else
+    {
+        ESceneGroupTool* tool = dynamic_cast<ESceneGroupTool*>(Scene->GetTool(OBJCLASS_GROUP));
+        if (tool && m_CurrentItem.size())
+            tool->SetCurrentObject(*m_CurrentItem);
     }
 }
 
@@ -373,8 +392,9 @@ void UIContentBrowser::Draw()
 
     {
         ObjClassID target = LTools->GetTarget();
-        EContentBrowserMode wantedMode =
-            (target == OBJCLASS_SPAWNPOINT) ? CBM_SPAWN : CBM_OBJECTS;
+        EContentBrowserMode wantedMode = CBM_OBJECTS;
+        if (target == OBJCLASS_SPAWNPOINT) wantedMode = CBM_SPAWN;
+        else if (target == OBJCLASS_GROUP) wantedMode = CBM_GROUP;
         if (wantedMode != m_Mode)
             SetMode(wantedMode);
     }
@@ -386,7 +406,8 @@ void UIContentBrowser::Draw()
         ImGui::End(); return;
     }
 
-    const char* modeLabel = (m_Mode == CBM_SPAWN) ? "Spawn Elements" : "Objects";
+    const char* modeLabel = m_Mode == CBM_SPAWN ? "Spawn Elements" :
+        m_Mode == CBM_GROUP ? "Groups" : "Objects";
     ImGui::TextDisabled("[%s]", modeLabel);
     ImGui::SameLine(0, 8);
     if (ImGui::SmallButton("Refresh")) Refresh();

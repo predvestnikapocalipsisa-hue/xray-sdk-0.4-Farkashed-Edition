@@ -17,7 +17,8 @@ inline bool DrawNumeric(PropItem* item, bool& change, bool read_only)
 		data = static_cast<int>(value);
 	}
 
-	change = ImGui::InputInt("##value", &data, read_only ? ImGuiInputTextFlags_ReadOnly : 0);
+	float v_speed = V->inc ? static_cast<float>(V->inc) : 1.0f;
+	change = ImGui::DragInt("##value", &data, v_speed, V->lim_mn, V->lim_mx, "%d", read_only ? ImGuiInputTextFlags_ReadOnly : 0);
 
 	if (change)
 	{
@@ -44,7 +45,12 @@ inline bool DrawNumeric<float>(PropItem* item, bool& change, bool read_only)
 		return false;
 	float temp = *V->value;
 	item->BeforeEdit<NumericValue<float>, float>(temp);
-	change = ImGui::InputFloat("##value", &temp, 0.01, 0.1, V->dec, read_only ? ImGuiInputTextFlags_ReadOnly : 0);
+	float v_speed = V->inc ? V->inc : 0.05f;
+	float v_min = isinf(V->lim_mn) ? 0.0f : V->lim_mn;
+	float v_max = isinf(V->lim_mx) ? 0.0f : V->lim_mx;
+	char fmt[16];
+	xr_sprintf(fmt, "%%.%df", V->dec);
+	change = ImGui::DragFloat("##value", &temp, v_speed, v_min, v_max, fmt, read_only ? ImGuiInputTextFlags_ReadOnly : 0);
 	if (change)
 	{
 		if (!isinf(V->lim_mn) && V->lim_mn > temp)
@@ -273,7 +279,11 @@ void UIPropertiesItem::DrawProp()
 		node->BeforeEdit<VectorValue, Fvector>(edit_val);
 		float vector[3] = { edit_val.x, edit_val.y, edit_val.z };
 
-		if (ImGui::InputFloat3("##value", vector, V->dec))
+		char fmt[16];
+		xr_sprintf(fmt, "%%.%df", V->dec);
+		float v_speed = V->inc.x != 0.0f ? V->inc.x : 0.05f;
+
+		if (ImGui::DragFloat3("##value", vector, v_speed, 0.0f, 0.0f, fmt))
 		{
 			for (int i = 0; i < 3; i++)
 			{

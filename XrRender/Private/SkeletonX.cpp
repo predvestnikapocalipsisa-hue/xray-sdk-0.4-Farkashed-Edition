@@ -180,6 +180,10 @@ void CSkeletonX::_Load(const char *N, IReader *data, u32 &dwVertCount)
 		hw_bones_cnt = 0;
 #endif // RENDER == R_R1
 
+#ifdef _EDITOR
+	hw_bones_cnt = 0;
+#endif // _EDITOR
+
 	u16 sw_bones_cnt = 0;
 
 	u32 dwVertType, size, it, crc;

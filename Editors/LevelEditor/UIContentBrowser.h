@@ -9,6 +9,7 @@ enum EContentBrowserMode
 {
     CBM_OBJECTS,
     CBM_SPAWN,
+    CBM_GROUP,
 };
 
 class UIContentBrowser

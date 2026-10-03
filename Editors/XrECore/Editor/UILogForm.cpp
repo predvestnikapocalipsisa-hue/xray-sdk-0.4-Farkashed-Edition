@@ -9,6 +9,7 @@
 bool UILogForm::bAutoScroll = true;
 bool UILogForm::bOnlyError = false;
 xr_vector<xr_string> *UILogForm::List = nullptr;
+int UILogForm::selectedLine = -1;
 extern bool bAllowLogCommands;
 void UILogForm::AddMessage(TMsgDlgType mt, const xr_string &msg)
 {
@@ -63,6 +64,7 @@ void UILogForm::Update()
 		if (ImGui::Button("Clear"))
 		{
 			GetList()->clear();
+			selectedLine = -1;
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Flush"))
@@ -70,7 +72,7 @@ void UILogForm::Update()
 			FlushLog();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Copy"))
+		if (ImGui::Button("Copy All"))
 		{
 			NeedCopy = true;
 		}
@@ -83,41 +85,83 @@ void UILogForm::Update()
 		if (ImGui::BeginChild("Log", ImVec2(0, 0), true))
 		{
 			xr_string CopyLog;
-			for (int i = 0; i < GetList()->size(); i++)
+			int visibleIndex = 0;
+			for (int i = 0; i < (int)GetList()->size(); i++)
 			{
-				if (bOnlyError)
+				ImVec4 Color = {1, 1, 1, 1};
+				const char *Str = GetList()->at(i).c_str();
+				bool isError = false;
+				if (strncmp(Str, "###", 3) == 0)
 				{
-					const char *Str = GetList()->at(i).c_str();
-					if (strncmp(Str, "###", 3) == 0)
-					{
-						Str += 3;
-						ImGui::Text(Str);
-						if (NeedCopy)
-							CopyLog.append(Str).append("\r\n");
-					}
+					isError = true;
+					Color = {1, 0.3f, 0.3f, 1};
+					Str += 3;
 				}
-				else
+				else if (strncmp(Str, "##@", 3) == 0)
 				{
-					ImVec4 Color = {1, 1, 1, 1};
-					const char *Str = GetList()->at(i).c_str();
-					if (strncmp(Str, "###", 3) == 0)
-					{
-						Color = {1, 0, 0, 1};
-						Str += 3;
-					}
-					else if (strncmp(Str, "##@", 3) == 0)
-					{
-						Color = {1, 1, 0, 1};
-						Str += 3;
-					}
+					Color = {1, 1, 0, 1};
+					Str += 3;
+				}
 
-					ImGui::TextColored(Color, Str);
-					if (NeedCopy)
-						CopyLog.append(Str).append("\r\n");
+				if (bOnlyError && !isError)
+					continue;
+
+				if (NeedCopy)
+					CopyLog.append(Str).append("\r\n");
+
+				bool isSelected = (selectedLine == i);
+
+				// Highlight selected line background
+				if (isSelected)
+					ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.5f, 0.85f, 0.6f));
+
+				ImGui::PushStyleColor(ImGuiCol_Text, Color);
+				char selId[32];
+				snprintf(selId, sizeof(selId), "##logline_%d", i);
+				if (ImGui::Selectable(selId, isSelected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 0)))
+				{
+					selectedLine = (isSelected ? -1 : i);
 				}
+				ImGui::PopStyleColor(); // Text
+				if (isSelected)
+					ImGui::PopStyleColor(); // Header
+
+				// Draw text overlaid on the Selectable
+				ImGui::SameLine();
+				ImGui::PushStyleColor(ImGuiCol_Text, Color);
+				ImGui::TextUnformatted(Str);
+				ImGui::PopStyleColor();
+
+				// Right-click context menu
+				if (ImGui::BeginPopupContextItem(selId))
+				{
+					if (ImGui::MenuItem("Copy line"))
+					{
+						os_clipboard::copy_to_clipboard(Str);
+					}
+					if (ImGui::MenuItem("Copy all"))
+					{
+						NeedCopy = true;
+					}
+					ImGui::EndPopup();
+				}
+
+				visibleIndex++;
 			}
 			if (NeedCopy)
 			{
+				// Rebuild full copy if triggered from context menu after loop
+				if (CopyLog.empty())
+				{
+					for (int i = 0; i < (int)GetList()->size(); i++)
+					{
+						const char *Str = GetList()->at(i).c_str();
+						if (strncmp(Str, "###", 3) == 0) Str += 3;
+						else if (strncmp(Str, "##@", 3) == 0) Str += 3;
+						if (!bOnlyError || strncmp(GetList()->at(i).c_str(), "###", 3) == 0)
+							CopyLog.append(Str).append("\r\n");
+					}
+				}
 				os_clipboard::copy_to_clipboard(CopyLog.c_str());
 			}
 			if (bAutoScroll)
