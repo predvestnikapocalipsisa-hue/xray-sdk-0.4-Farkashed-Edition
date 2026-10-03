@@ -71,26 +71,27 @@ void ELocatorAPI::InitFS(u32 flags)
 	if (m_Flags.is(flScanAppRoot))
 	{
 		string_path tmpFsPath;
-		xr_strcpy(tmpAppPath, sizeof(tmpAppPath), Core.ApplicationPath);
-		xr_strcpy(tmpFsPath, sizeof(tmpAppPath), tmpAppPath);
-		xr_strcat(tmpFsPath, sizeof(tmpAppPath), FSLTX);
-
-		while (xr_strlen(tmpAppPath) && !exist(tmpFsPath))
+		strconcat(sizeof(tmpFsPath), tmpFsPath, Core.WorkingPath, "\\", FSLTX);
+		if (exist(tmpFsPath))
+			xr_strcpy(tmpAppPath, Core.WorkingPath);
+		else
 		{
-			// remove last slash if exists
-			if (tmpAppPath[xr_strlen(tmpAppPath) - 1] == '\\')
-				tmpAppPath[xr_strlen(tmpAppPath) - 1] = '\0';
-
-			// go one folder up
-			if (strrchr(tmpAppPath, '\\'))
-				*(strrchr(tmpAppPath, '\\') + 1) = '\0';
-
-			// update path to FSLTX
-			xr_strcpy(tmpFsPath, sizeof(tmpAppPath), tmpAppPath);
-			xr_strcat(tmpFsPath, sizeof(tmpAppPath), FSLTX);
-
-			// remove last slash
-			tmpAppPath[xr_strlen(tmpAppPath) - 1] = '\0';
+			while (true)
+			{
+				const size_t length = xr_strlen(tmpAppPath);
+				if (length > 3 && tmpAppPath[length - 1] == '\\')
+					tmpAppPath[length - 1] = 0;
+				strconcat(sizeof(tmpFsPath), tmpFsPath, tmpAppPath, "\\", FSLTX);
+				if (exist(tmpFsPath))
+					break;
+				char* slash = strrchr(tmpAppPath, '\\');
+				if (!slash || slash < tmpAppPath + 2 || (slash == tmpAppPath + 2 && length <= 3))
+					break;
+				if (slash == tmpAppPath + 2)
+					slash[1] = 0;
+				else
+					*slash = 0;
+			}
 		}
 
 		if (!exist(tmpFsPath))

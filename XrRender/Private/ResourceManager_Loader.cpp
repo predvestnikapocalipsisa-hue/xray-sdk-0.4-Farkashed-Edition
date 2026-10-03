@@ -135,6 +135,12 @@ void CResourceManager::OnDeviceCreate(IReader *F)
 		fs->close();
 	}
 
+#ifdef _EDITOR
+	if (!_FindBlender("editor\\wire"))
+		ED_UpdateBlender("editor\\wire", xr_new<CBlender_Editor_Wire>());
+	if (!_FindBlender("editor\\selection"))
+		ED_UpdateBlender("editor\\selection", xr_new<CBlender_Editor_Selection>());
+#endif
 	m_textures_description.Load();
 }
 

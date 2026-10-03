@@ -225,6 +225,11 @@ bool CShaderTool::Load(LPCSTR name)
 
 bool CShaderTool::Save(LPCSTR name, bool bInternal)
 {
+    if (Core.SDKFallback)
+    {
+        ELog.DlgMsg(mtInformation, "Saving SDK libraries is disabled in fallback mode.");
+        return false;
+    }
 	bool bRes = true;
 	for (ToolsPairIt it = m_Tools.begin(); it != m_Tools.end(); it++)
 		if (!it->second->Save())

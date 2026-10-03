@@ -160,6 +160,7 @@ public:
 DEFINE_VECTOR(SECommand *, ECommandVec, ECommandVecIt);
 
 ECORE_API CCommandVar ExecCommand(u32 cmd, CCommandVar p1 = u32(0), CCommandVar p2 = u32(0));
+ECORE_API bool SDKCommandAvailable(u32 cmd);
 ECORE_API CCommandVar ExecCommand(const xr_shortcut &val);
 ECORE_API void RegisterCommand(u32 cmd, SECommand *cmd_impl);
 ECORE_API void RegisterSubCommand(SECommand *cmd_impl, LPCSTR desc, CCommandVar p0, CCommandVar p1);

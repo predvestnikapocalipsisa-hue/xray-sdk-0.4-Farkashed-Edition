@@ -51,7 +51,7 @@ IBlender *CResourceManager::_GetBlender(LPCSTR Name)
 #ifdef _EDITOR
 	if (I == m_blenders.end())
 	{
-		if (!Core.SDKHasShaders)
+		if (Core.SDKFallback)
 		{
 			map_Blender::iterator fallback = m_blenders.find("editor\\wire");
 			if (fallback != m_blenders.end())

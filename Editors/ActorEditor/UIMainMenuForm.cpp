@@ -21,7 +21,7 @@ void UIMainMenuForm::Draw()
             {
                 ExecCommand(COMMAND_CLEAR);
             }
-            if (ImGui::MenuItem("Load", ""))
+            if (ImGui::MenuItem("Load", "", false, SDKCommandAvailable(COMMAND_LOAD)))
             {
                 ExecCommand(COMMAND_LOAD);
             }
@@ -46,7 +46,7 @@ void UIMainMenuForm::Draw()
                 ImGui::EndMenu();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Import...", ""))
+            if (ImGui::MenuItem("Import...", "", false, SDKCommandAvailable(COMMAND_IMPORT)))
             {
                 ExecCommand(COMMAND_IMPORT);
             }

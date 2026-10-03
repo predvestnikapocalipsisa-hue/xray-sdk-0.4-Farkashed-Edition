@@ -105,14 +105,39 @@ CCommandVar ExecCommand(const xr_shortcut &val)
         res = ExecCommand(SUB->parent->idx, SUB->p0, SUB->p1);
     return res;
 }
+bool SDKCommandAvailable(u32 cmd)
+{
+    if (!Core.SDKFallback)
+        return true;
+    if (Core.SDKFallback && (cmd == COMMAND_SIMULATE || cmd == COMMAND_USE_SIMULATE_POSITIONS ||
+        cmd == COMMAND_SAVE_INGAME || cmd == COMMAND_RUN_MACRO || cmd == COMMAND_EXECUTE_COMMAND_LIST ||
+        (cmd == COMMAND_LOAD && (!Core.SDKHasGameConfig || !Core.SDKHasShaders ||
+            !Core.SDKFileAvailable("$game_data$", "gamemtl.xr"))) ||
+        ((cmd == COMMAND_SAVE || cmd == COMMAND_SAVE_BACKUP) &&
+            (!xr_strcmp(Core.ApplicationName, "shader") || !xr_strcmp(Core.ApplicationName, "particle")))))
+        return false;
+    SECommand* CMD = cmd < ECommands.size() ? ECommands[cmd] : nullptr;
+    if (!CMD)
+        return false;
+    if (Core.SDKFallback && (!xr_strcmp(CMD->Name(), "COMMAND_BUILD") ||
+        !xr_strcmp(CMD->Name(), "COMMAND_SAVE_XR") || !xr_strcmp(CMD->Name(), "COMMAND_LOAD_XR") ||
+        !strncmp(CMD->Name(), "COMMAND_EXPORT", 14) || !strncmp(CMD->Name(), "COMMAND_IMPORT", 14)))
+        return false;
+    return true;
+}
+
 CCommandVar ExecCommand(u32 cmd, CCommandVar p1, CCommandVar p2)
 {
     if (!bAllowReceiveCommand)
         return 0;
-
+    if (!SDKCommandAvailable(cmd))
+    {
+        ELog.DlgMsg(mtInformation, "This operation requires the original SDK data and is disabled in fallback mode. See the SDK fallback / structure window.");
+        return 0;
+    }
     VERIFY(cmd < ECommands.size());
     CCommandVar res;
-    SECommand *CMD = ECommands[cmd];
+    SECommand* CMD = ECommands[cmd];
     VERIFY(CMD && !CMD->command.empty());
     static int exec_level = 0;
     if (bAllowLogCommands)

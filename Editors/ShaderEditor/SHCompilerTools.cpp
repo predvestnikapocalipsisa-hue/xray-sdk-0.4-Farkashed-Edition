@@ -81,6 +81,11 @@ void CSHCompilerTools::Load()
 
 bool CSHCompilerTools::Save()
 {
+    if (Core.SDKFallback)
+    {
+        ELog.DlgMsg(mtInformation, "Saving SDK libraries is disabled in fallback mode.");
+        return false;
+    }
     ApplyChanges();
 
     // save

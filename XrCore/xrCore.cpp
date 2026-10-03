@@ -18,13 +18,60 @@ XRCORE_API xrCore Core;
 
 static xr_vector<xr_string> missingSDKFiles;
 static xr_string sdkStructure;
+static bool sdkStartupChecking = true;
+
+// Check includes before CInifile loads them: a partial configuration must not
+// reach the game factory, which assumes all inherited sections exist.
+static bool CheckSDKIncludes(const char* filename, xr_vector<xr_string>& visited, unsigned depth = 0)
+{
+	if (depth > 64)
+	{
+		Core.ReportMissingSDKFile("system.ltx: include nesting exceeds 64 levels");
+		return false;
+	}
+	if (std::find(visited.begin(), visited.end(), xr_string(filename)) != visited.end())
+		return true;
+	visited.push_back(filename);
+	IReader* reader = FS.r_open(filename);
+	if (!reader)
+	{
+		Core.ReportMissingSDKFile(filename);
+		return false;
+	}
+	string_path drive, directory, parent;
+	_splitpath(filename, drive, directory, NULL, NULL);
+	strconcat(sizeof(parent), parent, drive, directory);
+	bool complete = true;
+	while (!reader->eof())
+	{
+		string4096 line;
+		reader->r_string(line, sizeof(line));
+		_Trim(line);
+		if (strncmp(line, "#include", 8) != 0)
+			continue;
+		string_path include, resolved;
+		_GetItem(line, 1, include, '"');
+		if (!include[0])
+			continue;
+		strconcat(sizeof(resolved), resolved, parent, include);
+		if (!CheckSDKIncludes(resolved, visited, depth + 1))
+			complete = false;
+	}
+	FS.r_close(reader);
+	return complete;
+}
 
 void xrCore::ReportMissingSDKFile(const char* path)
 {
+	const bool firstMissingFile = !SDKFallback;
 	SDKFallback = true;
 	if (std::find(missingSDKFiles.begin(), missingSDKFiles.end(), xr_string(path)) == missingSDKFiles.end())
 		missingSDKFiles.push_back(path);
 	Msg("! SDK fallback: missing %s", path);
+	if (firstMissingFile && !sdkStartupChecking && MessageBoxA(NULL,
+		"An SDK resource is missing. Fallback mode has been enabled; unavailable operations are disabled.\n\n"
+		"View the SDK structure and missing resources?", "SDK fallback", MB_YESNO | MB_ICONWARNING) == IDYES)
+		ShowSDKStructure();
 }
 
 bool xrCore::SDKFileAvailable(const char* alias, const char* name)
@@ -51,7 +98,7 @@ const char* xrCore::SDKStructure()
 		sdkStructure += path;
 		sdkStructure += "\r\n";
 	}
-	sdkStructure += "\r\nMissing files at startup:\r\n";
+	sdkStructure += "\r\nMissing files / default path aliases:\r\n";
 	for (const xr_string& path : missingSDKFiles)
 	{
 		sdkStructure += "  ";
@@ -128,6 +175,7 @@ namespace CPU
 void xrCore::InitCore(const char* AppName, LogCallback cb)
 {
 	SDKFallback = false;
+	sdkStartupChecking = true;
 	SDKHasGameConfig = false;
 	SDKHasShaders = false;
 	xr_strcpy(ApplicationName, AppName);
@@ -191,6 +239,35 @@ void xrCore::InitCore(const char* AppName, LogCallback cb)
 
 	FS.InitFS(flags);
 	SDKHasGameConfig = SDKFileAvailable("$game_config$", "system.ltx");
+	if (SDKHasGameConfig)
+	{
+		string_path configPath;
+		FS.update_path(configPath, "$game_config$", "system.ltx");
+		xr_vector<xr_string> visited;
+		SDKHasGameConfig = CheckSDKIncludes(configPath, visited);
+		if (SDKHasGameConfig)
+		{
+			CInifile config(configPath, TRUE, TRUE, FALSE);
+			if (!config.line_exist("hud_font_small", "shader") || !config.line_exist("hud_font_small", "texture"))
+				ReportMissingSDKFile("system.ltx: hud_font_small shader/texture settings");
+			else
+			{
+				const char* prefix = config.line_exist("string_table", "font_prefix") ? config.r_string("string_table", "font_prefix") : "";
+				string_path texture, path;
+				const char* fontTexture = config.r_string("hud_font_small", "texture");
+				const bool independentFont = strstr(fontTexture, "ui_font_hud_01") || strstr(fontTexture, "ui_font_hud_02") || strstr(fontTexture, "ui_font_console_02");
+				strconcat(sizeof(texture), texture, fontTexture, independentFont || !prefix ? "" : prefix);
+				const char* extensions[] = {".ini", ".dds"};
+				for (const char* extension : extensions)
+				{
+					if (!FS.exist(path, "$game_textures$", texture, extension))
+						ReportMissingSDKFile(path);
+				}
+				if (!config.line_exist("string_table", "font_prefix"))
+					ReportMissingSDKFile("system.ltx: string_table/font_prefix setting");
+			}
+		}
+	}
 	SDKHasShaders = SDKFileAvailable("$game_data$", "shaders.xr");
 	const char* startupAssets[] = {"shaders.xr", "shaders_xrlc.xr", "gamemtl.xr", "particles.xr", "lanims.xr"};
 	for (const char* asset : startupAssets)
@@ -222,10 +299,16 @@ void xrCore::InitCore(const char* AppName, LogCallback cb)
 #endif // DEBUG
 
 	SetLogCB(cb);
+	sdkStartupChecking = false;
 }
 
 void xrCore::DestroyCore()
 {
+	xr_vector<xr_string>().swap(missingSDKFiles);
+	{
+		xr_string emptyStructure;
+		sdkStructure.swap(emptyStructure);
+	}
 	FS.DestroyFS();
 	EFS._destroy();
 	xr_delete(xr_FS);

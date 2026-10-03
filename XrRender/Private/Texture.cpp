@@ -278,6 +278,30 @@ IC u32 it_height_rev_base(u32 d, u32 s) {
 		(color_get_R(s) + color_get_G(s) + color_get_B(s)) / 3);	// height
 }
 
+#ifdef _EDITOR
+static ID3DBaseTexture* CreateEditorFallbackTexture(u32& size)
+{
+	ID3DTexture2D* texture = nullptr;
+	if (FAILED(HW.pDevice->CreateTexture(2, 2, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &texture, nullptr)))
+		return nullptr;
+	D3DLOCKED_RECT pixels;
+	if (FAILED(texture->LockRect(0, &pixels, nullptr, 0)))
+	{
+		texture->Release();
+		return nullptr;
+	}
+	for (unsigned y = 0; y < 2; ++y)
+	{
+		DWORD* row = reinterpret_cast<DWORD*>(static_cast<BYTE*>(pixels.pBits) + y * pixels.Pitch);
+		for (unsigned x = 0; x < 2; ++x)
+			row[x] = ((x + y) & 1) ? 0xff808080 : 0xffc0c0c0;
+	}
+	texture->UnlockRect(0);
+	size = 16;
+	return texture;
+}
+#endif
+
 ID3DBaseTexture* CRender::texture_load(LPCSTR fRName, u32& ret_msize)
 {
 	ID3DTexture2D* pTexture2D = NULL;
@@ -309,6 +333,8 @@ ID3DBaseTexture* CRender::texture_load(LPCSTR fRName, u32& ret_msize)
 
 #ifdef _EDITOR
 	ELog.Msg(mtError, "! Can't find texture '%s'", fname);
+	Core.ReportMissingSDKFile(fname);
+	return CreateEditorFallbackTexture(ret_msize);
 #else
 	Msg("! Can't find texture '%s'", fname);
 #endif
@@ -457,6 +483,13 @@ _BUMP:
 	*/
 _BUMP_from_base:
 	{
+#ifdef _EDITOR
+		if (Core.SDKFallback)
+		{
+			Core.ReportMissingSDKFile(fname);
+			return CreateEditorFallbackTexture(ret_msize);
+		}
+#endif
 		Msg("! auto-generated bump map: %s", fname);
 		//////////////////
 		if (strstr(fname, "_bump#"))

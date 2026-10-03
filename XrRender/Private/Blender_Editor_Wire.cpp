@@ -10,6 +10,7 @@
 CBlender_Editor_Wire::CBlender_Editor_Wire()
 {
 	description.CLS = B_EDITOR_WIRE;
+	oStrictSorting.value = FALSE;
 	xr_strcpy(oT_Factor, "$null");
 }
 

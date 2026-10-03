@@ -164,6 +164,12 @@ void CLevelTool::SetAction(ETAction act)
 
 void CLevelTool::RealSetTarget(ObjClassID tgt, int sub_tgt, bool bForced)
 {
+    if (Core.SDKFallback && tgt == OBJCLASS_SPAWNPOINT)
+    {
+        m_Flags.set(flChangeTarget, FALSE);
+        ELog.DlgMsg(mtInformation, "Spawn editing is disabled in SDK fallback mode. Restore the SDK configuration and restart.");
+        return;
+    }
     if (bForced || (target != tgt) || (sub_target != sub_tgt))
     {
         target = tgt;
