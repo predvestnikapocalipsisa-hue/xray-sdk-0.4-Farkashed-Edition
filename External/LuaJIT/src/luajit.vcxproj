@@ -53,12 +53,12 @@
 			call msvcbuild.bat $(PlatformShortName)
 		)
 
-		if not exist "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)\LuaJIT.dll" (
-			if not exist "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)\*.*" (
-				md "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)"
+		if not exist "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.dll" (
+			if not exist "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\*.*" (
+				md "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)"
 			)
-			copy /Y "..\bin\$(PlatformShortName)\LuaJIT.dll" "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)\LuaJIT.dll"
-			copy /Y "..\bin\$(PlatformShortName)\LuaJIT.pdb" "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)\LuaJIT.pdb"
+			copy /Y "..\bin\$(PlatformShortName)\LuaJIT.dll" "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.dll"
+			copy /Y "..\bin\$(PlatformShortName)\LuaJIT.pdb" "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.pdb"
 		)
 
 		if not exist "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\LuaJIT.lib" (
@@ -79,11 +79,11 @@
 		RD /S/Q ..\bin
 		call msvcbuild.bat $(PlatformShortName)
 
-		if not exist "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)\*.*" (
-			md "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)\"
+		if not exist "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\*.*" (
+			md "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\"
 		)
-		copy /Y "..\bin\$(PlatformShortName)\LuaJIT.dll" "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)\LuaJIT.dll"
-		copy /Y "..\bin\$(PlatformShortName)\LuaJIT.pdb" "$(SolutionDir)\output\binaries_$(platform)_$(Configuration)\LuaJIT.pdb"
+		copy /Y "..\bin\$(PlatformShortName)\LuaJIT.dll" "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.dll"
+		copy /Y "..\bin\$(PlatformShortName)\LuaJIT.pdb" "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.pdb"
 		if not exist "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\*.*" (
 			md "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\"
 		)
@@ -96,19 +96,19 @@
     <NMakeCleanCommandLine>RD /S/Q ..\bin</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)\output\binaries_$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\output\intermediate\$(ProjectName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)\output\binaries_$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\output\intermediate\$(ProjectName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'">
-    <OutDir>$(SolutionDir)\output\binaries_$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\output\intermediate\$(ProjectName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
-    <OutDir>$(SolutionDir)\output\binaries_$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\output\intermediate\$(ProjectName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
