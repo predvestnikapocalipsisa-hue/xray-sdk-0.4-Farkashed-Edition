@@ -480,9 +480,11 @@ void TUI::Redraw()
                 DU_impl.DrawAxis(EDevice.m_Camera.GetTransform());
 
                 EDevice.Statistic->RenderDUMP_RT.End();
-                EDevice.Statistic->Show(EDevice.pSystemFont);
+                if (EDevice.pSystemFont)
+                    EDevice.Statistic->Show(EDevice.pSystemFont);
                 EDevice.SetRS(D3DRS_FILLMODE, D3DFILL_SOLID);
-                EDevice.pSystemFont->OnRender();
+                if (EDevice.pSystemFont)
+                    EDevice.pSystemFont->OnRender();
                 EDevice.SetRS(D3DRS_FILLMODE, EDevice.dwFillMode);
                 EDevice.seqRender.Process(rp_Render);
                 RCache.set_RT(HW.pBaseRT);

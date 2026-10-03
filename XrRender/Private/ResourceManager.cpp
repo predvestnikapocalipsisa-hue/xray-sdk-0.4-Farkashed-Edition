@@ -50,7 +50,15 @@ IBlender *CResourceManager::_GetBlender(LPCSTR Name)
 	map_Blender::iterator I = m_blenders.find(N);
 #ifdef _EDITOR
 	if (I == m_blenders.end())
+	{
+		if (!Core.SDKHasShaders)
+		{
+			map_Blender::iterator fallback = m_blenders.find("editor\\wire");
+			if (fallback != m_blenders.end())
+				return fallback->second;
+		}
 		return 0;
+	}
 #else
 //	TODO: DX10: When all shaders are ready switch to common path
 #if defined(USE_DX10) || defined(USE_DX11)

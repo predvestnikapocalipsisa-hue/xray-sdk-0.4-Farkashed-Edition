@@ -9,6 +9,42 @@
 
 ELocatorAPI* xr_FS = nullptr;
 
+static void EnsureSDKPaths(ELocatorAPI& fs, const char* root)
+{
+	struct SDKPath { const char* alias; const char* parent; const char* relative; };
+	const SDKPath paths[] = {
+		{"$sdk_root$", "$app_root$", ""}, {"$sdk_root_raw$", "$app_root$", ""},
+		{"$server_root$", "$app_root$", ""}, {"$server_data_root$", "$app_root$", "rawdata\\"},
+		{"$game_data$", "$app_root$", "gamedata\\"}, {"$game_config$", "$game_data$", "config\\"},
+		{"$game_textures$", "$game_data$", "textures\\"}, {"$game_meshes$", "$game_data$", "meshes\\"},
+		{"$game_sounds$", "$game_data$", "sounds\\"}, {"$game_scripts$", "$game_data$", "scripts\\"},
+		{"$game_shaders$", "$game_data$", "shaders\\"}, {"$game_levels$", "$game_data$", "levels\\"},
+		{"$game_anims$", "$game_data$", "anims\\"}, {"$game_dm$", "$game_data$", "meshes\\"},
+		{"$game_particles$", "$game_data$", "particles\\"}, {"$game_fonts$", "$game_textures$", "ui\\"},
+		{"$game_weathers$", "$game_config$", "weathers\\"}, {"$game_weather_effects$", "$game_config$", "weather_effects\\"},
+		{"$local_root$", "$app_root$", "editor\\"}, {"$app_data_root$", "$local_root$", ""},
+		{"$logs$", "$local_root$", "logs\\"}, {"$temp$", "$local_root$", "temp\\"},
+		{"$game_saves$", "$local_root$", "savedgames\\"}, {"$screenshots$", "$local_root$", "screenshots\\"},
+		{"$objects$", "$server_data_root$", "objects\\"}, {"$textures$", "$server_data_root$", "textures\\"},
+		{"$sounds$", "$server_data_root$", "sounds\\"}, {"$maps$", "$server_data_root$", "maps\\"},
+		{"$groups$", "$server_data_root$", "groups\\"}, {"$import$", "$server_data_root$", "import\\"},
+		{"$detail_objects$", "$server_data_root$", "detail_objects\\"}, {"$omotion$", "$server_data_root$", "motions\\"},
+		{"$omotions$", "$server_data_root$", "motions\\"}, {"$smotion$", "$server_data_root$", "motions\\"},
+		{"$sbones$", "$server_data_root$", "bones\\"}, {"$level$", "$game_levels$", ""},
+		{"$build_copy$", "$app_root$", "build\\"}
+	};
+	if (!fs.path_exist("$app_root$"))
+		fs.append_path("$app_root$", root, NULL, FALSE);
+	for (const SDKPath& path : paths)
+	{
+		if (!fs.path_exist(path.alias))
+		{
+			fs.append_path(path.alias, fs.get_path(path.parent)->m_Path, path.relative, FALSE);
+			Core.ReportMissingSDKFile(path.alias);
+		}
+	}
+}
+
 ELocatorAPI::ELocatorAPI()
 {
 	m_Flags.zero();
@@ -30,6 +66,7 @@ void ELocatorAPI::InitFS(u32 flags)
 	Log("Initializing File System...");
 	m_Flags.set(flags, TRUE);
 	string_path tmpAppPath;
+	xr_strcpy(tmpAppPath, Core.ApplicationPath);
 
 	if (m_Flags.is(flScanAppRoot))
 	{
@@ -56,6 +93,8 @@ void ELocatorAPI::InitFS(u32 flags)
 			tmpAppPath[xr_strlen(tmpAppPath) - 1] = '\0';
 		}
 
+		if (!exist(tmpFsPath))
+			xr_strcpy(tmpAppPath, Core.ApplicationPath);
 		append_path("$app_root$", tmpAppPath, 0, FALSE);
 		append_path("$fs_root$", tmpAppPath, 0, FALSE);
 	}
@@ -68,7 +107,8 @@ void ELocatorAPI::InitFS(u32 flags)
 	if (!F && m_Flags.is(flScanAppRoot))
 		F = r_open("$app_root$", FSLTX);
 
-	R_ASSERT3(F, "Can't open file:", FSLTX);
+	if (!F)
+		Core.ReportMissingSDKFile(FSLTX);
 	// append all pathes
 	string_path buf;
 	string_path id, temp, root, add, def, capt;
@@ -76,7 +116,7 @@ void ELocatorAPI::InitFS(u32 flags)
 	string16 b_v;
 	Core.SocSdk = true;
 
-	while (!F->eof())
+	while (F && !F->eof())
 	{
 		F->r_string(buf, sizeof(buf));
 		_GetItem(buf, 0, id, '=');
@@ -89,7 +129,12 @@ void ELocatorAPI::InitFS(u32 flags)
 
 		_GetItem(buf, 1, temp, '=');
 		int cnt = _GetItemCount(temp, _delimiter);
-		R_ASSERT(cnt >= 3);
+		if (cnt < 3)
+		{
+			if (buf[0])
+				Core.ReportMissingSDKFile("fs.ltx: invalid path definition");
+			continue;
+		}
 		u32 fl = 0;
 		_GetItem(temp, 0, b_v, _delimiter);
 		if (CInifile::IsBOOL(b_v))
@@ -129,6 +174,7 @@ void ELocatorAPI::InitFS(u32 flags)
 	}
 
 	r_close(F);
+	EnsureSDKPaths(*this, Core.ApplicationPath);
 
 	m_Flags.set(flReady, TRUE);
 	CreateLog(0 != strstr(Core.Params, "-nolog"));

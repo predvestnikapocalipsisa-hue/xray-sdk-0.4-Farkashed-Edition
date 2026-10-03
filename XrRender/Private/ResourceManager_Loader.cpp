@@ -3,6 +3,10 @@
 
 #include "ResourceManager.h"
 #include "blenders\blender.h"
+#ifdef _EDITOR
+#include "Blender_Editor_Wire.h"
+#include "Blender_Editor_Selection.h"
+#endif
 
 void CResourceManager::OnDeviceDestroy(BOOL)
 {
@@ -53,6 +57,15 @@ void CResourceManager::OnDeviceCreate(IReader *F)
 {
 	if (!RDEVICE.b_is_Ready)
 		return;
+
+#ifdef _EDITOR
+	if (!F)
+	{
+		ED_UpdateBlender("editor\\wire", xr_new<CBlender_Editor_Wire>());
+		ED_UpdateBlender("editor\\selection", xr_new<CBlender_Editor_Selection>());
+		return;
+	}
+#endif
 
 	string256 name;
 
