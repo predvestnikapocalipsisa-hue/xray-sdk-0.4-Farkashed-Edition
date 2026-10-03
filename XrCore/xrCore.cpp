@@ -16,6 +16,60 @@
 
 XRCORE_API xrCore Core;
 
+static xr_vector<xr_string> missingSDKFiles;
+static xr_string sdkStructure;
+
+void xrCore::ReportMissingSDKFile(const char* path)
+{
+	SDKFallback = true;
+	if (std::find(missingSDKFiles.begin(), missingSDKFiles.end(), xr_string(path)) == missingSDKFiles.end())
+		missingSDKFiles.push_back(path);
+	Msg("! SDK fallback: missing %s", path);
+}
+
+bool xrCore::SDKFileAvailable(const char* alias, const char* name)
+{
+	string_path path;
+	return FS.path_exist(alias) && FS.exist(path, alias, name);
+}
+
+const char* xrCore::SDKStructure()
+{
+	sdkStructure = "SDK structure (paths resolved from fs.ltx; defaults used for missing aliases)\r\n\r\n";
+	const char* aliases[] = {"$app_root$", "$game_data$", "$game_config$", "$game_shaders$",
+		"$game_textures$", "$game_meshes$", "$game_sounds$", "$game_scripts$",
+		"$objects$", "$textures$", "$sounds$", "$maps$", "$groups$", "$import$", "$local_root$", "$temp$"};
+	for (const char* alias : aliases)
+	{
+		if (!FS.path_exist(alias))
+			continue;
+		const char* path = FS.get_path(alias)->m_Path;
+		const DWORD attributes = GetFileAttributesA(path);
+		sdkStructure += (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY)) ? "[OK] " : "[missing] ";
+		sdkStructure += alias;
+		sdkStructure += " -> ";
+		sdkStructure += path;
+		sdkStructure += "\r\n";
+	}
+	sdkStructure += "\r\nMissing files at startup:\r\n";
+	for (const xr_string& path : missingSDKFiles)
+	{
+		sdkStructure += "  ";
+		sdkStructure += path;
+		sdkStructure += "\r\n";
+	}
+	sdkStructure += "\r\nRequired game data: shaders.xr, shaders_xrlc.xr, gamemtl.xr, particles.xr, lanims.xr.\r\n"
+		"Game configuration: system.ltx and its includes.\r\n"
+		"Fallback keeps empty libraries and basic rendering. Spawn/scripts and unavailable libraries are disabled.\r\n"
+		"Restore the original SDK data and restart the editor to enable all features.";
+	return sdkStructure.c_str();
+}
+
+void xrCore::ShowSDKStructure()
+{
+	MessageBoxA(NULL, SDKStructure(), "SDK structure / fallback", MB_OK | MB_ICONINFORMATION);
+}
+
 void PrintBuildId()
 {
 	constexpr int MonthsCount = 12;
@@ -73,6 +127,9 @@ namespace CPU
 
 void xrCore::InitCore(const char* AppName, LogCallback cb)
 {
+	SDKFallback = false;
+	SDKHasGameConfig = false;
+	SDKHasShaders = false;
 	xr_strcpy(ApplicationName, AppName);
 
 	// Init COM so we can use CoCreateInstance
@@ -133,6 +190,29 @@ void xrCore::InitCore(const char* AppName, LogCallback cb)
 		flags |= ELocatorAPI::flDumpFileActivity;
 
 	FS.InitFS(flags);
+	SDKHasGameConfig = SDKFileAvailable("$game_config$", "system.ltx");
+	SDKHasShaders = SDKFileAvailable("$game_data$", "shaders.xr");
+	const char* startupAssets[] = {"shaders.xr", "shaders_xrlc.xr", "gamemtl.xr", "particles.xr", "lanims.xr"};
+	for (const char* asset : startupAssets)
+	{
+		if (!SDKFileAvailable("$game_data$", asset))
+		{
+			string_path path;
+			FS.update_path(path, "$game_data$", asset);
+			ReportMissingSDKFile(path);
+		}
+	}
+	if (!SDKHasGameConfig)
+	{
+		string_path path;
+		FS.update_path(path, "$game_config$", "system.ltx");
+		ReportMissingSDKFile(path);
+	}
+	if (SDKFallback && MessageBoxA(NULL,
+		"SDK data is incomplete. The editor will start in fallback mode with empty libraries and basic rendering.\n"
+		"Features that need missing files are unavailable.\n\nView the SDK structure and missing files?",
+		"SDK fallback", MB_YESNO | MB_ICONWARNING) == IDYES)
+		ShowSDKStructure();
 	PrintBuildId();
 	EFS._initialize();
 
