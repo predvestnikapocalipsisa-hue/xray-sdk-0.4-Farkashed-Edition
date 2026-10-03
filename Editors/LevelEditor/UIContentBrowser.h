@@ -9,6 +9,7 @@ enum EContentBrowserMode
 {
     CBM_OBJECTS,
     CBM_SPAWN,
+    CBM_GROUP,
 };
 
 class UIContentBrowser
@@ -19,6 +20,7 @@ public:
 
     void Draw();
     void Refresh();
+    void RefreshObjects();
     void SetMode(EContentBrowserMode mode);
 
     // Call once after creating tool forms so the browser can notify them on selection

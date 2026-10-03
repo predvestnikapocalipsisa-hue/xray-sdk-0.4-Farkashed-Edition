@@ -11,6 +11,9 @@ UISpawnTool::UISpawnTool()
     m_AutoShape = false;
     m_AutoShapeIsSphere = true;
     m_AutoShapeSize = 3.0f;
+    m_GraphPointSpacing = 15.0f;
+    m_GraphPointSourceMode = 0;
+    m_GraphPointClearExisting = false;
 }
 
 UISpawnTool::~UISpawnTool()
@@ -108,6 +111,36 @@ void UISpawnTool::Draw()
         }
         // --- end Auto-shape ---
 
+        ImGui::Separator();
+        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::TreePop();
+    }
+    ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+    if (ImGui::TreeNode("Auto-fill Graph Points"))
+    {
+        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        {
+            ImGui::Text("Spacing:");
+            ImGui::SetNextItemWidth(-1);
+            ImGui::DragFloat("##gp_spacing", &m_GraphPointSpacing, 0.5f, 3.0f, 100.0f, "%.1f m");
+
+            const char* source_modes[] = { "Auto (AI Map / Grid)", "From AI Map Nodes", "From Scene Geometry" };
+            ImGui::Text("Source:");
+            ImGui::SetNextItemWidth(-1);
+            ImGui::Combo("##gp_source", &m_GraphPointSourceMode, source_modes, IM_ARRAYSIZE(source_modes));
+
+            ImGui::Checkbox("Clear existing Graph Points", &m_GraphPointClearExisting);
+
+            if (ImGui::Button("Generate Graph Points", ImVec2(-1, 0)))
+            {
+                ESceneSpawnTool* spawn_tool = dynamic_cast<ESceneSpawnTool*>(Scene->GetOTool(OBJCLASS_SPAWNPOINT));
+                if (spawn_tool)
+                {
+                    int count = spawn_tool->GenerateGraphPoints(m_GraphPointSpacing, m_GraphPointSourceMode, m_GraphPointClearExisting);
+                    ELog.Msg(mtInformation, "Generated %d graph point(s).", count);
+                }
+            }
+        }
         ImGui::Separator();
         ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
         ImGui::TreePop();

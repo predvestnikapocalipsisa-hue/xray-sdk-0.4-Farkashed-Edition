@@ -332,44 +332,120 @@ void CToolCustom::Render()
     EDevice.SetRS(D3DRS_CULLMODE, D3DCULL_NONE);
     xr_string temp;
     int cnt = 0;
+    const u32 maxDebugPoints = 2000, maxDebugLines = 2000, maxDebugFaces = 2000, maxDebugSolidFaces = 2000;
+    const u32 pointStride = (u32)std::max<size_t>(1, (m_DebugDraw.m_Points.size() + maxDebugPoints - 1) / maxDebugPoints);
+    const u32 lineStride = (u32)std::max<size_t>(1, (m_DebugDraw.m_Lines.size() + maxDebugLines - 1) / maxDebugLines);
+    const u32 faceStride = (u32)std::max<size_t>(1, (m_DebugDraw.m_WireFaces.size() + maxDebugFaces - 1) / maxDebugFaces);
+    const u32 solidFaceStride = (u32)std::max<size_t>(1, (m_DebugDraw.m_SolidFaces.size() + maxDebugSolidFaces - 1) / maxDebugSolidFaces);
+    int debugLabelBudget = 64;
+    int debugPointLabels = 0;
+    u32 debugPointIndex = 0;
     for (SDebugDraw::PointIt vit = m_DebugDraw.m_Points.begin(); vit != m_DebugDraw.m_Points.end(); ++vit)
     {
+        if (debugPointIndex++ % pointStride != 0) continue;
         LPCSTR s = NULL;
         if (vit->i)
         {
             temp.sprintf("P: %d", cnt++);
             s = temp.c_str();
         }
-
         if (vit->descr.size())
-        {
             s = vit->descr.c_str();
+        if (s && debugLabelBudget > 0 && debugPointLabels < 8)
+        {
+            DU_impl.dbgDrawPlacement(vit->p[0], 1, vit->c, s);
+            --debugLabelBudget;
+            ++debugPointLabels;
         }
-        DU_impl.dbgDrawVert(vit->p[0], vit->c, s ? s : "");
+    }
+    if (!m_DebugDraw.m_Points.empty())
+    {
+    DU_impl.DD_DrawLine_begin();
+    debugPointIndex = 0;
+    for (SDebugDraw::PointIt vit = m_DebugDraw.m_Points.begin(); vit != m_DebugDraw.m_Points.end(); ++vit)
+    {
+        if (debugPointIndex++ % pointStride != 0) continue;
+        const Fvector &p = vit->p[0];
+        Fvector a, b;
+        a.set(p.x - 0.01f, p.y, p.z); b.set(p.x + 0.01f, p.y, p.z); DU_impl.DD_DrawLine_push(a, b, vit->c);
+        a.set(p.x, p.y - 0.01f, p.z); b.set(p.x, p.y + 0.01f, p.z); DU_impl.DD_DrawLine_push(a, b, vit->c);
+        a.set(p.x, p.y, p.z - 0.01f); b.set(p.x, p.y, p.z + 0.01f); DU_impl.DD_DrawLine_push(a, b, vit->c);
+    }
+    DU_impl.DD_DrawLine_end();
     }
     EDevice.SetShader(EDevice.m_SelectionShader);
     cnt = 0;
+    int debugLineLabels = 0;
+    u32 debugLineIndex = 0;
     for (SDebugDraw::LineIt eit = m_DebugDraw.m_Lines.begin(); eit != m_DebugDraw.m_Lines.end(); eit++)
     {
+        if (debugLineIndex++ % lineStride != 0) continue;
         if (eit->i)
             temp.sprintf("L: %d", cnt++);
-        DU_impl.dbgDrawEdge(eit->p[0], eit->p[1], eit->c, eit->i ? temp.c_str() : "");
+        if (eit->i && debugLabelBudget > 0 && debugLineLabels < 8)
+        {
+            DU_impl.dbgDrawPlacement(eit->p[0], 1, eit->c, temp.c_str());
+            --debugLabelBudget;
+            ++debugLineLabels;
+        }
+    }
+    if (!m_DebugDraw.m_Lines.empty())
+    {
+    DU_impl.DD_DrawLine_begin();
+    debugLineIndex = 0;
+    for (SDebugDraw::LineIt eit = m_DebugDraw.m_Lines.begin(); eit != m_DebugDraw.m_Lines.end(); eit++)
+    {
+        if (debugLineIndex++ % lineStride != 0) continue;
+        const Fvector &p0 = eit->p[0], &p1 = eit->p[1];
+        Fvector a, b;
+        a.set(p0.x - 0.01f, p0.y, p0.z); b.set(p0.x + 0.01f, p0.y, p0.z); DU_impl.DD_DrawLine_push(a, b, eit->c);
+        a.set(p0.x, p0.y - 0.01f, p0.z); b.set(p0.x, p0.y + 0.01f, p0.z); DU_impl.DD_DrawLine_push(a, b, eit->c);
+        a.set(p0.x, p0.y, p0.z - 0.01f); b.set(p0.x, p0.y, p0.z + 0.01f); DU_impl.DD_DrawLine_push(a, b, eit->c);
+        a.set(p1.x - 0.01f, p1.y, p1.z); b.set(p1.x + 0.01f, p1.y, p1.z); DU_impl.DD_DrawLine_push(a, b, eit->c);
+        a.set(p1.x, p1.y - 0.01f, p1.z); b.set(p1.x, p1.y + 0.01f, p1.z); DU_impl.DD_DrawLine_push(a, b, eit->c);
+        a.set(p1.x, p1.y, p1.z - 0.01f); b.set(p1.x, p1.y, p1.z + 0.01f); DU_impl.DD_DrawLine_push(a, b, eit->c);
+        DU_impl.DD_DrawLine_push(p0, p1, eit->c);
+    }
+    DU_impl.DD_DrawLine_end();
     }
     EDevice.SetShader(EDevice.m_SelectionShader);
     cnt = 0;
+    int debugFaceLabels = 0;
+    u32 debugFaceIndex = 0;
     for (SDebugDraw::FaceIt fwit = m_DebugDraw.m_WireFaces.begin(); fwit != m_DebugDraw.m_WireFaces.end(); fwit++)
     {
+        if (debugFaceIndex++ % faceStride != 0) continue;
         if (fwit->i)
             temp.sprintf("F: %d", cnt++);
-        DU_impl.dbgDrawFace(fwit->p[0], fwit->p[1], fwit->p[2], fwit->c, fwit->i ? temp.c_str() : "");
+        if (fwit->i && debugLabelBudget > 0 && debugFaceLabels < 48)
+        {
+            DU_impl.dbgDrawPlacement(fwit->p[0], 1, fwit->c, temp.c_str());
+            --debugLabelBudget;
+            ++debugFaceLabels;
+        }
+    }
+    if (!m_DebugDraw.m_WireFaces.empty())
+    {
+        DU_impl.DD_DrawFace_begin(TRUE);
+        debugFaceIndex = 0;
+        for (SDebugDraw::FaceIt fwit = m_DebugDraw.m_WireFaces.begin(); fwit != m_DebugDraw.m_WireFaces.end(); fwit++)
+        {
+            if (debugFaceIndex++ % faceStride != 0) continue;
+            DU_impl.DD_DrawFace_push(fwit->p[0], fwit->p[1], fwit->p[2], fwit->c);
+        }
+        DU_impl.DD_DrawFace_end();
     }
     cnt = 0;
     if (!m_DebugDraw.m_SolidFaces.empty())
     {
         EDevice.SetShader(EDevice.m_SelectionShader);
         DU_impl.DD_DrawFace_begin(FALSE);
+        u32 solidFaceIndex = 0;
         for (SDebugDraw::FaceIt fsit = m_DebugDraw.m_SolidFaces.begin(); fsit != m_DebugDraw.m_SolidFaces.end(); fsit++)
+        {
+            if (solidFaceIndex++ % solidFaceStride != 0) continue;
             DU_impl.DD_DrawFace_push(fsit->p[0], fsit->p[1], fsit->p[2], fsit->c);
+        }
         DU_impl.DD_DrawFace_end();
     }
     EDevice.SetShader(EDevice.m_SelectionShader);

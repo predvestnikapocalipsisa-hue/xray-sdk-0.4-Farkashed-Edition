@@ -9,6 +9,15 @@ ESceneObjectTool::ESceneObjectTool() : ESceneCustomOTool(OBJCLASS_SCENEOBJECT)
     m_Flags.zero();
 }
 
+void ESceneObjectTool::ReloadReferences()
+{
+    for (ObjectIt it = m_Objects.begin(); it != m_Objects.end(); ++it)
+    {
+        CSceneObject* object = dynamic_cast<CSceneObject*>(*it);
+        if (object)
+            object->UpdateReference();
+    }
+}
 void ESceneObjectTool::CreateControls()
 {
     inherited::CreateDefaultControls(estDefault);

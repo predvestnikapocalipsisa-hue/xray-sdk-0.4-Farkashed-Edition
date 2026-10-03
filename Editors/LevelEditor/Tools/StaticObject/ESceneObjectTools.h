@@ -33,6 +33,7 @@ public:
 
 public:
     ESceneObjectTool();
+    void ReloadReferences();
 
     virtual bool AllowEnabling() { return false; }
 

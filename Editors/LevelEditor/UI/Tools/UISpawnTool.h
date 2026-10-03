@@ -38,4 +38,9 @@ private:
 	bool  m_AutoShape;         // whether to auto-attach a shape on placement
 	bool  m_AutoShapeIsSphere; // true = sphere, false = box
 	float m_AutoShapeSize;     // radius for sphere / half-extent for box
+
+	// Auto-fill Graph Points
+	float m_GraphPointSpacing;
+	int   m_GraphPointSourceMode;
+	bool  m_GraphPointClearExisting;
 };

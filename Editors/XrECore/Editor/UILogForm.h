@@ -20,6 +20,7 @@ private:
 	static xr_vector<xr_string> *GetList();
 	static bool bAutoScroll;
 	static bool bOnlyError;
+	static int selectedLine;
 };
 //---------------------------------------------------------------------------
 #endif
