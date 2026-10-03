@@ -316,11 +316,11 @@ static  __cdecl  int compare_index_error (const void *a, const void *b)
 struct _Rand_urng_from_func { // wrap rand() as a URNG
 	using result_type = unsigned int;
 
-	static result_type(min)() { // return minimum possible generated value
+	static constexpr result_type(min)() { // return minimum possible generated value
 		return 0;
 	}
 
-	static result_type(max)() { // return maximum possible generated value
+	static constexpr result_type(max)() { // return maximum possible generated value
 		return RAND_MAX;
 	}
 
