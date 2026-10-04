@@ -92,7 +92,7 @@ namespace
     }
 }
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+extern "C" int __cdecl SDKEditorMain()
 {
     __try
     {

@@ -57,7 +57,7 @@
 
 #include "xrCore_platform.h"
 
-#ifdef XRCORE_EXPORTS // no exceptions, export allocator and common stuff
+#if defined(XRCORE_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD) // no exceptions, export allocator and common stuff
 #define _STLP_DESIGNATED_DLL 1
 #define _STLP_USE_DECLSPEC 1
 #else
@@ -101,7 +101,7 @@
 
 #define ALIGN(a) __declspec(align(a))
 #include <sys\utime.h>
-#define MODULE_NAME "xrCore.dll"
+#define MODULE_NAME "SDKRuntime.dll"
 
 // Warnings
 #pragma warning(disable : 4251) // object needs DLL interface
@@ -142,7 +142,7 @@
 #pragma warning(disable : 4100) // unreferenced formal parameter
 
 // Our headers
-#ifdef XRCORE_EXPORTS
+#if defined(XRCORE_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define XRCORE_API __declspec(dllexport)
 #else
 #define XRCORE_API __declspec(dllimport)

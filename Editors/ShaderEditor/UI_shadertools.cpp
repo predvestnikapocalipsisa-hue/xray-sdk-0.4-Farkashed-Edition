@@ -351,3 +351,8 @@ bool CShaderTool::GetSelectionPosition(Fmatrix &result)
 }
 
 //------------------------------------------------------------------------------
+
+xr_string CShaderTool::DiscordDocument()
+{
+    return m_Current ? m_Current->ViewGetCurrentItem(false) : xr_string();
+}

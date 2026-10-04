@@ -249,6 +249,13 @@ public:
     virtual void RefreshProperties() = 0;
 
     const xr_string &GetEditFileName() { return m_LastFileName; }
+    virtual xr_string DiscordDocument()
+    {
+        const size_t slash = m_LastFileName.find_last_of("\\/");
+        xr_string name = slash == xr_string::npos ? m_LastFileName : m_LastFileName.substr(slash + 1);
+        const size_t extension = name.find_last_of('.');
+        return extension == xr_string::npos ? name : name.substr(0, extension);
+    }
 
     CEditableObject *m_pAxisMoveObject;
     CEditableObject *m_pRotationGizmo;

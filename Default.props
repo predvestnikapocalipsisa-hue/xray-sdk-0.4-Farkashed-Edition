@@ -26,7 +26,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <Target Name="CopySdkRuntimeDependencies" AfterTargets="Build"
-          Condition="'$(ConfigurationType)' == 'Application'">
+          Condition="'$(ProjectName)' == 'SDKRuntime'">
     <PropertyGroup>
       <SdkRuntimePlatform>$(Platform)</SdkRuntimePlatform>
       <SdkRuntimePlatform Condition="'$(Platform)' == 'Win32'">win32</SdkRuntimePlatform>

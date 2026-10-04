@@ -69,10 +69,18 @@ namespace
 
     // Area filtering integrates all source pixels covered by an output pixel.
     // Accumulate premultiplied colors to avoid fringes around transparent edges.
-    void ResizeIcon(std::vector<unsigned char>& pixels, unsigned& width, unsigned& height, unsigned size)
+    void ResizeImage(std::vector<unsigned char>& pixels, unsigned& width, unsigned& height,
+        unsigned size, unsigned requestedHeight)
     {
         unsigned left = width, top = height, right = 0, bottom = 0;
-        for (unsigned y = 0; y < height; ++y)
+        if (requestedHeight)
+        {
+            // Keep the logo's full design canvas and its intentional margins.
+            left = top = 0;
+            right = width;
+            bottom = height;
+        }
+        else for (unsigned y = 0; y < height; ++y)
             for (unsigned x = 0; x < width; ++x)
                 if (pixels[(size_t(y) * width + x) * 4 + 3])
                 {
@@ -85,8 +93,8 @@ namespace
             return;
         const unsigned sourceWidth = right - left, sourceHeight = bottom - top;
         const float ratio = float(size) / float((std::max)(sourceWidth, sourceHeight));
-        const unsigned targetWidth = (std::max)(1u, unsigned(sourceWidth * ratio + 0.5f));
-        const unsigned targetHeight = (std::max)(1u, unsigned(sourceHeight * ratio + 0.5f));
+        const unsigned targetWidth = requestedHeight ? size : (std::max)(1u, unsigned(sourceWidth * ratio + 0.5f));
+        const unsigned targetHeight = requestedHeight ? requestedHeight : (std::max)(1u, unsigned(sourceHeight * ratio + 0.5f));
         std::vector<unsigned char> output(size_t(targetWidth) * targetHeight * 4);
         for (unsigned y = 0; y < targetHeight; ++y)
             for (unsigned x = 0; x < targetWidth; ++x)
@@ -168,6 +176,11 @@ bool LauncherPlatform::Initialize(HINSTANCE applicationInstance)
     if (FAILED(result))
         return false;
     SetBlur(true);
+    const std::wstring assetPath = FarkashedLauncher::ModuleDirectory() + L"\\LauncherAssets.dll";
+    assetsModule = LoadLibraryExW(assetPath.c_str(), nullptr,
+        LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+    if (!assetsModule)
+        return false;
     DragAcceptFiles(window, TRUE);
     const int cornerPreference = 1; // Preserve the rectangular red frame on Windows 11.
     DwmSetWindowAttribute(window, 33, &cornerPreference, sizeof(cornerPreference));
@@ -180,6 +193,9 @@ void LauncherPlatform::Shutdown()
     KillTimer(window, 1);
     Release(device);
     Release(direct3D);
+    if (assetsModule)
+        FreeLibrary(assetsModule);
+    assetsModule = nullptr;
     if (window)
         DestroyWindow(window);
     window = nullptr;
@@ -205,17 +221,37 @@ std::unique_ptr<Texture> LauncherPlatform::Upload(const unsigned char* pixels, u
     return texture;
 }
 
-std::unique_ptr<Texture> LauncherPlatform::LoadTexture(const std::wstring& path, unsigned iconSize)
+LauncherAssetData LauncherPlatform::Asset(unsigned resourceId) const
 {
+    if (!assetsModule)
+        return {};
+    const HRSRC resource = FindResourceW(assetsModule, MAKEINTRESOURCEW(resourceId), RT_RCDATA);
+    if (!resource)
+        return {};
+    const HGLOBAL loaded = LoadResource(assetsModule, resource);
+    if (!loaded)
+        return {};
+    return { static_cast<const unsigned char*>(LockResource(loaded)), SizeofResource(assetsModule, resource) };
+}
+
+std::unique_ptr<Texture> LauncherPlatform::LoadTexture(unsigned resourceId, unsigned targetWidth, unsigned targetHeight)
+{
+    const LauncherAssetData asset = Asset(resourceId);
+    if (!asset.data || !asset.size || !targetWidth)
+        return {};
     IWICImagingFactory* factory = nullptr;
+    IWICStream* stream = nullptr;
     IWICBitmapDecoder* decoder = nullptr;
     IWICBitmapFrameDecode* image = nullptr;
     IWICFormatConverter* converter = nullptr;
     HRESULT result = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
         IID_PPV_ARGS(&factory));
     if (SUCCEEDED(result))
-        result = factory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ,
-            WICDecodeMetadataCacheOnDemand, &decoder);
+        result = factory->CreateStream(&stream);
+    if (SUCCEEDED(result))
+        result = stream->InitializeFromMemory(const_cast<BYTE*>(asset.data), asset.size);
+    if (SUCCEEDED(result))
+        result = factory->CreateDecoderFromStream(stream, nullptr, WICDecodeMetadataCacheOnDemand, &decoder);
     if (SUCCEEDED(result))
         result = decoder->GetFrame(0, &image);
     if (SUCCEEDED(result))
@@ -233,14 +269,14 @@ std::unique_ptr<Texture> LauncherPlatform::LoadTexture(const std::wstring& path,
         result = converter->CopyPixels(nullptr, width * 4, UINT(pixels.size()), pixels.data());
         if (SUCCEEDED(result))
         {
-            if (iconSize)
-                ResizeIcon(pixels, width, height, iconSize);
+            ResizeImage(pixels, width, height, targetWidth, targetHeight);
             texture = Upload(pixels.data(), width, height);
         }
     }
     Release(converter);
     Release(image);
     Release(decoder);
+    Release(stream);
     Release(factory);
     return texture;
 }
@@ -371,7 +407,7 @@ std::wstring LauncherPlatform::PickSDKDirectory()
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog))))
         return {};
     dialog->SetOptions(FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
-    dialog->SetTitle(L"Select the folder containing the SDK editor executables");
+    dialog->SetTitle(L"Select the folder containing Launcher.exe and the SDK modules");
     std::wstring selected;
     if (SUCCEEDED(dialog->Show(window)))
     {
@@ -404,14 +440,26 @@ bool LauncherPlatform::StartEditor(const std::wstring& executable, const std::ws
         error = L"This recent file has been moved or deleted:\n" + file;
         return false;
     }
-    std::wstring arguments = QuoteArgument(executable);
+    const std::wstring moduleName = executable.substr(executable.find_last_of(L"\\/") + 1);
+    std::wstring editor;
+    if (_wcsicmp(moduleName.c_str(), L"ActorEditor.dll") == 0) editor = L"actor";
+    if (_wcsicmp(moduleName.c_str(), L"LevelEditor.dll") == 0) editor = L"level";
+    if (_wcsicmp(moduleName.c_str(), L"ParticleEditor.dll") == 0) editor = L"particle";
+    if (_wcsicmp(moduleName.c_str(), L"ShaderEditor.dll") == 0) editor = L"shader";
+    const std::wstring host = directory + L"\\Launcher.exe";
+    if (editor.empty() || !FarkashedLauncher::FileExists(host))
+    {
+        error = L"The selected SDK must contain Launcher.exe and the editor DLLs.";
+        return false;
+    }
+    std::wstring arguments = QuoteArgument(host) + L" --sdk-editor " + editor;
     if (!file.empty())
         arguments += L" --launcher-open " + QuoteArgument(file);
     std::vector<wchar_t> commandLine(arguments.begin(), arguments.end());
     commandLine.push_back(0);
     STARTUPINFOW startup = { sizeof(STARTUPINFOW) };
     PROCESS_INFORMATION process = {};
-    if (!CreateProcessW(executable.c_str(), commandLine.data(), nullptr, nullptr, FALSE, 0,
+    if (!CreateProcessW(host.c_str(), commandLine.data(), nullptr, nullptr, FALSE, 0,
         nullptr, directory.c_str(), &startup, &process))
     {
         error = LastErrorText(GetLastError()) + L"\n" + executable;

@@ -1,6 +1,6 @@
 #pragma once
 #include "..\..\XrCore\xrCore.h"
-#ifdef XREUI_EXPORTS
+#if defined(XREUI_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define XREUI_API __declspec(dllexport)
 #else
 #define XREUI_API __declspec(dllimport)

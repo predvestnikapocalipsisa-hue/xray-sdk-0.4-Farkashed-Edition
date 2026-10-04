@@ -325,6 +325,7 @@ public:
 
     bool IsVisualPresent() { return m_RenderObject.IsRenderable(); }
 
+    xr_string DiscordDocument() override;
     CEditableObject *CurrentObject() { return m_pEditObject; }
     void SetCurrentMotion(LPCSTR name, u16 slot);
     CSMotion *GetCurrentMotion();

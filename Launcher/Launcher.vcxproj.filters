@@ -8,6 +8,7 @@
   <ItemGroup>
     <ClCompile Include="Launcher.cpp"><Filter>Source</Filter></ClCompile>
     <ClCompile Include="Platform.cpp"><Filter>Source</Filter></ClCompile>
+    <ClCompile Include="EditorHost.cpp"><Filter>Source</Filter></ClCompile>
     <ClCompile Include="..\Editors\XrEUI\imgui.cpp"><Filter>ImGui</Filter></ClCompile>
     <ClCompile Include="..\Editors\XrEUI\imgui_demo.cpp"><Filter>ImGui</Filter></ClCompile>
     <ClCompile Include="..\Editors\XrEUI\imgui_draw.cpp"><Filter>ImGui</Filter></ClCompile>
@@ -19,6 +20,8 @@
   <ItemGroup>
     <ClInclude Include="Platform.h"><Filter>Source</Filter></ClInclude>
     <ClInclude Include="RecentFiles.h"><Filter>Source</Filter></ClInclude>
+    <ClInclude Include="EditorHost.h"><Filter>Source</Filter></ClInclude>
+    <ClInclude Include="DiscordPresence.h"><Filter>Source</Filter></ClInclude>
     <ResourceCompile Include="Launcher.rc"><Filter>Source</Filter></ResourceCompile>
     <None Include="Launcher.manifest"><Filter>Source</Filter></None>
     <None Include="README.md" />

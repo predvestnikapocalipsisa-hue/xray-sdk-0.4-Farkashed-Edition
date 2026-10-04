@@ -1,6 +1,8 @@
 #include "stdafx.h"
 
-#pragma comment(lib,"xrCore.lib")
+#ifndef XR_SDK_RUNTIME_BUILD
+#pragma comment(lib,"SDKRuntime.lib")
+#endif
 
 XrUI::~XrUI()
 {

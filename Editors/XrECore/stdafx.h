@@ -19,7 +19,7 @@
 
 // iseful macros
 // MSC names for functions
-#ifdef XRECORE_EXPORTS
+#if defined(XRECORE_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define ECORE_API __declspec(dllexport)
 #define ENGINE_API __declspec(dllexport)
 #else
@@ -27,7 +27,11 @@
 #define ENGINE_API __declspec(dllimport)
 #endif
 
+#ifdef XR_SDK_RUNTIME_BUILD
+#define DLL_API __declspec(dllexport)
+#else
 #define DLL_API __declspec(dllimport)
+#endif
 #define PropertyGP(a, b) __declspec(property(get = a, put = b))
 #define THROW FATAL("THROW");
 #define THROW2(a) FATAL(a);

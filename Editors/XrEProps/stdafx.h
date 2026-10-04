@@ -1,6 +1,8 @@
 #pragma once
 #ifdef XREPROPS_EXPORTS
 #define smart_cast dynamic_cast
+#endif
+#if defined(XREPROPS_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define XREPROPS_API __declspec(dllexport)
 #else
 #define XREPROPS_API __declspec(dllimport)

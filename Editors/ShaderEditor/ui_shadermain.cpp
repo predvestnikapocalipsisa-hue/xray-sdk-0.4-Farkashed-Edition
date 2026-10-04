@@ -194,5 +194,5 @@ void CShaderMain::RealQuit()
 
 HICON CShaderMain::EditorIcon()
 {
-    return LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(MAINICON));
+    return LoadIcon(GetModuleHandleA("ShaderEditor.dll"), MAKEINTRESOURCE(MAINICON));
 }

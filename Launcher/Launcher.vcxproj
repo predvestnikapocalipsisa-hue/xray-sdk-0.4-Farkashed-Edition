@@ -44,7 +44,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>d3d9.lib;dwmapi.lib;windowscodecs.lib;shell32.lib;ole32.lib;uuid.lib;imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\External\discord\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>discord-rpc.lib;d3d9.lib;dwmapi.lib;windowscodecs.lib;shell32.lib;ole32.lib;uuid.lib;imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -54,6 +55,7 @@
   <ItemGroup>
     <ClCompile Include="Launcher.cpp" />
     <ClCompile Include="Platform.cpp" />
+    <ClCompile Include="EditorHost.cpp" />
     <ClCompile Include="..\Editors\XrEUI\imgui.cpp" />
     <ClCompile Include="..\Editors\XrEUI\imgui_demo.cpp" />
     <ClCompile Include="..\Editors\XrEUI\imgui_draw.cpp" />
@@ -65,6 +67,8 @@
   <ItemGroup>
     <ClInclude Include="Platform.h" />
     <ClInclude Include="RecentFiles.h" />
+    <ClInclude Include="EditorHost.h" />
+    <ClInclude Include="DiscordPresence.h" />
     <ResourceCompile Include="Launcher.rc" />
     <None Include="Launcher.manifest" />
     <None Include="README.md" />
@@ -73,11 +77,13 @@
     <Image Include="assets\gui\*.png" />
     <Image Include="assets\gui\Icon.ico" />
   </ItemGroup>
-  <ItemGroup>
-    <LauncherAsset Include="assets\gui\*.png;assets\gui\font.otf" />
+<ItemGroup>
+    <ProjectReference Include="..\LauncherAssets\LauncherAssets.vcxproj"><Project>{EB36CD0B-0D19-4EA4-92D4-78F576DA9102}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\ActorEditor\ActorEditor.vcxproj"><Project>{3145D38A-574B-4841-8AA9-CCD160B95124}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\LevelEditor\LevelEditor.vcxproj"><Project>{7E13BFCC-55B0-4715-8BBB-84A143CCE84B}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\ParticleEditor\ParticleEditor.vcxproj"><Project>{19DC7E82-12AF-4110-93CA-E7C30500A3F5}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\ShaderEditor\ShaderEditor.vcxproj"><Project>{3B20191B-7CA1-4D9C-8306-4D9EBB29E24A}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\XrCPU_Pipe\XrCPU_Pipe.vcxproj"><Project>{E671B0D4-52F0-471B-90B4-8317946C3C26}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Target Name="CopyLauncherAssets" AfterTargets="Build">
-    <Copy SourceFiles="@(LauncherAsset)" DestinationFolder="$(OutDir)launcher\assets\gui" SkipUnchangedFiles="true" />
-  </Target>
 </Project>

@@ -286,5 +286,5 @@ void CParticleMain::RealQuit()
 
 HICON CParticleMain::EditorIcon()
 {
-    return LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(MAINICON));
+    return LoadIcon(GetModuleHandleA("ParticleEditor.dll"), MAKEINTRESOURCE(MAINICON));
 }

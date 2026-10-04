@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(ConfigurationType)'=='StaticLibrary'">
+    <!-- Keep TargetPath and librarian output identical for project references. -->
+    <OutDir>$(SolutionDir)output\libraries_$(Platform)_$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <!-- Imported after project settings: all objects in SDKRuntime share one CRT. -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'!='Debug'">MultiThreadedDLL</RuntimeLibrary>
+      <PreprocessorDefinitions Condition="'$(SdkRuntimePart)'=='true'">XR_SDK_RUNTIME_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(SdkCpuPart)'=='true'">xrSkin1W_x86=SdkCpuSkin1W_x86;xrSkin2W_x86=SdkCpuSkin2W_x86;xrSkin3W_x86=SdkCpuSkin3W_x86;xrSkin4W_x86=SdkCpuSkin4W_x86;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link Condition="'$(SdkEditorModule)'=='true'">
+      <ModuleDefinitionFile>$(SolutionDir)Editors\Public\EditorModule.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile Condition="'$(ProjectName)'=='LevelEditor'">$(SolutionDir)Editors\LevelEditor\LevelEditor.def</ModuleDefinitionFile>
+    </Link>
+    <Lib Condition="'$(ConfigurationType)'=='StaticLibrary'">
+      <OutputFile>$(OutDir)$(TargetName).lib</OutputFile>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
+</Project>

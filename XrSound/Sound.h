@@ -4,7 +4,7 @@
 
 //#include "../include/xrapi/xrapi.h"
 
-#ifdef XRSOUND_EXPORTS
+#if defined(XRSOUND_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define XRSOUND_API __declspec(dllexport)
 #else
 #define XRSOUND_API __declspec(dllimport)

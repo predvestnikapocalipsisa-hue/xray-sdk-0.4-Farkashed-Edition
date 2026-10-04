@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32"><Configuration>Debug</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64"><Configuration>Debug</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Development|Win32"><Configuration>Development</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64"><Configuration>Development</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32"><Configuration>Release</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals"><ProjectGuid>{EB36CD0B-0D19-4EA4-92D4-78F576DA9101}</ProjectGuid><RootNamespace>SDKRuntime</RootNamespace><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration"><ConfigurationType>DynamicLibrary</ConfigurationType><PlatformToolset>v142</PlatformToolset><PlatformToolset Condition="'$(Configuration)|$(Platform)'=='Release|x64'">v145</PlatformToolset><UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries><UseDebugLibraries Condition="'$(Configuration)'!='Debug'">false</UseDebugLibraries></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup><SolutionDir Condition="'$(SolutionDir)'=='' Or '$(SolutionDir)'=='*Undefined*'">$(MSBuildThisFileDirectory)..\</SolutionDir></PropertyGroup>
+  <ImportGroup Label="PropertySheets"><Import Project="..\Default.props" /></ImportGroup>
+  <ItemDefinitionGroup><ClCompile><PrecompiledHeader>NotUsing</PrecompiledHeader><PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions></ClCompile><Link>
+    <ModuleDefinitionFile>SDKRuntime.def</ModuleDefinitionFile>
+    <AdditionalDependencies>d3d9.lib;d3dx9.lib;dxerr.lib;vfw32.lib;winmm.lib;dxguid.lib;dinput8.lib;rpcrt4.lib;FreeImage.lib;nvtt.lib;discord-rpc.lib;imm32.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    <AdditionalLibraryDirectories>$(SolutionDir)External\discord\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    <AdditionalOptions>/WHOLEARCHIVE:Luabind.lib /WHOLEARCHIVE:XrCPU_Pipe.lib /WHOLEARCHIVE:XrAPI.lib /WHOLEARCHIVE:XrCore.lib /WHOLEARCHIVE:XrCDB.lib /WHOLEARCHIVE:XrParticles.lib /WHOLEARCHIVE:XrPhysics.lib /WHOLEARCHIVE:XrSound.lib /WHOLEARCHIVE:XrXMLParser.lib /WHOLEARCHIVE:XrECore.lib /WHOLEARCHIVE:XrEProps.lib /WHOLEARCHIVE:XrEUI.lib /WHOLEARCHIVE:XrETools.lib /WHOLEARCHIVE:XrDXT.lib /WHOLEARCHIVE:XrSE_Factory.lib %(AdditionalOptions)</AdditionalOptions>
+    <AdditionalDependencies Condition="'$(Platform)'=='Win32'">legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+  </Link></ItemDefinitionGroup>
+  <ItemGroup><ClCompile Include="SDKRuntime.cpp" /><None Include="SDKRuntime.def" /><None Include="README.md" /><None Include="validate_layout.py" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\XrAPI\XrAPI.vcxproj"><Project>{FF16EF0A-8A51-4C36-9213-4AA87CB4B317}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\XrCore\XrCore.vcxproj"><Project>{DA642D7C-4FFF-43DC-98F8-3F96CAF1E4BA}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\XrCDB\XrCDB.vcxproj"><Project>{7E263157-2FC0-42D7-A676-DD6049BB60F5}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\XrParticles\XrParticles.vcxproj"><Project>{C50A948D-9175-4388-AE07-0CDAB7FB69C8}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\XrPhysics\XrPhysics.vcxproj"><Project>{3D3CC439-AABC-4565-99C8-9C53F425380C}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\XrSound\XrSound.vcxproj"><Project>{57601B62-902A-4EC8-BCC7-B6A2E30B0676}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\XrXMLParser\XrXMLParser.vcxproj"><Project>{39ABB344-2136-46C3-814D-8E80BC59A08E}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\XrECore\XrECore.vcxproj"><Project>{9187BE98-531A-4276-B78E-DBA3C8AB8447}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\XrEProps\XrEProps.vcxproj"><Project>{6D47AFC7-0557-4BBF-8902-B248F3621419}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\XrEUI\XrEUI.vcxproj"><Project>{7E28883C-DB86-4EE8-813A-991BA20C68C9}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\XrETools\XrETools.vcxproj"><Project>{FB040F9F-8344-43DA-A4D6-1C8A9D5DBC59}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\XrDXT\XrDXT.vcxproj"><Project>{7C119635-1963-4547-B345-CB7ED7EB2EE4}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\XrSE_Factory\XrSE_Factory.vcxproj"><Project>{E5D980C8-02DF-45D1-9F15-4D87AE100661}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\XrCPU_Pipe\XrCPU_Pipe.vcxproj"><Project>{E671B0D4-52F0-471B-90B4-8317946C3C26}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\FreeMagic\FreeMagic.vcxproj"><Project>{DCC5B76D-BE13-4D1F-BE14-75D0FA678340}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Editors\XrQSlim\XrQSlim.vcxproj"><Project>{F4CD3B2B-16E4-47EF-80A9-B7D20DFC3713}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\External\Ode\Ode.vcxproj"><Project>{EB58439B-1F16-4E81-B0B3-1E1E95AD4901}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\External\Ogg\Ogg.vcxproj"><Project>{490C4173-E321-4E03-8E09-0475D7B91307}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\External\Vorbis\Vorbis.vcxproj"><Project>{AC3D4F35-0E39-47F7-AEB7-552811A90A07}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\External\Theora\Theora.vcxproj"><Project>{0CBE8406-AE28-414B-B353-CB2D3C4003C8}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\External\BugTrap\BugTrap.vcxproj"><Project>{E8CF1ADA-264A-4127-86C2-FD7057D3792C}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\External\OpenAL\OpenAL.vcxproj"><Project>{3E6D62E8-DAF4-4FF8-8CB7-64758BA6A61A}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\External\Luabind\Luabind.vcxproj"><Project>{6FDBCDB3-D190-486D-BDAC-3C4AC527DA3B}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\External\LuaJIT\src\luajit.vcxproj"><Project>{632AEEB6-DC06-4E15-9551-B2B09A4B73C5}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+  </ItemGroup>
+  <Import Project="$(SolutionDir)SdkPackaging.targets" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

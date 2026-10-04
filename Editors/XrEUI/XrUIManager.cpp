@@ -1,34 +1,13 @@
 #include "stdafx.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
-#include "./discord_rpc.h"
+#include "../../Launcher/DiscordPresence.h"
 #include <string>
 #include <vector>
 
-void InitDiscord() {
-    DiscordEventHandlers handlers;
-    memset(&handlers, 0, sizeof(handlers));
-    Discord_Initialize("1494378153672446104", &handlers, 1, NULL);
-}
-
-static void UpdateDiscordStatus() {
-    typedef const char* (*GetLevelNameFunc)();
-    static GetLevelNameFunc pGetLevelName = nullptr;
-    if (!pGetLevelName) {
-        HMODULE hModule = GetModuleHandle(NULL);
-        pGetLevelName = (GetLevelNameFunc)GetProcAddress(hModule, "GetCurrentLevelName");
-    }
-
-    DiscordRichPresence discordPresence;
-    memset(&discordPresence, 0, sizeof(discordPresence));
-
-    const char* levelName = (pGetLevelName) ? pGetLevelName() : "NULL";
-
-    discordPresence.details = "works in the SDK";
-    discordPresence.state = (levelName && levelName[0] != '\0') ? levelName : "New scene";
-    discordPresence.largeImageKey = "logo";
-
-    Discord_UpdatePresence(&discordPresence);
+namespace
+{
+    FarkashedDiscord::Presence editorPresence;
 }
 
 #define USE_OLD_STYLE 1
@@ -203,9 +182,7 @@ inline void Style()
 
 void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* ini_path)
 {
-    InitDiscord();
-    UpdateDiscordStatus();
-    Discord_RunCallbacks();
+    editorPresence.Initialize();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -242,6 +219,7 @@ void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* in
 
 void XrUIManager::Destroy()
 {
+    editorPresence.Shutdown();
     ImGui_ImplDX9_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
@@ -354,14 +332,9 @@ void XrUIManager::Push(XrUI* ui, bool need_deleted)
 
 void XrUIManager::Draw()
 {
-    Discord_RunCallbacks();
-
-    static uint32_t last_discord_update = 0;
-    uint32_t current_time = GetTickCount();
-    if (current_time - last_discord_update > 5000) {
-        UpdateDiscordStatus();
-        last_discord_update = current_time;
-    }
+    const xr_string environment = DiscordEnvironment();
+    const xr_string document = DiscordDocument();
+    editorPresence.Tick(environment.c_str(), FarkashedDiscord::AnsiToUtf8(document.c_str()));
 
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();

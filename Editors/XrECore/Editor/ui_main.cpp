@@ -848,3 +848,23 @@ void SPBItem::Info(LPCSTR text, bool bWarn)
         UI->ProgressDraw();
     }
 }
+
+xr_string TUI::DiscordEnvironment()
+{
+    if (!xr_strcmp(EditorName(), "level")) return "In Level Editor";
+    if (!xr_strcmp(EditorName(), "actor")) return "In Actor Editor";
+    if (!xr_strcmp(EditorName(), "particle")) return "In Particle Editor";
+    if (!xr_strcmp(EditorName(), "shader")) return "In Shader Editor";
+    return "In Editor";
+}
+
+xr_string TUI::DiscordDocument()
+{
+    const xr_string name = Tools ? Tools->DiscordDocument() : xr_string();
+    if (!name.empty()) return name;
+    if (!xr_strcmp(EditorName(), "level")) return "Untitled level";
+    if (!xr_strcmp(EditorName(), "actor")) return "Untitled object";
+    if (!xr_strcmp(EditorName(), "particle")) return "No particle selected";
+    if (!xr_strcmp(EditorName(), "shader")) return "No item selected";
+    return "";
+}

@@ -270,36 +270,11 @@
     <ClInclude Include="Utils\SoundManager_LE.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\XrCDB\XrCDB.vcxproj">
-      <Project>{7e263157-2fc0-42d7-a676-dd6049bb60f5}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\XrCore\XrCore.vcxproj">
-      <Project>{da642d7c-4fff-43dc-98f8-3f96caf1e4ba}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\XrPhysics\XrPhysics.vcxproj">
-      <Project>{3d3cc439-aabc-4565-99c8-9c53f425380c}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\XrSound\XrSound.vcxproj">
-      <Project>{57601b62-902a-4ec8-bcc7-b6a2e30b0676}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\FreeMagic\FreeMagic.vcxproj">
-      <Project>{dcc5b76d-be13-4d1f-be14-75d0fa678340}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\XrECore\XrECore.vcxproj">
-      <Project>{9187be98-531a-4276-b78e-dba3c8ab8447}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\XrEProps\XrEProps.vcxproj">
-      <Project>{6d47afc7-0557-4bbf-8902-b248f3621419}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\XrETools\XrETools.vcxproj">
-      <Project>{fb040f9f-8344-43da-a4d6-1c8a9d5dbc59}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\XrEUI\XrEUI.vcxproj">
-      <Project>{7e28883c-db86-4ee8-813a-991ba20c68c9}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\XrSE_Factory\XrSE_Factory.vcxproj">
-      <Project>{e5d980c8-02df-45d1-9f15-4d87ae100661}</Project>
-    </ProjectReference>
+
+
+
+
+
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\IconLE.ico" />
@@ -316,14 +291,14 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -331,7 +306,7 @@
     <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -339,14 +314,14 @@
     <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -354,7 +329,7 @@
     <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -519,6 +494,13 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\SDKRuntime\SDKRuntime.vcxproj"><Project>{EB36CD0B-0D19-4EA4-92D4-78F576DA9101}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\FreeMagic\FreeMagic.vcxproj"><Project>{DCC5B76D-BE13-4D1F-BE14-75D0FA678340}</Project><LinkLibraryDependencies>true</LinkLibraryDependencies></ProjectReference>
+    <None Include="..\Public\EditorModule.def" />
+  </ItemGroup>
+  <PropertyGroup><SdkEditorModule>true</SdkEditorModule></PropertyGroup>
+  <Import Project="$(SolutionDir)SdkPackaging.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

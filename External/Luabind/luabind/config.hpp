@@ -81,7 +81,7 @@
 // select import or export depending on it
 #ifdef LUABIND_STATIC
 #	define LUABIND_API
-#elif defined LUABIND_BUILDING
+#elif defined(LUABIND_BUILDING) || defined(XR_SDK_RUNTIME_BUILD)
 #	define LUABIND_API 		__declspec(dllexport)
 #else
 #	define LUABIND_API		__declspec(dllimport)

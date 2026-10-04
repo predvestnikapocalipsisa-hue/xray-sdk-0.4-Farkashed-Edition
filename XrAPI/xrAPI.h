@@ -2,7 +2,7 @@
 #define xrApi_included
 #pragma once
 
-#ifdef XRAPI_EXPORTS
+#if defined(XRAPI_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define XRAPI_API __declspec(dllexport)
 #else
 #define XRAPI_API __declspec(dllimport)
