@@ -31,8 +31,7 @@ CRender::~CRender()
 
 void CRender::Initialize()
 {
-	if (Core.SDKFileAvailable("$game_data$", "particles.xr"))
-		PSLibrary.OnCreate();
+	PSLibrary.OnCreate();
 }
 void CRender::ShutDown()
 {

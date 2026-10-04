@@ -363,11 +363,6 @@ bool CParticleTool::Load(LPCSTR name)
 
 bool CParticleTool::Save(bool bAsXR)
 {
-    if (Core.SDKFallback)
-    {
-        ELog.DlgMsg(mtInformation, "Saving the particle library is disabled in SDK fallback mode.");
-        return false;
-    }
     VERIFY(m_bReady);
 
     // validate

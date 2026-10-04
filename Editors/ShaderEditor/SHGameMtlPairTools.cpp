@@ -91,11 +91,6 @@ void CSHGameMtlPairTools::Load()
 
 bool CSHGameMtlPairTools::Save()
 {
-    if (Core.SDKFallback)
-    {
-        ELog.DlgMsg(mtInformation, "Saving SDK libraries is disabled in fallback mode.");
-        return false;
-    }
     m_bLockUpdate = TRUE;
 
     // save
