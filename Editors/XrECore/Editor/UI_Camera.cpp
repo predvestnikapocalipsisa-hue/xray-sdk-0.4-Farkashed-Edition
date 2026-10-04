@@ -20,6 +20,7 @@ CUI_Camera::CUI_Camera()
     m_FlyAltitude = 1.8f;
 
     m_bMoving = false;
+    m_bMiddleMoving = false;
 }
 
 CUI_Camera::~CUI_Camera()
@@ -148,7 +149,7 @@ void CUI_Camera::Update(float dt)
     {
         BOOL bLeftDn = m_Shift & ssLeft;
         BOOL bRightDn = m_Shift & ssRight;
-        if ((m_Style == csFreeFly) && (bLeftDn || bRightDn) && !(bLeftDn && bRightDn))
+        if (!m_bMiddleMoving && (m_Style == csFreeFly) && (bLeftDn || bRightDn) && !(bLeftDn && bRightDn))
         {
             Fvector vmove;
             vmove.set(m_CamMat.k);
@@ -209,15 +210,46 @@ void CUI_Camera::Rotate(float dx, float dy)
     BuildCamera();
 }
 
+void CUI_Camera::PanScreen(float dx, float dy)
+{
+    Fvector movement;
+    movement.mul(m_CamMat.i, -dx * m_SM);
+    movement.mad(movement, m_CamMat.j, dy * m_SM);
+    m_Position.add(movement);
+    m_Target.add(movement);
+    BuildCamera();
+}
+
+void CUI_Camera::Zoom(float steps)
+{
+    if (steps == 0.f)
+        return;
+
+    if (m_Style == cs3DArcBall)
+    {
+        const float min_distance = _max(m_Znear, 0.01f);
+        const float distance = _max(m_Position.distance_to(m_Target), min_distance);
+        const float new_distance = _max(min_distance, distance * expf(-steps * 0.15f));
+        m_Position.mad(m_Target, m_CamMat.k, -new_distance);
+    }
+    else
+    {
+        m_Position.mad(m_Position, m_CamMat.k, steps * m_SM * 10.f);
+    }
+    BuildCamera();
+    UI->RedrawScene();
+}
+
 bool CUI_Camera::MoveStart(TShiftState Shift)
 {
-    if (Shift & ssShift)
+    if (Shift & (ssShift | ssMiddle))
     {
         if (!m_bMoving)
         {
             ShowCursor(FALSE);
             UI->IR_GetMousePosScreen(m_StartPos);
             m_bMoving = true;
+            m_bMiddleMoving = !!(Shift & ssMiddle);
         }
         m_Shift = Shift;
         return true;
@@ -229,11 +261,12 @@ bool CUI_Camera::MoveStart(TShiftState Shift)
 bool CUI_Camera::MoveEnd(TShiftState Shift)
 {
     m_Shift = Shift;
-    if ((!Shift & ssLeft) || (!Shift & ssShift))
+    if (m_bMoving && (m_bMiddleMoving ? !(Shift & ssMiddle) : (!(Shift & ssShift) || !(Shift & (ssLeft | ssRight)))))
     {
         SetCursorPos(m_StartPos.x, m_StartPos.y);
         ShowCursor(TRUE);
         m_bMoving = false;
+        m_bMiddleMoving = false;
         return true;
     }
     return false;
@@ -248,7 +281,14 @@ bool CUI_Camera::Process(TShiftState Shift, int dx, int dy)
         if (dx || dy)
         {
             SetCursorPos(m_StartPos.x, m_StartPos.y);
-            switch (m_Style)
+            if (m_bMiddleMoving)
+            {
+                if (m_Shift & ssShift)
+                    PanScreen(float(dx), float(dy));
+                else
+                    Rotate(float(dx), float(dy));
+            }
+            else switch (m_Style)
             {
             case csPlaneMove:
                 if ((m_Shift & ssLeft) && (m_Shift & ssRight))

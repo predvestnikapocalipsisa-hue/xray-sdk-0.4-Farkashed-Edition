@@ -7,6 +7,7 @@ enum TShiftState_
 	ssRight = 4,
 	ssCtrl = 8,
 	ssAlt = 16,
+	ssMiddle = 32,
 };
 using TShiftState = int;
 constexpr int UIToolBarSize = 24;

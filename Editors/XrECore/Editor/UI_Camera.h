@@ -13,6 +13,7 @@ class ECORE_API CUI_Camera
 {
     ECameraStyle m_Style;
     bool m_bMoving;
+    bool m_bMiddleMoving;
     TShiftState m_Shift;
     Ivector2 m_StartPos;
     float m_FlySpeed;
@@ -32,6 +33,7 @@ protected:
     float m_SR, m_SM;
 
     void Pan(float X, float Z);
+    void PanScreen(float dx, float dy);
     void Scale(float Y);
     void Rotate(float X, float Y);
     void ArcBall(TShiftState Shift, float X, float Y);
@@ -113,6 +115,7 @@ public:
     }
 
     void ZoomExtents(const Fbox &bb);
+    void Zoom(float steps);
 
     void MouseRayFromPoint(Fvector &start, Fvector &direction, const Ivector2 &point);
 };
