@@ -111,4 +111,4 @@
 
 Проект настроен на сборку в Visual Studio 2019. Просто откройте .sln файл и выберите конфигурацию Release | x64.
 
-### Credits: TSMP, Red Panda (BearIvan).
+### Credits: TSMP, Red Panda (BearIvan), Lunar.
