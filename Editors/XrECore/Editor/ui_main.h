@@ -42,6 +42,11 @@ typedef EStateList::iterator EStateIt;
 class ECORE_API TUI : public IInputReceiver, public XrUIManager
 {
     bool m_AppClosed;
+    bool m_RenderPaused;
+    bool m_ShowRenderError;
+    xr_string m_RenderError;
+    void ReportRenderError(LPCSTR details);
+    void RenderScene(bool environment);
     inline void RealQuit() { m_AppClosed = true; }
 
 protected:

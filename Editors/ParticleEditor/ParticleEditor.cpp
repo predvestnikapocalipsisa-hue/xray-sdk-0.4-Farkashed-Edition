@@ -17,6 +17,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     UIMainForm *MainForm = xr_new<UIMainForm>();
     ::MainForm = MainForm;
     UI->Push(MainForm, false);
+    OpenLauncherDocument();
 
     while (MainForm->Frame())
     {

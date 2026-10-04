@@ -5,6 +5,23 @@
 typedef void crashhandler(void);
 typedef void on_dialog(bool before);
 
+// Opt-in boundary for read-only editor operations. Hardware faults are not caught.
+class xrEditorOperationError
+{
+public:
+	char details[4096];
+};
+
+class XRCORE_API xrEditorOperationScope
+{
+public:
+	xrEditorOperationScope();
+	~xrEditorOperationScope();
+private:
+	xrEditorOperationScope(const xrEditorOperationScope&) = delete;
+	xrEditorOperationScope& operator=(const xrEditorOperationScope&) = delete;
+};
+
 class XRCORE_API xrDebug
 {
 private:

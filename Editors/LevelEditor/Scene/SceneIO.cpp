@@ -536,6 +536,22 @@ void EScene::SaveStream(IWriter& F, bool bUndo, bool bForceSaveAll)
     }
 }
 
+void EScene::SaveBackup(LPCSTR map_name)
+{
+    // A recovery copy must not mark the user's original scene as saved.
+    struct RestoreUnsavedFlag
+    {
+        Flags32& flags;
+        bool unsaved;
+        ~RestoreUnsavedFlag() { flags.set(EScene::flRT_Unsaved, unsaved); }
+    } restore = { m_RTFlags, m_RTFlags.is(flRT_Unsaved) != FALSE };
+
+    if (Core.SocSdk)
+        Save(map_name, false, true);
+    else
+        SaveLTX(map_name, false, true);
+}
+
 void EScene::Save(LPCSTR map_name, bool bUndo, bool bForceSaveAll)
 {
     if (!Core.SocSdk)

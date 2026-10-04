@@ -17,6 +17,8 @@
 #include "..\XrETools\ETools.h"
 #include "UILogForm.h"
 #include "gamefont.h"
+#include <exception>
+#include <new>
 TUI *UI = 0;
 
 TUI::TUI()
@@ -24,6 +26,8 @@ TUI::TUI()
     m_HConsole = 0;
     UI = this;
     m_AppClosed = false;
+    m_RenderPaused = false;
+    m_ShowRenderError = false;
     m_bAppActive = false;
     m_bReady = false;
     bNeedAbort = false;
@@ -437,7 +441,7 @@ void TUI::Redraw()
                 EDevice.UpdateView();
                 EDevice.ResetMaterial();
 
-                Tools->RenderEnvironment();
+                RenderScene(true);
 
                 //. temporary reset filter (      )
                 for (u32 k = 0; k < HW.Caps.raster.dwStages; k++)
@@ -463,14 +467,7 @@ void TUI::Redraw()
                     DU_impl.DrawPivot(m_Pivot);
                 }
 
-                try
-                {
-                    Tools->Render();
-                }
-                catch (...)
-                {
-                    ELog.DlgMsg(mtError, "Please notify AlexMX!!! Critical error has occured in render routine!!! [Type B]");
-                }
+                RenderScene(false);
 
                 // draw selection rect
                 if (m_SelectionRect)
@@ -500,11 +497,19 @@ void TUI::Redraw()
                 // end draw
                 EDevice.End();
             }
+            catch (const std::bad_alloc&)
+            {
+                throw;
+            }
             catch (...)
             {
                 ELog.DlgMsg(mtError, "Please notify AlexMX!!! Critical error has occured in render routine!!! [Type C]");
             }
         }
+    }
+    catch (const std::bad_alloc&)
+    {
+        throw;
     }
     catch (...)
     {
@@ -711,8 +716,79 @@ void TUI::ProgressDraw()
     }
 }
 
+void TUI::RenderScene(bool environment)
+{
+    if (m_RenderPaused)
+        return;
+    try
+    {
+        xrEditorOperationScope recovery;
+        if (environment)
+            Tools->RenderEnvironment();
+        else
+            Tools->Render();
+    }
+    catch (const xrEditorOperationError& error)
+    {
+        ReportRenderError(error.details);
+    }
+    catch (const std::bad_alloc&)
+    {
+        throw;
+    }
+    catch (const std::exception& error)
+    {
+        ReportRenderError(error.what());
+    }
+    catch (...)
+    {
+        ReportRenderError("Unknown C++ exception in scene rendering.");
+    }
+}
+
+void TUI::ReportRenderError(LPCSTR details)
+{
+    RCache.Invalidate();
+    m_RenderPaused = true;
+    m_ShowRenderError = true;
+    m_RenderError = details ? details : "Unknown render error";
+    Msg("! [Editor recovery] Scene rendering paused: %s", m_RenderError.c_str());
+    FlushLog();
+}
+
 void TUI::OnDrawUI()
 {
+    if (m_RenderPaused)
+    {
+        if (m_ShowRenderError)
+        {
+            ImGui::SetNextWindowSize(ImVec2(650, 300), ImGuiCond_FirstUseEver);
+            // A non-modal window leaves editing and saving available for repair.
+            if (ImGui::Begin("Scene render error", &m_ShowRenderError))
+            {
+                ImGui::TextWrapped("Scene rendering is paused. You can edit or remove the problematic object and save your work. Retry after fixing it, or skip rendering for now.");
+                ImGui::Separator();
+                ImGui::TextWrapped("%s", m_RenderError.c_str());
+                if (ImGui::Button("Retry rendering"))
+                {
+                    m_RenderPaused = false;
+                    m_ShowRenderError = false;
+                    m_Flags.set(flRedraw, TRUE);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Skip rendering"))
+                    m_ShowRenderError = false;
+            }
+            ImGui::End();
+        }
+        else
+        {
+            ImGui::Begin("Scene rendering paused");
+            if (ImGui::Button("Show error / retry"))
+                m_ShowRenderError = true;
+            ImGui::End();
+        }
+    }
     UIKeyPressForm::Update(EDevice.fTimeGlobal);
     UIEditLightAnim::Update();
     UIImageEditorForm::Update();

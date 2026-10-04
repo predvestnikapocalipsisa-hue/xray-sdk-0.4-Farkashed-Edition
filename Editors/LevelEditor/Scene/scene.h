@@ -481,6 +481,7 @@ public:
 	void SaveStream(IWriter& F, bool bUndo, bool bForceSaveAll);
 
 	void SaveLTX(LPCSTR map_name, bool bUndo, bool bForceSaveAll);
+	void SaveBackup(LPCSTR map_name);
 
 
 

@@ -5,6 +5,7 @@
 #include "UI_ParticleMain.h"
 #include "UI_ParticleTools.h"
 #include "xr_input.h"
+#include "../../Launcher/RecentFiles.h"
 
 //---------------------------------------------------------------------------
 CParticleMain *PUI = (CParticleMain *)UI;
@@ -42,15 +43,44 @@ CCommandVar CParticleTool::CommandSaveXR(CCommandVar p1, CCommandVar p2)
 CCommandVar CParticleTool::CommandLoadXR(CCommandVar p1, CCommandVar p2)
 {
     xr_string temp_fn;
-    if (EFS.GetOpenName(EDevice.m_hWnd, "$game_data$", temp_fn, false, NULL, 0))
+    if (p1.IsString())
+        temp_fn = xr_string(p1);
+    else if (!EFS.GetOpenName(EDevice.m_hWnd, "$game_data$", temp_fn, false, NULL, 0))
+        return FALSE;
+    if (!FS.exist(temp_fn.c_str()) || !IfModified())
+        return FALSE;
+
+    // Check the format before replacing the current library. The loader asserts on
+    // arbitrary .xr files, which can also contain shaders, materials or animations.
+    IReader* reader = FS.r_open(temp_fn.c_str());
+    if (!reader)
+        return FALSE;
+    const bool particleLibrary = reader->find_chunk(PS_CHUNK_VERSION) == sizeof(u16);
+    const bool versionMatches = particleLibrary && reader->r_u16() == PS_VERSION;
+    FS.r_close(reader);
+    if (!versionMatches)
+    {
+        ELog.DlgMsg(mtError, "This file is not a supported particle library.");
+        return FALSE;
+    }
+
+    ResetCurrent();
+    ::Render->PSLibrary.OnDestroy();
+    const bool loaded = ::Render->PSLibrary.Load(temp_fn.c_str());
+    if (!loaded)
     {
         ::Render->PSLibrary.OnDestroy();
-        ::Render->PSLibrary.Load(temp_fn.c_str());
-        ResetCurrent();
-        ExecCommand(COMMAND_UPDATE_PROPERTIES);
-        ExecCommand(COMMAND_UPDATE_CAPTION);
+        ::Render->PSLibrary.OnCreate();
+        ELog.DlgMsg(mtError, "Can't load particle library '%s'.", temp_fn.c_str());
     }
-    return TRUE;
+    else
+    {
+        m_bModified = false;
+        FarkashedLauncher::Remember(FarkashedLauncher::FromAnsi(temp_fn.c_str()), L"particle");
+    }
+    ExecCommand(COMMAND_UPDATE_PROPERTIES);
+    ExecCommand(COMMAND_UPDATE_CAPTION);
+    return loaded ? TRUE : FALSE;
 }
 
 CCommandVar CParticleTool::CommandSave(CCommandVar p1, CCommandVar p2)

@@ -337,6 +337,11 @@ BOOL CEditorRenderDevice::Begin()
 		{
 			Reset();
 		}
+		else
+		{
+			CHK_DX(_hr);
+			return FALSE;
+		}
 	}
 
 	VERIFY(FALSE == g_bRendering);
@@ -364,7 +369,11 @@ void CEditorRenderDevice::End()
 	// restore CHK_DX for BeginScene and EndScene
 	HW.pDevice->EndScene(); //CHK_DX(HW.pDevice->EndScene());
 
-	CHK_DX(HW.pDevice->Present(NULL, NULL, NULL, NULL));
+	// Losing the device between Begin() and Present() is normal (Alt+Tab,
+	// screen lock). Begin() will wait or reset it on the next frame.
+	const HRESULT present_result = HW.pDevice->Present(NULL, NULL, NULL, NULL);
+	if (present_result != D3DERR_DEVICELOST && present_result != D3DERR_DEVICENOTRESET)
+		CHK_DX(present_result);
 }
 
 void CEditorRenderDevice::UpdateView()

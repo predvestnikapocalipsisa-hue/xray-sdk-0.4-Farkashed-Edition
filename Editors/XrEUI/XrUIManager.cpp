@@ -405,8 +405,12 @@ void XrUIManager::Draw()
         ImGui::PopStyleVar(4);
     }
 
-    for (XrUI* ui : m_UIArray)
+    // Draw() can Push() another window and reallocate the vector.
+    // New windows are drawn next frame; do not retain iterators across callbacks.
+    const size_t window_count = m_UIArray.size();
+    for (size_t i = 0; i < window_count; ++i)
     {
+        XrUI* ui = m_UIArray[i];
         ui->Draw();
     }
 

@@ -14,6 +14,25 @@
 
 extern bool shared_str_initialized;
 
+static thread_local unsigned editor_operation_depth = 0;
+
+xrEditorOperationScope::xrEditorOperationScope() { ++editor_operation_depth; }
+xrEditorOperationScope::~xrEditorOperationScope() { --editor_operation_depth; }
+
+static void CheckEditorOperation(const char* expression, const char* description,
+	const char* argument0, const char* argument1, const char* file, int line, const char* function)
+{
+	if (!editor_operation_depth || IsDebuggerPresent())
+		return;
+	xrEditorOperationError error;
+	_snprintf_s(error.details, sizeof(error.details), _TRUNCATE,
+		"%s\n%s\n%s\n%s\n%s:%d\n%s",
+		expression ? expression : "", description ? description : "",
+		argument0 ? argument0 : "", argument1 ? argument1 : "",
+		file ? file : "", line, function ? function : "");
+	throw error;
+}
+
 //#define SEND_ERROR_REPORTS
 
 #ifdef __BORLANDC__
@@ -253,36 +272,43 @@ LPCSTR xrDebug::error2string(long code)
 
 void xrDebug::error(long hr, const char *expr, const char *file, int line, const char *function, bool &ignore_always)
 {
+	CheckEditorOperation(error2string(hr), expr, 0, 0, file, line, function);
 	backend(error2string(hr), expr, 0, 0, file, line, function, ignore_always);
 }
 
 void xrDebug::error(long hr, const char *expr, const char *e2, const char *file, int line, const char *function, bool &ignore_always)
 {
+	CheckEditorOperation(error2string(hr), expr, e2, 0, file, line, function);
 	backend(error2string(hr), expr, e2, 0, file, line, function, ignore_always);
 }
 
 void xrDebug::fail(const char *e1, const char *file, int line, const char *function, bool &ignore_always)
 {
+	CheckEditorOperation("assertion failed", e1, 0, 0, file, line, function);
 	backend("assertion failed", e1, 0, 0, file, line, function, ignore_always);
 }
 
 void xrDebug::fail(const char *e1, const std::string &e2, const char *file, int line, const char *function, bool &ignore_always)
 {
+	CheckEditorOperation(e1, e2.c_str(), 0, 0, file, line, function);
 	backend(e1, e2.c_str(), 0, 0, file, line, function, ignore_always);
 }
 
 void xrDebug::fail(const char *e1, const char *e2, const char *file, int line, const char *function, bool &ignore_always)
 {
+	CheckEditorOperation(e1, e2, 0, 0, file, line, function);
 	backend(e1, e2, 0, 0, file, line, function, ignore_always);
 }
 
 void xrDebug::fail(const char *e1, const char *e2, const char *e3, const char *file, int line, const char *function, bool &ignore_always)
 {
+	CheckEditorOperation(e1, e2, e3, 0, file, line, function);
 	backend(e1, e2, e3, 0, file, line, function, ignore_always);
 }
 
 void xrDebug::fail(const char *e1, const char *e2, const char *e3, const char *e4, const char *file, int line, const char *function, bool &ignore_always)
 {
+	CheckEditorOperation(e1, e2, e3, e4, file, line, function);
 	backend(e1, e2, e3, e4, file, line, function, ignore_always);
 }
 
