@@ -6,14 +6,21 @@ configuration, and does not link to the SDK engine or editor DLLs.
 
 The `Launcher` project is part of `xraySdkEditors.sln`, with the same six platform /
 configuration combinations as the editors. Its output is `Launcher.exe` in
-`BuildedSDK/<platform>_<configuration>/`. Its project copies the PNGs and `font.otf`
-to `launcher/assets/gui/` beside the executable. The `.pdn` remains a design source;
+`BuildedSDK/<platform>_<configuration>/`. PNGs, icons and `font.otf` are embedded in
+`LauncherAssets.dll`, loaded as read-only resources without extracting files.
+The `.pdn` remains a design source;
 Paint.NET is not a runtime dependency. The original artwork is preserved.
 `assets/gui/Icon.ico` is embedded into the executable and used for both sizes of
 the window icon, including the taskbar and Alt+Tab.
 
-Place the launcher alongside `ActorEditor.exe`, `LevelEditor.exe`,
-`ParticleEditor.exe` and `ShaderEditor.exe`, or choose their directory in Settings.
+Place the launcher alongside `SDKRuntime.dll`, `LauncherAssets.dll`,
+`ActorEditor.dll`, `LevelEditor.dll`, `ParticleEditor.dll` and `ShaderEditor.dll`,
+plus the external runtime dependencies, or choose their directory in Settings.
+The selected SDK must also contain its own `Launcher.exe`. The launcher starts
+that executable with `--sdk-editor actor|level|particle|shader`; the child loads
+the matching DLL and calls the exported `SDKEditorMain`. Dispatch happens before
+the launcher UI or COM apartment is initialized, giving each editor its own SDK
+globals, UI context and crash boundary. `Launcher.exe` is the only SDK executable.
 Editor processes use that directory as their working directory, preserving SDK
 `fs.ltx` and relative resource lookup. A missing editor is disabled and its tooltip
 shows the expected path. The launcher remains open by default; minimizing after
@@ -26,6 +33,8 @@ launch is optional.
   with alpha-aware colors at the current DPI, preserving their aspect ratio.
   Filtered icons are drawn at their exact physical size on integer pixel bounds,
   avoiding a second resampling pass and changing sharpness during press animations.
+  The logo is also alpha-filtered at the physical display size while retaining
+  its full design canvas, and is regenerated when monitor DPI changes.
 - Smooth hover / press transitions, entrance / close fade, keyboard navigation and
   an optional reduced-motion setting.
 - Borderless draggable title bar, minimize / close controls and per-monitor DPI.
@@ -61,7 +70,7 @@ Up to 25 entries and launcher preferences are kept in the UTF-16 file:
 `%LOCALAPPDATA%/FarkashedSDK/Launcher.ini`
 
 Existing recent entries are imported once per installation from `editor/level.ini`,
-`editor/actor.ini`, `level.ini` and `actor.ini` beside the editor executables. SDKs
+`editor/actor.ini`, `level.ini` and `actor.ini` beside the SDK launcher. SDKs
 with a custom `$local_root$` publish their entries when documents are next opened
 or saved; this importer does not interpret arbitrary `fs.ltx` alias chains.
 

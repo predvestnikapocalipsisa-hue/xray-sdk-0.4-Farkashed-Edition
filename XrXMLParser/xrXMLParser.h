@@ -2,7 +2,7 @@
 #define xrXMLParserH
 #pragma once
 
-#ifdef XRXMLPARSER_EXPORTS
+#if defined(XRXMLPARSER_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define XRXMLPARSER_API __declspec(dllexport)
 #else
 #define XRXMLPARSER_API __declspec(dllimport)

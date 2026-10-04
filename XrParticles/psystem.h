@@ -2,7 +2,7 @@
 #define PSystemH
 #pragma once
 
-#ifdef XRPARTICLES_EXPORTS
+#if defined(XRPARTICLES_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define PARTICLES_API __declspec(dllexport)
 #else
 #define PARTICLES_API __declspec(dllimport)

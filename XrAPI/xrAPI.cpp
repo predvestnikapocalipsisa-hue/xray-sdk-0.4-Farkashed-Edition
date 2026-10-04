@@ -5,11 +5,13 @@
 #include "xrAPI.h"
 
 XRAPI_API IRender_interface *Render = NULL;
+#ifndef XR_SDK_RUNTIME_BUILD
 XRAPI_API IRenderFactory *RenderFactory = NULL;
+#endif
 XRAPI_API CDUInterface *DU = NULL;
 XRAPI_API xr_token *vid_mode_token = NULL;
 XRAPI_API IUIRender *UIRender = NULL;
-#ifndef _EDITOR
+#if !defined(_EDITOR) && !defined(XR_SDK_RUNTIME_BUILD)
 // XRAPI_API CSound_manager_interface*	Sound = NULL;
 XRAPI_API CGameMtlLibrary *PGMLib = NULL;
 #endif

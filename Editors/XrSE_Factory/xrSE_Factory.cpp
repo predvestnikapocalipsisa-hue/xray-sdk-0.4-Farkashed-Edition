@@ -24,7 +24,9 @@
 //#include <lua/library_linkage.h>
 //#include <luabind/library_linkage.h>
 
-#pragma comment(lib, "xrCore.lib")
+#ifndef XR_SDK_RUNTIME_BUILD
+#pragma comment(lib, "SDKRuntime.lib")
+#endif
 #pragma comment(lib, "luajit.lib")
 #pragma comment(lib, "luabind.lib")
 

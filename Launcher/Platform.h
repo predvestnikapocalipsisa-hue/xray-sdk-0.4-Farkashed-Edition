@@ -18,6 +18,12 @@ struct Texture
     Texture& operator=(const Texture&) = delete;
 };
 
+struct LauncherAssetData
+{
+    const unsigned char* data = nullptr;
+    DWORD size = 0;
+};
+
 class LauncherPlatform
 {
 public:
@@ -36,7 +42,8 @@ public:
     bool PumpMessages();
     bool PrepareFrame();
     bool Render();
-    std::unique_ptr<Texture> LoadTexture(const std::wstring& path, unsigned iconSize = 0);
+    LauncherAssetData Asset(unsigned resourceId) const;
+    std::unique_ptr<Texture> LoadTexture(unsigned resourceId, unsigned targetWidth, unsigned targetHeight = 0);
     void SetBlur(bool enabled);
     std::wstring PickFile();
     std::wstring PickSDKDirectory();
@@ -52,6 +59,7 @@ private:
     bool resetPending = false;
     bool blurRequested = true;
     HINSTANCE instance = nullptr;
+    HMODULE assetsModule = nullptr;
 
     std::unique_ptr<Texture> Upload(const unsigned char* pixels, unsigned width, unsigned height);
     bool ResetDevice();

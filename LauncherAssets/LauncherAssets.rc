@@ -1,0 +1,12 @@
+#include <windows.h>
+#include "ResourceIds.h"
+IDR_LAUNCHER_LOGO RCDATA "../Launcher/assets/gui/Logo.png"
+IDR_LAUNCHER_ACTOR RCDATA "../Launcher/assets/gui/ActorEditor.png"
+IDR_LAUNCHER_LEVEL RCDATA "../Launcher/assets/gui/LevelEditor.png"
+IDR_LAUNCHER_PARTICLE RCDATA "../Launcher/assets/gui/ParticleEditor.png"
+IDR_LAUNCHER_SHADER RCDATA "../Launcher/assets/gui/ShaderEditor.png"
+IDR_LAUNCHER_CLOSE RCDATA "../Launcher/assets/gui/BaselineClose.png"
+IDR_LAUNCHER_MINIMIZE RCDATA "../Launcher/assets/gui/BaselineMinus.png"
+IDR_LAUNCHER_FONT RCDATA "../Launcher/assets/gui/font.otf"
+IDR_LAUNCHER_FRAME RCDATA "../Launcher/assets/gui/Window.png"
+1 ICON "../Launcher/assets/gui/Icon.ico"

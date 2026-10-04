@@ -316,7 +316,7 @@ void xrCore::DestroyCore()
 	Memory._destroy();
 }
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD ul_reason_for_call, LPVOID lpvReserved)
+BOOL WINAPI SdkCoreDllMain(HINSTANCE hinstDLL, DWORD ul_reason_for_call, LPVOID lpvReserved)
 {
 	switch (ul_reason_for_call)
 	{

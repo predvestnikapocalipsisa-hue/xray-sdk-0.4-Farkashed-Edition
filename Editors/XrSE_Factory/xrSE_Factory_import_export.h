@@ -1,7 +1,7 @@
 #ifndef XRSE_FACTORY_IMPORT_EXPORTH
 #define XRSE_FACTORY_IMPORT_EXPORTH
 
-#ifdef XRSEFACTORY_EXPORTS
+#if defined(XRSEFACTORY_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define FACTORY_API __declspec(dllexport)
 #else
 #define FACTORY_API __declspec(dllimport)

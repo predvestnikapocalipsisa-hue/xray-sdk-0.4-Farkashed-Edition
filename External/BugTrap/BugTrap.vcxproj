@@ -514,6 +514,7 @@
       <Project>{ca2604ca-a2ac-49a1-a468-8ab5a2e6cbc9}</Project>
     </ProjectReference>
   </ItemGroup>
+  <Import Project="$(SolutionDir)SdkPackaging.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

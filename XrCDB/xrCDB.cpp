@@ -20,7 +20,7 @@ namespace Opcode
 using namespace CDB;
 using namespace Opcode;
 
-BOOL APIENTRY DllMain(HANDLE hModule,
+BOOL APIENTRY SdkCDBDllMain(HANDLE hModule,
 					  u32 ul_reason_for_call,
 					  LPVOID lpReserved)
 {

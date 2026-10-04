@@ -15,7 +15,7 @@ static void UpdateDiscordStatus() {
     typedef const char* (*GetLevelNameFunc)();
     static GetLevelNameFunc pGetLevelName = nullptr;
     if (!pGetLevelName) {
-        HMODULE hModule = GetModuleHandle(NULL);
+        HMODULE hModule = GetModuleHandleA("LevelEditor.dll");
         pGetLevelName = (GetLevelNameFunc)GetProcAddress(hModule, "GetCurrentLevelName");
     }
 

@@ -1,4 +1,6 @@
 #include "Platform.h"
+#include "EditorHost.h"
+#include "../LauncherAssets/ResourceIds.h"
 #include "RecentFiles.h"
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
@@ -17,16 +19,16 @@ namespace
     {
         const wchar_t* id;
         const wchar_t* executable;
-        const wchar_t* icon;
+        unsigned icon;
         const char* label;
         const char* description;
     };
 
     const std::array<Editor, 4> Editors = {{
-        { L"actor", L"ActorEditor.exe", L"ActorEditor.png", "ACTOR EDITOR", "Objects, actors and animations" },
-        { L"level", L"LevelEditor.exe", L"LevelEditor.png", "LEVEL EDITOR", "Levels and scenes" },
-        { L"particle", L"ParticleEditor.exe", L"ParticleEditor.png", "PARTICLE EDITOR", "Particle effects and libraries" },
-        { L"shader", L"ShaderEditor.exe", L"ShaderEditor.png", "SHADER EDITOR", "Shaders and SDK material libraries" }
+        { L"actor", L"ActorEditor.dll", IDR_LAUNCHER_ACTOR, "ACTOR EDITOR", "Objects, actors and animations" },
+        { L"level", L"LevelEditor.dll", IDR_LAUNCHER_LEVEL, "LEVEL EDITOR", "Levels and scenes" },
+        { L"particle", L"ParticleEditor.dll", IDR_LAUNCHER_PARTICLE, "PARTICLE EDITOR", "Particle effects and libraries" },
+        { L"shader", L"ShaderEditor.dll", IDR_LAUNCHER_SHADER, "SHADER EDITOR", "Shaders and SDK material libraries" }
     }};
 
     std::string Utf8(const std::wstring& value)
@@ -67,17 +69,6 @@ namespace
             if (id == editor.id)
                 return &editor;
         return nullptr;
-    }
-
-    std::wstring AssetsDirectory()
-    {
-        const std::wstring directory = FarkashedLauncher::ModuleDirectory();
-        const std::wstring candidates[] = { directory + L"\\launcher\\assets\\gui",
-            directory + L"\\assets\\gui", directory + L"\\Launcher\\assets\\gui" };
-        for (const auto& candidate : candidates)
-            if (FarkashedLauncher::FileExists(candidate + L"\\Logo.png"))
-                return candidate;
-        return candidates[0];
     }
 
     void ImportLegacyHistory(const std::wstring& directory)
@@ -127,7 +118,6 @@ namespace
     class LauncherUI
     {
         LauncherPlatform& platform;
-        std::wstring assets;
         std::wstring sdkDirectory;
         std::array<std::unique_ptr<Texture>, 4> icons;
         std::unique_ptr<Texture> logo;
@@ -219,7 +209,7 @@ namespace
             {
                 const float centerX = compact ? x + width * 0.5f : x + 20.5f;
                 const float centerY = y + height * 0.5f;
-                // ResizeIcon already filters at the physical drawing size. Keep a
+                // ResizeImage already filters at the physical drawing size. Keep a
                 // 1:1 texel/pixel mapping instead of filtering again at half pixels.
                 const ImVec2 center = Position(centerX + shift, centerY + shift);
                 const ImVec2 topLeft(std::round(center.x - float(icon->width) * 0.5f),
@@ -392,9 +382,10 @@ namespace
                         bool containsEditor = false;
                         for (const auto& editor : Editors)
                             containsEditor = containsEditor || FarkashedLauncher::FileExists(selected + L"\\" + editor.executable);
-                        if (!containsEditor)
+                        if (!containsEditor || !FarkashedLauncher::FileExists(selected + L"\\Launcher.exe") ||
+                            !FarkashedLauncher::FileExists(selected + L"\\SDKRuntime.dll"))
                         {
-                            error = "This folder contains no SDK editor executables.";
+                            error = "Choose an SDK folder containing Launcher.exe, SDKRuntime.dll and editor modules.";
                             showError = true;
                             return;
                         }
@@ -427,7 +418,7 @@ namespace
         }
 
     public:
-        explicit LauncherUI(LauncherPlatform& platform) : platform(platform), assets(AssetsDirectory())
+        explicit LauncherUI(LauncherPlatform& platform) : platform(platform)
         {
             sdkDirectory = FarkashedLauncher::Setting(L"SDKDirectory");
             if (sdkDirectory.empty())
@@ -438,7 +429,6 @@ namespace
             const std::wstring shade = FarkashedLauncher::Setting(L"BackgroundShade");
             if (!shade.empty())
                 darkening = (std::max)(0.45f, (std::min)(0.95f, float(_wtoi(shade.c_str())) / 100.f));
-            logo = platform.LoadTexture(assets + L"\\Logo.png");
             platform.SetBlur(useBlur);
             ImportLegacyHistory(sdkDirectory);
         }
@@ -451,11 +441,16 @@ namespace
             ImFontConfig configuration;
             configuration.OversampleH = 2;
             configuration.OversampleV = 2;
-            const std::string customFont = Utf8(assets + L"\\font.otf");
             const float size = 16.f * platform.dpiScale;
             ImFont* font = nullptr;
-            if (FarkashedLauncher::FileExists(assets + L"\\font.otf"))
-                font = io.Fonts->AddFontFromFileTTF(customFont.c_str(), size, &configuration, io.Fonts->GetGlyphRangesCyrillic());
+            const LauncherAssetData customFont = platform.Asset(IDR_LAUNCHER_FONT);
+            if (customFont.data && customFont.size)
+            {
+                configuration.FontDataOwnedByAtlas = false;
+                font = io.Fonts->AddFontFromMemoryTTF(const_cast<unsigned char*>(customFont.data),
+                    int(customFont.size), size, &configuration, io.Fonts->GetGlyphRangesCyrillic());
+                configuration.FontDataOwnedByAtlas = true;
+            }
             wchar_t windowsDirectory[MAX_PATH] = {};
             GetWindowsDirectoryW(windowsDirectory, MAX_PATH);
             const std::wstring fallback = std::wstring(windowsDirectory) + L"\\Fonts\\segoeui.ttf";
@@ -489,10 +484,12 @@ namespace
             style.ScaleAllSizes(platform.dpiScale);
             // Decode/crop once per DPI change, then area-filter at the physical
             // drawing size. Icons are not resampled from 256 px by two GPU taps.
-            closeIcon = platform.LoadTexture(assets + L"\\BaselineClose.png", unsigned(std::round(18.f * platform.dpiScale)));
-            minimizeIcon = platform.LoadTexture(assets + L"\\BaselineMinus.png", unsigned(std::round(18.f * platform.dpiScale)));
+            logo = platform.LoadTexture(IDR_LAUNCHER_LOGO, unsigned(std::round(502.f * platform.dpiScale)),
+                unsigned(std::round(258.f * platform.dpiScale)));
+            closeIcon = platform.LoadTexture(IDR_LAUNCHER_CLOSE, unsigned(std::round(18.f * platform.dpiScale)));
+            minimizeIcon = platform.LoadTexture(IDR_LAUNCHER_MINIMIZE, unsigned(std::round(18.f * platform.dpiScale)));
             for (size_t i = 0; i < Editors.size(); ++i)
-                icons[i] = platform.LoadTexture(assets + L"\\" + Editors[i].icon,
+                icons[i] = platform.LoadTexture(Editors[i].icon,
                     unsigned(std::round(23.f * platform.dpiScale)));
             assetWarning = !logo || !closeIcon || !minimizeIcon;
             for (const auto& icon : icons)
@@ -560,7 +557,12 @@ namespace
                 Text(draw, 537.f, 12.f, "x", 1.f, 18.f);
             const float entrance = (1.f - opacity) * 5.f;
             if (logo)
-                Image(draw, logo.get(), Position(37.f, 35.f + entrance), Position(539.f, 293.f + entrance));
+            {
+                const ImVec2 position = Position(37.f, 35.f + entrance);
+                const ImVec2 topLeft(std::round(position.x), std::round(position.y));
+                Image(draw, logo.get(), topLeft,
+                    ImVec2(topLeft.x + float(logo->width), topLeft.y + float(logo->height)));
+            }
             else
                 Text(draw, 76.f, 116.f, "FARKASHED EDITION", 1.f, 32.f);
             for (size_t i = 0; i < Editors.size(); ++i)
@@ -623,13 +625,16 @@ namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
 {
+    int editorExitCode = 0;
+    if (RunSDKEditorHost(editorExitCode))
+        return editorExitCode;
     const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (FAILED(com))
         return 1;
     LauncherPlatform platform;
     if (!platform.Initialize(instance))
     {
-        MessageBoxW(nullptr, L"Could not initialize the launcher window or DirectX 9 device.",
+        MessageBoxW(nullptr, L"Could not initialize the launcher. Check DirectX 9 and LauncherAssets.dll beside Launcher.exe.",
             L"X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
         platform.Shutdown();
         CoUninitialize();

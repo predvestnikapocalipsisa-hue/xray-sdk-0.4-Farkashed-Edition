@@ -47,7 +47,7 @@ static void ReportGameTextureError(LPCSTR fmt, ...)
         s_bAbortTextureSync = true;
 }
 
-extern "C" __declspec(dllimport) int DXTCompress(LPCSTR out_name, u8* raw_data, u8* ext_data, u32 w, u32 h, u32 pitch, STextureParams* options, u32 depth);
+extern "C" ECORE_API int DXTCompress(LPCSTR out_name, u8* raw_data, u8* ext_data, u32 w, u32 h, u32 pitch, STextureParams* options, u32 depth);
 
 bool IsValidSize(u32 w, u32 h)
 {

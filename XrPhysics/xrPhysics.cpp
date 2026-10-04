@@ -20,7 +20,7 @@ static void *ode_realloc(void *ptr, size_t oldsize, size_t newsize) { return xr_
 static void ode_free(void *ptr, size_t size) { return xr_free(ptr); }
 #endif // DEBUG_MEMORY_MANAGER
 
-BOOL APIENTRY DllMain(HMODULE hModule,
+BOOL APIENTRY SdkPhysicsDllMain(HMODULE hModule,
 					  DWORD ul_reason_for_call,
 					  LPVOID lpReserved)
 {

@@ -2,7 +2,7 @@
 #define D3DX_WraperH
 #pragma once
 
-#ifdef XRETOOLS_EXPORTS
+#if defined(XRETOOLS_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define ETOOLS_API __declspec(dllexport)
 #else
 #define ETOOLS_API __declspec(dllimport)

@@ -2,7 +2,11 @@
 #define xrEPropsH
 
 #ifndef XREPROPS_API
+#ifdef XR_SDK_RUNTIME_BUILD
+#define XREPROPS_API __declspec(dllexport)
+#else
 #define XREPROPS_API __declspec(dllimport)
+#endif
 #endif
 #include "PropertiesListTypes.h"
 #include "ItemListTypes.h"

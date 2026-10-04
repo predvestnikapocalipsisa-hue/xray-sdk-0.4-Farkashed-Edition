@@ -460,7 +460,7 @@ LPCSTR CXml::CheckUniqueAttrib(XML_NODE *start_node, LPCSTR tag_name, LPCSTR att
 }
 #endif
 
-BOOL APIENTRY DllMain(HANDLE hModule,
+BOOL APIENTRY SdkXMLDllMain(HANDLE hModule,
 					  u32 ul_reason_for_call,
 					  LPVOID lpReserved)
 {

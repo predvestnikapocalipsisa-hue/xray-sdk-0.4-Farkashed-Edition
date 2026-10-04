@@ -1,7 +1,7 @@
 #ifndef PropSlimToolsH
 #define PropSlimToolsH
 
-#ifdef ETOOLS_EXPORTS
+#if defined(ETOOLS_EXPORTS) || defined(XR_SDK_RUNTIME_BUILD)
 #define ETOOLS_API __declspec(dllexport)
 #else
 #define ETOOLS_API __declspec(dllimport)

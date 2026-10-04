@@ -1433,5 +1433,5 @@ void CLevelMain::OnDrawUI()
 
 HICON CLevelMain::EditorIcon()
 {
-    return LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(MAINICON));
+    return LoadIcon(GetModuleHandleA("LevelEditor.dll"), MAKEINTRESOURCE(MAINICON));
 }

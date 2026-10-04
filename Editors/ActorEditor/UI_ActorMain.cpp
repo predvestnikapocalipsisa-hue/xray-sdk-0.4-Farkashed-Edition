@@ -563,5 +563,5 @@ Ivector2 CActorMain::GetRenderMousePosition() const
 
 HICON CActorMain::EditorIcon()
 {
-    return LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(MAINICON));
+    return LoadIcon(GetModuleHandleA("ActorEditor.dll"), MAKEINTRESOURCE(MAINICON));
 }

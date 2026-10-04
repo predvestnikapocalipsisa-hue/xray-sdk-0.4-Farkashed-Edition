@@ -2,7 +2,7 @@
 
 #include "stdafx.h"
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+extern "C" int __cdecl SDKEditorMain()
 {
     if (!IsDebuggerPresent())
         Debug._initialize(false);
