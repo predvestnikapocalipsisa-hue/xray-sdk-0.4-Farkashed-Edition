@@ -19,7 +19,7 @@ namespace
         return EXCEPTION_EXECUTE_HANDLER;
     }
 
-    bool TryEmergencySave(char* path)
+    bool TryEmergencySave(string_path& path)
     {
         path[0] = '\0';
         __try
