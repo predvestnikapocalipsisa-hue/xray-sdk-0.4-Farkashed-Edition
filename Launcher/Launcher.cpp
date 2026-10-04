@@ -4,6 +4,7 @@
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
 #include <array>
+#include <cfloat>
 #include <cmath>
 #include <cwctype>
 #include <functional>
@@ -130,7 +131,6 @@ namespace
         std::wstring sdkDirectory;
         std::array<std::unique_ptr<Texture>, 4> icons;
         std::unique_ptr<Texture> logo;
-        std::unique_ptr<Texture> frame;
         std::unique_ptr<Texture> closeIcon;
         std::unique_ptr<Texture> minimizeIcon;
         std::vector<FarkashedLauncher::RecentFile> recentFiles;
@@ -201,7 +201,8 @@ namespace
             ImGui::SetCursorPos(Position(x, y));
             ImGui::BeginDisabled(!enabled);
             const bool clicked = ImGui::InvisibleButton(id, Position(width, height));
-            const bool hovered = ImGui::IsItemHovered() || ImGui::IsItemFocused();
+            const bool hovered = !platform.moving && ImGui::IsItemHovered();
+            const bool focused = ImGui::GetIO().NavVisible && ImGui::IsItemFocused();
             const bool pressed = ImGui::IsItemActive();
             auto& animation = animations[ImGui::GetID(id)];
             animation.hover = Approach(animation.hover, hovered && enabled ? 1.f : 0.f, 15.f);
@@ -210,20 +211,45 @@ namespace
             ImDrawList* draw = ImGui::GetWindowDrawList();
             draw->AddRectFilled(Position(x, y), Position(x + width, y + height),
                 Color(0.9f, 0.1f, 0.12f, animation.hover * 0.14f + animation.pressed * 0.17f), 5.f * platform.dpiScale);
-            if (hovered && enabled)
+            if ((hovered || focused) && enabled)
                 draw->AddRect(Position(x, y), Position(x + width, y + height),
-                    Color(0.95f, 0.25f, 0.27f, animation.hover * 0.35f), 5.f * platform.dpiScale);
+                    Color(0.95f, 0.25f, 0.27f, focused ? 0.65f : animation.hover * 0.35f), 5.f * platform.dpiScale);
             const float alpha = enabled ? 0.82f + animation.hover * 0.18f : 0.32f;
             if (icon)
             {
-                const float size = compact ? 18.f : 23.f;
-                const float offset = (height - size) * 0.5f;
-                Image(draw, icon, Position(x + 9.f + shift, y + offset + shift),
-                    Position(x + 9.f + size + shift, y + offset + size + shift), alpha);
+                const float centerX = compact ? x + width * 0.5f : x + 20.5f;
+                const float centerY = y + height * 0.5f;
+                // ResizeIcon already filters at the physical drawing size. Keep a
+                // 1:1 texel/pixel mapping instead of filtering again at half pixels.
+                const ImVec2 center = Position(centerX + shift, centerY + shift);
+                const ImVec2 topLeft(std::round(center.x - float(icon->width) * 0.5f),
+                    std::round(center.y - float(icon->height) * 0.5f));
+                Image(draw, icon, topLeft,
+                    ImVec2(topLeft.x + float(icon->width), topLeft.y + float(icon->height)), alpha);
             }
             if (label && *label)
-                Text(draw, x + (icon ? 42.f : 12.f) + shift, y + (height - 15.f) * 0.5f + shift,
-                    label, alpha, 15.f, width - (icon ? 48.f : 20.f));
+            {
+                ImFont* font = ImGui::GetFont();
+                const float fontSize = 15.f * platform.dpiScale;
+                const float scale = fontSize / font->FontSize;
+                float top = FLT_MAX, bottom = -FLT_MAX;
+                // Launcher button captions are ASCII. Center their visible glyphs,
+                // not the font's line box (which includes ascender/descender padding).
+                for (const unsigned char* c = reinterpret_cast<const unsigned char*>(label); *c; ++c)
+                    if (const ImFontGlyph* glyph = font->FindGlyph(*c))
+                        if (glyph->Visible)
+                        {
+                            top = (std::min)(top, glyph->Y0);
+                            bottom = (std::max)(bottom, glyph->Y1);
+                        }
+                const float textWidth = font->CalcTextSizeA(fontSize, FLT_MAX, 0, label).x / platform.dpiScale;
+                const float textX = icon ? x + 42.f : x + (width - textWidth) * 0.5f;
+                const float textY = top <= bottom ?
+                    y + height * 0.5f - (top + bottom) * scale / (2.f * platform.dpiScale) :
+                    y + (height - 15.f) * 0.5f;
+                Text(draw, textX + shift, textY + shift, label, alpha, 15.f,
+                    width - (icon ? 48.f : 16.f));
+            }
             ImGui::EndDisabled();
             return clicked && enabled;
         }
@@ -282,7 +308,7 @@ namespace
                 ImGui::PushID(id.c_str());
                 const ImVec2 start = ImGui::GetCursorScreenPos();
                 const bool clicked = ImGui::InvisibleButton("Recent", Position(229.f, 43.f));
-                const bool hovered = ImGui::IsItemHovered() || ImGui::IsItemFocused();
+                const bool hovered = !platform.moving && ImGui::IsItemHovered();
                 auto& animation = animations[ImGui::GetID("Recent")];
                 animation.hover = Approach(animation.hover, hovered ? 1.f : 0.f, 15.f);
                 animation.pressed = Approach(animation.pressed, ImGui::IsItemActive() ? 1.f : 0.f, 24.f);
@@ -378,9 +404,14 @@ namespace
                         historyDirty = true;
                     };
                 ImGui::Separator();
-                if (ImGui::Checkbox("Blurred desktop background", &useBlur))
+                if (ImGui::Checkbox("Procedural background blur", &useBlur))
+                {
+                    platform.SetBlur(useBlur);
                     FarkashedLauncher::SetSetting(L"UseBlur", useBlur ? L"1" : L"0");
-                ImGui::TextDisabled("The desktop is captured once at launcher startup.");
+                }
+                ImGui::TextDisabled("Blur updates live as the window moves.");
+                if (useBlur && !platform.nativeBlur)
+                    ImGui::TextDisabled("Background blur is unavailable on this Windows setup.");
                 ImGui::SliderFloat("Background shade", &darkening, 0.45f, 0.95f, "%.2f");
                 if (ImGui::IsItemDeactivatedAfterEdit())
                     FarkashedLauncher::SetSetting(L"BackgroundShade", std::to_wstring(int(darkening * 100.f)));
@@ -408,14 +439,7 @@ namespace
             if (!shade.empty())
                 darkening = (std::max)(0.45f, (std::min)(0.95f, float(_wtoi(shade.c_str())) / 100.f));
             logo = platform.LoadTexture(assets + L"\\Logo.png");
-            frame = platform.LoadTexture(assets + L"\\Window.png", true);
-            closeIcon = platform.LoadTexture(assets + L"\\BaselineClose.png");
-            minimizeIcon = platform.LoadTexture(assets + L"\\BaselineMinus.png");
-            for (size_t i = 0; i < Editors.size(); ++i)
-                icons[i] = platform.LoadTexture(assets + L"\\" + Editors[i].icon);
-            assetWarning = !logo || !frame || !closeIcon || !minimizeIcon;
-            for (const auto& icon : icons)
-                assetWarning = assetWarning || !icon;
+            platform.SetBlur(useBlur);
             ImportLegacyHistory(sdkDirectory);
         }
 
@@ -463,6 +487,17 @@ namespace
             style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.61f, 0.12f, 0.16f, 0.6f);
             style.Colors[ImGuiCol_NavHighlight] = ImVec4(1.f, 0.24f, 0.26f, 1.f);
             style.ScaleAllSizes(platform.dpiScale);
+            // Decode/crop once per DPI change, then area-filter at the physical
+            // drawing size. Icons are not resampled from 256 px by two GPU taps.
+            closeIcon = platform.LoadTexture(assets + L"\\BaselineClose.png", unsigned(std::round(18.f * platform.dpiScale)));
+            minimizeIcon = platform.LoadTexture(assets + L"\\BaselineMinus.png", unsigned(std::round(18.f * platform.dpiScale)));
+            for (size_t i = 0; i < Editors.size(); ++i)
+                icons[i] = platform.LoadTexture(assets + L"\\" + Editors[i].icon,
+                    unsigned(std::round(23.f * platform.dpiScale)));
+            assetWarning = !logo || !closeIcon || !minimizeIcon;
+            for (const auto& icon : icons)
+                assetWarning = assetWarning || !icon;
+
             platform.fontsDirty = false;
         }
 
@@ -492,7 +527,7 @@ namespace
         {
             if (!status.empty() && ImGui::GetTime() >= statusExpires)
                 status.clear();
-            if (historyDirty || ImGui::GetTime() >= nextRefresh)
+            if (!platform.moving && (historyDirty || ImGui::GetTime() >= nextRefresh))
                 RefreshHistory();
             opacity = Approach(opacity, platform.closeRequested ? 0.f : 1.f, 18.f);
             if (platform.closeRequested && opacity < 0.015f)
@@ -505,25 +540,15 @@ namespace
                 ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground);
             ImGui::PopStyleVar(2);
             ImDrawList* draw = ImGui::GetWindowDrawList();
-            if (useBlur && platform.backdrop)
-            {
-                RECT windowBounds;
-                GetWindowRect(platform.window, &windowBounds);
-                const RECT& desktop = platform.desktopBounds;
-                const float width = float(desktop.right - desktop.left);
-                const float height = float(desktop.bottom - desktop.top);
-                draw->AddImage(reinterpret_cast<ImTextureID>(platform.backdrop->handle), ImVec2(0, 0),
-                    ImGui::GetIO().DisplaySize,
-                    ImVec2((windowBounds.left - desktop.left) / width, (windowBounds.top - desktop.top) / height),
-                    ImVec2((windowBounds.right - desktop.left) / width, (windowBounds.bottom - desktop.top) / height),
-                    Color(1, 1, 1));
-            }
             draw->AddRectFilled(ImVec2(0, 0), ImGui::GetIO().DisplaySize,
-                Color(0.02f, 0.02f, 0.025f, useBlur && platform.backdrop ? darkening : 1.f));
-            if (frame)
-                Image(draw, frame.get(), ImVec2(0, 0), ImGui::GetIO().DisplaySize);
-            else
-                draw->AddRect(Position(8, 4), Position(568, 429), Color(1, 0, 0), 0.f, 0, 5.f * platform.dpiScale);
+                Color(0.02f, 0.02f, 0.025f, platform.nativeBlur ? darkening : 1.f));
+            // Stroke at the actual client boundary; the PNG contains outer padding.
+            // Half a stroke inset keeps every pixel inside the HWND without a gap.
+            const float thickness = (std::max)(1.f, 2.f * platform.dpiScale);
+            const float halfStroke = thickness * 0.5f;
+            draw->AddRect(ImVec2(halfStroke, halfStroke),
+                ImVec2(ImGui::GetIO().DisplaySize.x - halfStroke, ImGui::GetIO().DisplaySize.y - halfStroke),
+                Color(0.9f, 0.08f, 0.1f), 0.f, 0, thickness);
             Text(draw, 249.f, 16.f, "Welcome", 0.62f, 14.f);
             if (AnimatedButton("Minimize", 493.f, 9.f, 30.f, 29.f, "", minimizeIcon.get(), true, true))
                 pendingAction = [this] { ShowWindow(platform.window, SW_MINIMIZE); };
@@ -621,6 +646,24 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
         ui.LoadFonts();
         ShowWindow(platform.window, showCommand);
         UpdateWindow(platform.window);
+        bool drawing = false;
+        const auto drawFrame = [&]() -> bool
+        {
+            if (drawing || IsIconic(platform.window) || !platform.PrepareFrame())
+                return false;
+            drawing = true;
+            if (platform.fontsDirty)
+                ui.LoadFonts();
+            ImGui_ImplDX9_NewFrame();
+            ImGui_ImplWin32_NewFrame();
+            ImGui::NewFrame();
+            ui.Draw();
+            ImGui::Render();
+            const bool rendered = platform.Render();
+            drawing = false;
+            return rendered;
+        };
+        platform.redrawDuringMove = drawFrame;
         while (platform.PumpMessages())
         {
             if (IsIconic(platform.window))
@@ -630,26 +673,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
                 MsgWaitForMultipleObjects(0, nullptr, FALSE, 100, QS_ALLINPUT);
                 continue;
             }
-            if (!platform.PrepareFrame())
-            {
-                Sleep(20);
-                continue;
-            }
-            if (platform.fontsDirty)
-                ui.LoadFonts();
             auto dropped = std::move(platform.droppedFiles);
             platform.droppedFiles.clear();
             for (const auto& path : dropped)
                 ui.OpenPath(path);
-            ImGui_ImplDX9_NewFrame();
-            ImGui_ImplWin32_NewFrame();
-            ImGui::NewFrame();
-            ui.Draw();
-            ImGui::Render();
-            if (!platform.Render())
-                Sleep(20);
+            const bool rendered = drawFrame();
             ui.ExecutePending();
+            if (!rendered)
+                Sleep(20);
         }
+        platform.redrawDuringMove = {};
+
     } // Release artwork while the D3D device and ImGui context still exist.
     ImGui_ImplDX9_Shutdown();
     ImGui_ImplWin32_Shutdown();

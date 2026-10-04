@@ -1,5 +1,5 @@
 #include <windows.h>
-1 ICON "../Editors/LevelEditor/Resources/IconLE.ico"
+1 ICON "assets/gui/Icon.ico"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,0

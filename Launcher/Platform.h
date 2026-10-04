@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <d3d9.h>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,16 +26,18 @@ public:
     float dpiScale = 1.f;
     bool fontsDirty = true;
     bool closeRequested = false;
-    RECT desktopBounds = {};
     std::vector<std::wstring> droppedFiles;
-    std::unique_ptr<Texture> backdrop;
+    std::function<void()> redrawDuringMove;
+    bool moving = false;
+    bool nativeBlur = false;
 
     bool Initialize(HINSTANCE instance);
     void Shutdown();
     bool PumpMessages();
     bool PrepareFrame();
     bool Render();
-    std::unique_ptr<Texture> LoadTexture(const std::wstring& path, bool frame = false);
+    std::unique_ptr<Texture> LoadTexture(const std::wstring& path, unsigned iconSize = 0);
+    void SetBlur(bool enabled);
     std::wstring PickFile();
     std::wstring PickSDKDirectory();
     bool StartEditor(const std::wstring& executable, const std::wstring& file, std::wstring& error);
@@ -47,9 +50,9 @@ private:
     D3DPRESENT_PARAMETERS parameters = {};
     bool quit = false;
     bool resetPending = false;
+    bool blurRequested = true;
     HINSTANCE instance = nullptr;
 
     std::unique_ptr<Texture> Upload(const unsigned char* pixels, unsigned width, unsigned height);
-    void CaptureBackdrop();
     bool ResetDevice();
 };

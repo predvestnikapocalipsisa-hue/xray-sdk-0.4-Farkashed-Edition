@@ -9,6 +9,8 @@ configuration combinations as the editors. Its output is `Launcher.exe` in
 `BuildedSDK/<platform>_<configuration>/`. Its project copies the PNGs and `font.otf`
 to `launcher/assets/gui/` beside the executable. The `.pdn` remains a design source;
 Paint.NET is not a runtime dependency. The original artwork is preserved.
+`assets/gui/Icon.ico` is embedded into the executable and used for both sizes of
+the window icon, including the taskbar and Alt+Tab.
 
 Place the launcher alongside `ActorEditor.exe`, `LevelEditor.exe`,
 `ParticleEditor.exe` and `ShaderEditor.exe`, or choose their directory in Settings.
@@ -19,15 +21,20 @@ launch is optional.
 
 ## Interface
 
-- Original red frame, logo, editor icons, title-bar icons and OTF font.
+- Red frame aligned to the window edge, original logo, editor icons, title-bar
+  icons and OTF font. Icons are cropped to their visible bounds and area-filtered
+  with alpha-aware colors at the current DPI, preserving their aspect ratio.
+  Filtered icons are drawn at their exact physical size on integer pixel bounds,
+  avoiding a second resampling pass and changing sharpness during press animations.
 - Smooth hover / press transitions, entrance / close fade, keyboard navigation and
   an optional reduced-motion setting.
 - Borderless draggable title bar, minimize / close controls and per-monitor DPI.
-- Blurred desktop captured **once before the launcher becomes visible**. The
-  downsampled, blurred image stays in memory; it is not saved. Moving the window
-  changes the sampled region. This is a snapshot, not live Windows Acrylic. Blur
-  can be disabled and the background shade adjusted. Capture failure falls back
-  to a solid dark background.
+- Live procedural background blur through Windows composition, using the system
+  backdrop on supported Windows 11 versions and a dynamically resolved accent
+  blur policy on Windows 10. No desktop screenshot is cached. Blur can be disabled
+  and the background shade adjusted; unavailable composition falls back to a solid
+  dark background. A move-loop timer keeps the interface animations rendering
+  while the window is dragged.
 - Open-file dialog and file drag-and-drop; recent-file rows with full-path tooltips,
   missing-file indicators, Explorer reveal and history removal.
 - DirectX device-loss recovery and no continuous rendering while minimized.

@@ -71,6 +71,7 @@
     <None Include="assets\gui\Launcher.pdn" />
     <None Include="assets\gui\font.otf" />
     <Image Include="assets\gui\*.png" />
+    <Image Include="assets\gui\Icon.ico" />
   </ItemGroup>
   <ItemGroup>
     <LauncherAsset Include="assets\gui\*.png;assets\gui\font.otf" />

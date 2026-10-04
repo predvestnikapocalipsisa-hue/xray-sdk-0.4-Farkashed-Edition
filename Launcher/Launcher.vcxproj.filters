@@ -25,5 +25,6 @@
     <None Include="assets\gui\Launcher.pdn"><Filter>Assets</Filter></None>
     <None Include="assets\gui\font.otf"><Filter>Assets</Filter></None>
     <Image Include="assets\gui\*.png"><Filter>Assets</Filter></Image>
+    <Image Include="assets\gui\Icon.ico"><Filter>Assets</Filter></Image>
   </ItemGroup>
 </Project>

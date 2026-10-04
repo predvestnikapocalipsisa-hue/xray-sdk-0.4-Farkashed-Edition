@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cstdint>
+#include <cmath>
 
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -66,56 +67,57 @@ namespace
         return result + L'"';
     }
 
-    // Sliding box passes approximate a Gaussian blur without shaders or extra DLLs.
-    void Blur(std::vector<unsigned char>& pixels, unsigned width, unsigned height, int radius)
+    // Area filtering integrates all source pixels covered by an output pixel.
+    // Accumulate premultiplied colors to avoid fringes around transparent edges.
+    void ResizeIcon(std::vector<unsigned char>& pixels, unsigned& width, unsigned& height, unsigned size)
     {
-        std::vector<unsigned char> temporary(pixels.size());
-        for (int pass = 0; pass < 3; ++pass)
-        {
-            for (unsigned y = 0; y < height; ++y)
-            {
-                int sums[3] = {};
-                for (int x = -radius; x <= radius; ++x)
-                {
-                    const unsigned offset = (y * width + unsigned((std::max)(0, (std::min)(int(width) - 1, x)))) * 4;
-                    for (int c = 0; c < 3; ++c)
-                        sums[c] += pixels[offset + c];
-                }
-                for (unsigned x = 0; x < width; ++x)
-                {
-                    const unsigned offset = (y * width + x) * 4;
-                    for (int c = 0; c < 3; ++c)
-                        temporary[offset + c] = static_cast<unsigned char>(sums[c] / (radius * 2 + 1));
-                    temporary[offset + 3] = 255;
-                    const unsigned left = (y * width + unsigned((std::max)(0, int(x) - radius))) * 4;
-                    const unsigned right = (y * width + unsigned((std::min)(int(width) - 1, int(x) + radius + 1))) * 4;
-                    for (int c = 0; c < 3; ++c)
-                        sums[c] += int(pixels[right + c]) - int(pixels[left + c]);
-                }
-            }
+        unsigned left = width, top = height, right = 0, bottom = 0;
+        for (unsigned y = 0; y < height; ++y)
             for (unsigned x = 0; x < width; ++x)
+                if (pixels[(size_t(y) * width + x) * 4 + 3])
+                {
+                    left = (std::min)(left, x);
+                    top = (std::min)(top, y);
+                    right = (std::max)(right, x + 1);
+                    bottom = (std::max)(bottom, y + 1);
+                }
+        if (right <= left || bottom <= top)
+            return;
+        const unsigned sourceWidth = right - left, sourceHeight = bottom - top;
+        const float ratio = float(size) / float((std::max)(sourceWidth, sourceHeight));
+        const unsigned targetWidth = (std::max)(1u, unsigned(sourceWidth * ratio + 0.5f));
+        const unsigned targetHeight = (std::max)(1u, unsigned(sourceHeight * ratio + 0.5f));
+        std::vector<unsigned char> output(size_t(targetWidth) * targetHeight * 4);
+        for (unsigned y = 0; y < targetHeight; ++y)
+            for (unsigned x = 0; x < targetWidth; ++x)
             {
-                int sums[3] = {};
-                for (int y = -radius; y <= radius; ++y)
-                {
-                    const unsigned offset = (unsigned((std::max)(0, (std::min)(int(height) - 1, y))) * width + x) * 4;
-                    for (int c = 0; c < 3; ++c)
-                        sums[c] += temporary[offset + c];
-                }
-                for (unsigned y = 0; y < height; ++y)
-                {
-                    const unsigned offset = (y * width + x) * 4;
-                    for (int c = 0; c < 3; ++c)
-                        pixels[offset + c] = static_cast<unsigned char>(sums[c] / (radius * 2 + 1));
-                    pixels[offset + 3] = 255;
-                    const unsigned top = (unsigned((std::max)(0, int(y) - radius)) * width + x) * 4;
-                    const unsigned bottom = (unsigned((std::min)(int(height) - 1, int(y) + radius + 1)) * width + x) * 4;
-                    for (int c = 0; c < 3; ++c)
-                        sums[c] += int(temporary[bottom + c]) - int(temporary[top + c]);
-                }
+                const float x0 = left + float(x) * sourceWidth / targetWidth;
+                const float x1 = left + float(x + 1) * sourceWidth / targetWidth;
+                const float y0 = top + float(y) * sourceHeight / targetHeight;
+                const float y1 = top + float(y + 1) * sourceHeight / targetHeight;
+                float alpha = 0.f, area = 0.f, colors[3] = {};
+                for (unsigned sy = unsigned(y0); sy < (std::min)(bottom, unsigned(std::ceil(y1))); ++sy)
+                    for (unsigned sx = unsigned(x0); sx < (std::min)(right, unsigned(std::ceil(x1))); ++sx)
+                    {
+                        const float weight = ((std::min)(x1, float(sx + 1)) - (std::max)(x0, float(sx))) *
+                            ((std::min)(y1, float(sy + 1)) - (std::max)(y0, float(sy)));
+                        const unsigned char* source = &pixels[(size_t(sy) * width + sx) * 4];
+                        const float weightedAlpha = weight * source[3];
+                        area += weight;
+                        alpha += weightedAlpha;
+                        for (unsigned c = 0; c < 3; ++c)
+                            colors[c] += weightedAlpha * source[c];
+                    }
+                unsigned char* destination = &output[(size_t(y) * targetWidth + x) * 4];
+                for (unsigned c = 0; c < 3; ++c)
+                    destination[c] = alpha > 0.f ? static_cast<unsigned char>((std::min)(255.f, colors[c] / alpha + 0.5f)) : 0;
+                destination[3] = area > 0.f ? static_cast<unsigned char>((std::min)(255.f, alpha / area + 0.5f)) : 0;
             }
-        }
+        pixels = std::move(output);
+        width = targetWidth;
+        height = targetHeight;
     }
+
 }
 
 Texture::~Texture() { Release(handle); }
@@ -124,12 +126,15 @@ bool LauncherPlatform::Initialize(HINSTANCE applicationInstance)
 {
     instance = applicationInstance;
     ImGui_ImplWin32_EnableDpiAwareness();
-    HICON icon = LoadIconW(instance, MAKEINTRESOURCEW(1));
+    HICON icon = static_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(1), IMAGE_ICON,
+        GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_SHARED));
     if (!icon)
         icon = LoadIconW(nullptr, IDI_APPLICATION);
+    HICON smallIcon = static_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(1), IMAGE_ICON,
+        GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_SHARED));
     const WNDCLASSEXW windowClass = { sizeof(WNDCLASSEXW), CS_CLASSDC, WindowProc, 0, 0,
         instance, icon, LoadCursorW(nullptr, IDC_ARROW), nullptr,
-        nullptr, WindowClass, nullptr };
+        nullptr, WindowClass, smallIcon ? smallIcon : icon };
     if (!RegisterClassExW(&windowClass))
         return false;
     POINT cursor;
@@ -152,7 +157,7 @@ bool LauncherPlatform::Initialize(HINSTANCE applicationInstance)
         return false;
     parameters.Windowed = TRUE;
     parameters.SwapEffect = D3DSWAPEFFECT_DISCARD;
-    parameters.BackBufferFormat = D3DFMT_UNKNOWN;
+    parameters.BackBufferFormat = D3DFMT_A8R8G8B8;
     parameters.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
     parameters.hDeviceWindow = window;
     HRESULT result = direct3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, window,
@@ -162,7 +167,7 @@ bool LauncherPlatform::Initialize(HINSTANCE applicationInstance)
             D3DCREATE_SOFTWARE_VERTEXPROCESSING, &parameters, &device);
     if (FAILED(result))
         return false;
-    CaptureBackdrop(); // Captured before showing the launcher; only kept in GPU memory.
+    SetBlur(true);
     DragAcceptFiles(window, TRUE);
     const int cornerPreference = 1; // Preserve the rectangular red frame on Windows 11.
     DwmSetWindowAttribute(window, 33, &cornerPreference, sizeof(cornerPreference));
@@ -171,7 +176,8 @@ bool LauncherPlatform::Initialize(HINSTANCE applicationInstance)
 
 void LauncherPlatform::Shutdown()
 {
-    backdrop.reset();
+    redrawDuringMove = {};
+    KillTimer(window, 1);
     Release(device);
     Release(direct3D);
     if (window)
@@ -199,7 +205,7 @@ std::unique_ptr<Texture> LauncherPlatform::Upload(const unsigned char* pixels, u
     return texture;
 }
 
-std::unique_ptr<Texture> LauncherPlatform::LoadTexture(const std::wstring& path, bool frame)
+std::unique_ptr<Texture> LauncherPlatform::LoadTexture(const std::wstring& path, unsigned iconSize)
 {
     IWICImagingFactory* factory = nullptr;
     IWICBitmapDecoder* decoder = nullptr;
@@ -227,10 +233,8 @@ std::unique_ptr<Texture> LauncherPlatform::LoadTexture(const std::wstring& path,
         result = converter->CopyPixels(nullptr, width * 4, UINT(pixels.size()), pixels.data());
         if (SUCCEEDED(result))
         {
-            if (frame)
-                for (size_t i = 0; i < pixels.size(); i += 4)
-                    if (pixels[i] < 16 && pixels[i + 1] < 16 && pixels[i + 2] < 16)
-                        pixels[i + 3] = 0; // Keep Window.png's red outline over the blurred backdrop.
+            if (iconSize)
+                ResizeIcon(pixels, width, height, iconSize);
             texture = Upload(pixels.data(), width, height);
         }
     }
@@ -241,55 +245,32 @@ std::unique_ptr<Texture> LauncherPlatform::LoadTexture(const std::wstring& path,
     return texture;
 }
 
-void LauncherPlatform::CaptureBackdrop()
+void LauncherPlatform::SetBlur(bool enabled)
 {
-    desktopBounds.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
-    desktopBounds.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-    desktopBounds.right = desktopBounds.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
-    desktopBounds.bottom = desktopBounds.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
-    const int desktopWidth = desktopBounds.right - desktopBounds.left;
-    const int desktopHeight = desktopBounds.bottom - desktopBounds.top;
-    if (desktopWidth <= 0 || desktopHeight <= 0)
-        return;
-    D3DCAPS9 caps = {};
-    device->GetDeviceCaps(&caps);
-    const float scale = (std::min)(0.25f, (std::min)(float(caps.MaxTextureWidth) / desktopWidth,
-        float(caps.MaxTextureHeight) / desktopHeight));
-    const int width = (std::max)(1, int(desktopWidth * scale));
-    const int height = (std::max)(1, int(desktopHeight * scale));
-    HDC desktop = GetDC(nullptr);
-    if (!desktop)
-        return;
-    HDC memory = CreateCompatibleDC(desktop);
-    BITMAPINFO info = {};
-    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    info.bmiHeader.biWidth = width;
-    info.bmiHeader.biHeight = -height;
-    info.bmiHeader.biPlanes = 1;
-    info.bmiHeader.biBitCount = 32;
-    info.bmiHeader.biCompression = BI_RGB;
-    void* data = nullptr;
-    HBITMAP bitmap = CreateDIBSection(desktop, &info, DIB_RGB_COLORS, &data, nullptr, 0);
-    if (desktop && memory && bitmap)
+    blurRequested = enabled;
+    // Windows 11 provides a DWM backdrop. Older Windows 10 uses the dynamically
+    // resolved accent policy; no desktop capture or CPU blur is needed.
+    nativeBlur = false;
+    const int backdropType = enabled ? 3 : 1; // DWMSBT_TRANSIENTWINDOW / NONE
+    const HRESULT backdropResult = DwmSetWindowAttribute(window, 38, &backdropType, sizeof(backdropType));
+    struct AccentPolicy { int state; int flags; DWORD color; int animation; };
+    struct CompositionData { int attribute; void* data; SIZE_T size; };
+    using SetComposition = BOOL(WINAPI*)(HWND, CompositionData*);
+    const auto setComposition = reinterpret_cast<SetComposition>(
+        GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetWindowCompositionAttribute"));
+    if (SUCCEEDED(backdropResult))
+        nativeBlur = enabled;
+    if (setComposition)
     {
-        HGDIOBJ previous = SelectObject(memory, bitmap);
-        SetStretchBltMode(memory, HALFTONE);
-        if (StretchBlt(memory, 0, 0, width, height, desktop, desktopBounds.left, desktopBounds.top,
-            desktopWidth, desktopHeight, SRCCOPY))
-        {
-            std::vector<unsigned char> pixels(size_t(width) * height * 4);
-            std::memcpy(pixels.data(), data, pixels.size());
-            Blur(pixels, unsigned(width), unsigned(height), 5);
-            backdrop = Upload(pixels.data(), unsigned(width), unsigned(height));
-        }
-        SelectObject(memory, previous);
+        // Disable the legacy policy when the documented system backdrop is available.
+        AccentPolicy policy = { enabled && FAILED(backdropResult) ? 3 : 0, 0, 0, 0 };
+        CompositionData data = { 19, &policy, sizeof(policy) };
+        const BOOL success = setComposition(window, &data);
+        if (enabled && FAILED(backdropResult))
+            nativeBlur = success != FALSE;
     }
-    if (bitmap)
-        DeleteObject(bitmap);
-    if (memory)
-        DeleteDC(memory);
-    if (desktop)
-        ReleaseDC(nullptr, desktop);
+    const MARGINS margins = nativeBlur ? MARGINS{ -1, -1, -1, -1 } : MARGINS{};
+    DwmExtendFrameIntoClientArea(window, &margins);
 }
 
 bool LauncherPlatform::PumpMessages()
@@ -320,9 +301,13 @@ bool LauncherPlatform::Render()
     device->SetRenderState(D3DRS_ZENABLE, FALSE);
     device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
     device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+    device->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
+    device->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
+    device->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_INVSRCALPHA);
+    device->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
     device->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     device->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-    device->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(12, 12, 14), 1.f, 0);
+    device->Clear(0, nullptr, D3DCLEAR_TARGET, nativeBlur ? D3DCOLOR_ARGB(0, 0, 0, 0) : D3DCOLOR_XRGB(12, 12, 14), 1.f, 0);
     if (SUCCEEDED(device->BeginScene()))
     {
         ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
@@ -461,6 +446,24 @@ LRESULT CALLBACK LauncherPlatform::WindowProc(HWND window, UINT message, WPARAM 
     {
         switch (message)
         {
+        case WM_ENTERSIZEMOVE:
+            app->moving = true;
+            SetTimer(window, 1, 16, nullptr);
+            return 0;
+        case WM_TIMER:
+            if (wParam == 1 && app->moving && app->redrawDuringMove)
+            {
+                app->redrawDuringMove();
+                return 0;
+            }
+            break;
+        case WM_EXITSIZEMOVE:
+            KillTimer(window, 1);
+            app->moving = false;
+            return 0;
+        case WM_DWMCOMPOSITIONCHANGED:
+            app->SetBlur(app->blurRequested);
+            return 0;
         case WM_CLOSE:
             app->closeRequested = true;
             return 0;
