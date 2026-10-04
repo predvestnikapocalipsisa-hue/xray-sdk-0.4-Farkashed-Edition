@@ -99,6 +99,7 @@ public:
     }
     virtual bool GetSelectionPosition(Fmatrix &result);
 
+    xr_string DiscordDocument() override;
     LPCSTR CurrentToolsName();
 
     void OnChangeEditor(ISHTools *tools);

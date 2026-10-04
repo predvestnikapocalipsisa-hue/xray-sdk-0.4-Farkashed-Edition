@@ -34,7 +34,9 @@ public:
 	static xr_string ConvertUTF8ToCP1251(const char *str);
 
 protected:
-	virtual void OnDrawUI();
+    virtual xr_string DiscordEnvironment() { return "In Editor"; }
+    virtual xr_string DiscordDocument() { return ""; }
+    virtual void OnDrawUI();
 
 private:
 	float m_MenuBarHeight;

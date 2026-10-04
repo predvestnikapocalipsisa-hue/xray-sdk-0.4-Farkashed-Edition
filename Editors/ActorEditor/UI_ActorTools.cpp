@@ -1346,3 +1346,10 @@ void CActorTools::PrepareLighting()
     EDevice.SetLight(5, L);
     EDevice.LightEnable(5, true);
 }
+
+xr_string CActorTools::DiscordDocument()
+{
+    const xr_string file = inherited::DiscordDocument();
+    if (!file.empty()) return file;
+    return m_pEditObject && m_pEditObject->GetName() ? m_pEditObject->GetName() : "";
+}

@@ -1,5 +1,6 @@
 #include "Platform.h"
 #include "EditorHost.h"
+#include "DiscordPresence.h"
 #include "../LauncherAssets/ResourceIds.h"
 #include "RecentFiles.h"
 #include "imgui.h"
@@ -651,6 +652,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
         ui.LoadFonts();
         ShowWindow(platform.window, showCommand);
         UpdateWindow(platform.window);
+        FarkashedDiscord::Presence discord;
+        discord.Initialize();
         bool drawing = false;
         const auto drawFrame = [&]() -> bool
         {
@@ -671,6 +674,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
         platform.redrawDuringMove = drawFrame;
         while (platform.PumpMessages())
         {
+            discord.Tick("In Launcher", "");
             if (IsIconic(platform.window))
             {
                 if (platform.closeRequested)

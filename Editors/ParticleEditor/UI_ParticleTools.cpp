@@ -1001,3 +1001,12 @@ bool CParticleTool::GetSelectionPosition(Fmatrix &result)
     result = m_Transform;
     return true;
 }
+
+xr_string CParticleTool::DiscordDocument()
+{
+    if (m_EditMode == emGroup && m_LibPGD && m_LibPGD->m_Name.size())
+        return m_LibPGD->m_Name.c_str();
+    if (m_EditMode == emEffect && m_LibPED && m_LibPED->Name())
+        return m_LibPED->Name();
+    return inherited::DiscordDocument();
+}

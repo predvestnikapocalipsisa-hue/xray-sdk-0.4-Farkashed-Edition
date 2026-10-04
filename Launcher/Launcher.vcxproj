@@ -44,7 +44,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>d3d9.lib;dwmapi.lib;windowscodecs.lib;shell32.lib;ole32.lib;uuid.lib;imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\External\discord\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>discord-rpc.lib;d3d9.lib;dwmapi.lib;windowscodecs.lib;shell32.lib;ole32.lib;uuid.lib;imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -67,6 +68,7 @@
     <ClInclude Include="Platform.h" />
     <ClInclude Include="RecentFiles.h" />
     <ClInclude Include="EditorHost.h" />
+    <ClInclude Include="DiscordPresence.h" />
     <ResourceCompile Include="Launcher.rc" />
     <None Include="Launcher.manifest" />
     <None Include="README.md" />

@@ -174,6 +174,7 @@ public:
     void Remove(LPCSTR name);
 
     // PG routine
+    xr_string DiscordDocument() override;
     PS::CPEDef *FindPE(LPCSTR name);
     PS::CPEDef *AppendPE(PS::CPEDef *src, const char *path);
     void SetCurrentPE(PS::CPEDef *P);

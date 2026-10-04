@@ -259,6 +259,8 @@ public:
     void CheckWindowPos(HWND *form);
 
     virtual LPCSTR EditorName() = 0;
+    xr_string DiscordEnvironment() override;
+    xr_string DiscordDocument() override;
     virtual LPCSTR EditorDesc() = 0;
     virtual HICON EditorIcon() { return nullptr; }
 

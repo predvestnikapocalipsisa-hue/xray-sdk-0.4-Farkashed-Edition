@@ -21,6 +21,7 @@
     <ClInclude Include="Platform.h"><Filter>Source</Filter></ClInclude>
     <ClInclude Include="RecentFiles.h"><Filter>Source</Filter></ClInclude>
     <ClInclude Include="EditorHost.h"><Filter>Source</Filter></ClInclude>
+    <ClInclude Include="DiscordPresence.h"><Filter>Source</Filter></ClInclude>
     <ResourceCompile Include="Launcher.rc"><Filter>Source</Filter></ResourceCompile>
     <None Include="Launcher.manifest"><Filter>Source</Filter></None>
     <None Include="README.md" />

@@ -28,6 +28,19 @@ launch is optional.
 
 ## Interface
 
+Discord Rich Presence uses application ID `1542531211602169966`. Discord displays
+that application's configured name as the title. The next line is `In Launcher`,
+`In Level Editor`, `In Actor Editor`, `In Particle Editor` or `In Shader Editor`.
+The final line contains the level/object filename without its extension, the
+selected particle/group name, or the selected shader/material library item. Empty
+editors show an explicit untitled/no-selection state; the launcher has no document
+line. Document names are converted from the SDK's Windows code page to UTF-8.
+
+Only the foreground SDK process publishes updates, so simultaneous editors and
+the background launcher do not keep overwriting each other's presence. Updates
+follow document/selection changes and focus changes; the existing `logo` image key
+is used for the new Discord application. RPC shuts down with its UI session.
+
 - Red frame aligned to the window edge, original logo, editor icons, title-bar
   icons and OTF font. Icons are cropped to their visible bounds and area-filtered
   with alpha-aware colors at the current DPI, preserving their aspect ratio.
