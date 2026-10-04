@@ -1,5 +1,5 @@
 
-<img width="2000" height="2000" alt="FARKASHED EDITION" src="https://github.com/user-attachments/assets/f918756c-4552-4a1a-879f-bc2f55d94227" />
+<img width="2000" height="1027" alt="Logo" src="https://github.com/user-attachments/assets/aa4c382a-9602-4793-851f-f3881d5c5fc3" />
 
 
 ### X-Ray SDK 0.4 Farkashed Edition
@@ -111,4 +111,4 @@
 
 Проект настроен на сборку в Visual Studio 2019. Просто откройте .sln файл и выберите конфигурацию Release | x64.
 
-### Credits: TSMP, Red Panda (BearIvan).
+### Credits: TSMP, Red Panda (BearIvan), Lunar.
