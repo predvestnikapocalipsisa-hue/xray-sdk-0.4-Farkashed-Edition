@@ -35,12 +35,22 @@ static void EnsureSDKPaths(ELocatorAPI& fs, const char* root)
 	};
 	if (!fs.path_exist("$app_root$"))
 		fs.append_path("$app_root$", root, NULL, FALSE);
+	// These aliases are optional; supply defaults without enabling fallback.
+	const char* optionalAliases[] = {
+		"$server_root$", "$server_data_root$", "$game_particles$", "$game_fonts$",
+		"$game_weathers$", "$game_weather_effects$", "$screenshots$", "$build_copy$"
+	};
 	for (const SDKPath& path : paths)
 	{
 		if (!fs.path_exist(path.alias))
 		{
 			fs.append_path(path.alias, fs.get_path(path.parent)->m_Path, path.relative, FALSE);
-			Core.ReportMissingSDKFile(path.alias);
+			bool optional = false;
+			for (const char* alias : optionalAliases)
+				if (xr_strcmp(path.alias, alias) == 0)
+					optional = true;
+			if (!optional)
+				Core.ReportMissingSDKFile(path.alias);
 		}
 	}
 }
