@@ -340,23 +340,6 @@ void XrUIManager::Draw()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    if (Core.SDKFallback)
-    {
-        ImGui::SetNextWindowSize(ImVec2(660, 420), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("SDK fallback / structure"))
-        {
-            ImGui::TextWrapped("SDK data is incomplete. Basic editing remains available; missing libraries, spawn/scripts and simulation are disabled.");
-            ImGui::TextWrapped("Restore the original files at the paths below, then restart the editor.");
-            if (ImGui::Button("Show structure in message box"))
-                Core.ShowSDKStructure();
-            ImGui::Separator();
-            ImGui::BeginChild("SDK paths", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-            ImGui::TextUnformatted(Core.SDKStructure());
-            ImGui::EndChild();
-        }
-        ImGui::End();
-    }
-
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + UIToolBarSize));

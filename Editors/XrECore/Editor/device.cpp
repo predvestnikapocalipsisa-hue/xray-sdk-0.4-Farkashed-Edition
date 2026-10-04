@@ -252,8 +252,7 @@ void CEditorRenderDevice::_Create(IReader* F)
 	UI->OnDeviceCreate();
 	//.	seqDevCreate.Process		(rp_DeviceCreate);
 
-	if (!Core.SDKFallback && pSettings->section_exist("hud_font_small"))
-		pSystemFont = xr_new<CGameFont>("hud_font_small");
+	pSystemFont = xr_new<CGameFont>("hud_font_small");
 	//	pSystemFont					= xr_new<CGameFont>("hud_font_medium");
 }
 

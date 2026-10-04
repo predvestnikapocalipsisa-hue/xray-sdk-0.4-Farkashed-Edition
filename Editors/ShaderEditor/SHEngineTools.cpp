@@ -475,11 +475,6 @@ void CSHEngineTools::Save(CMemoryWriter &F)
 
 bool CSHEngineTools::Save()
 {
-    if (Core.SDKFallback)
-    {
-        ELog.DlgMsg(mtInformation, "Saving SDK libraries is disabled in fallback mode.");
-        return false;
-    }
     // set name
     string_path fn;
     FS.update_path(fn, _game_data_, "shaders.xr");

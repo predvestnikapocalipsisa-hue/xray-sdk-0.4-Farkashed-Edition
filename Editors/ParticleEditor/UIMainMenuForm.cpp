@@ -17,20 +17,20 @@ void UIMainMenuForm::Draw()
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Save", nullptr, false, SDKCommandAvailable(COMMAND_SAVE)))
+            if (ImGui::MenuItem("Save", nullptr, false))
             {
                 ExecCommand(COMMAND_SAVE);
             }
-            if (ImGui::MenuItem("Reload", nullptr, false, SDKCommandAvailable(COMMAND_LOAD)))
+            if (ImGui::MenuItem("Reload", nullptr, false))
             {
                 ExecCommand(COMMAND_LOAD);
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Save .xr", nullptr, false, SDKCommandAvailable(COMMAND_SAVE_XR)))
+            if (ImGui::MenuItem("Save .xr", nullptr, false))
             {
                 ExecCommand(COMMAND_SAVE_XR);
             }
-            if (ImGui::MenuItem("Load .xr", nullptr, false, SDKCommandAvailable(COMMAND_LOAD_XR)))
+            if (ImGui::MenuItem("Load .xr", nullptr, false))
             {
                 ExecCommand(COMMAND_LOAD_XR);
             }

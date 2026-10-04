@@ -71,7 +71,7 @@ void CEngine::ReloadSettings()
 	// game configure
 	string_path si_name;
 	FS.update_path(si_name, "$game_config$", "system.ltx");
-	pSettings = xr_new<CInifile>(si_name, TRUE, Core.SDKHasGameConfig, FALSE);
+	pSettings = xr_new<CInifile>(si_name, TRUE, TRUE, FALSE);
 }
 
 void CEngine::Destroy()

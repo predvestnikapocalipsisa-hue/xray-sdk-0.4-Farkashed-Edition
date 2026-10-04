@@ -17,11 +17,11 @@ void UIMainMenuForm::Draw()
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Save", nullptr, false, SDKCommandAvailable(COMMAND_SAVE)))
+            if (ImGui::MenuItem("Save", nullptr, false))
             {
                 ExecCommand(COMMAND_SAVE);
             }
-            if (ImGui::MenuItem("Reload", nullptr, false, SDKCommandAvailable(COMMAND_LOAD)))
+            if (ImGui::MenuItem("Reload", nullptr, false))
             {
                 ExecCommand(COMMAND_LOAD);
             }

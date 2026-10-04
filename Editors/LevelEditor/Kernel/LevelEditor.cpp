@@ -50,9 +50,7 @@ namespace
         if (!IsDebuggerPresent())
             Debug._initialize(false);
         Core.InitCore("level", ELogCallback);
-        const bool sdkFactoryInitialized = !Core.SDKFallback;
-        if (sdkFactoryInitialized)
-            XrSE_Factory::initialize();
+        XrSE_Factory::initialize();
         LTools = xr_new<CLevelTool>();
         Tools = LTools;
         LUI = xr_new<CLevelMain>();
@@ -85,8 +83,7 @@ namespace
         }
         scene_ready = false;
         xr_delete(main_form);
-        if (sdkFactoryInitialized)
-            XrSE_Factory::destroy();
+        XrSE_Factory::destroy();
         Core.DestroyCore();
         return 0;
     }
