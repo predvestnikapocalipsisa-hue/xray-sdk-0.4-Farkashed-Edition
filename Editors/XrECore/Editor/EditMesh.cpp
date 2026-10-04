@@ -380,6 +380,18 @@ void CEditableMesh::GenerateSVertices(u32 influence)
 
 			VERIFY(m_SVertInfl <= 4);
 
+			// Dynamic meshes can contain vertices without a weight map. RenderSkeleton
+			// expects at least one valid bone per vertex, so keep those vertices in
+			// the skeleton's root space instead of indexing an empty bone list.
+			float weight_sum = 0.f;
+			for (WBIt weight_it = wb.begin(); weight_it != wb.end(); ++weight_it)
+				weight_sum += weight_it->weight;
+			if (wb.empty() || weight_sum <= EPS_L)
+			{
+				wb.clear();
+				wb.push_back(st_WB(0, 1.f));
+			}
+
 			wb.prepare_weights(m_SVertInfl);
 
 			SV.offs = P;
