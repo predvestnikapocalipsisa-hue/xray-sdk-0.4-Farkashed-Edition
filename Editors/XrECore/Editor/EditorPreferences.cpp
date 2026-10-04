@@ -4,6 +4,7 @@
 
 #include "ui_main.h"
 #include "ui_toolscustom.h"
+#include "../../../Launcher/RecentFiles.h"
 //---------------------------------------------------------------------------
 CCustomPreferences *EPrefs = 0;
 //---------------------------------------------------------------------------
@@ -411,8 +412,12 @@ void CCustomPreferences::AppendRecentFile(LPCSTR name)
         }
     }
     scene_recent_list.insert(scene_recent_list.begin(), name);
-    while (scene_recent_list.size() >= EPrefs->scene_recent_count)
+    while (scene_recent_list.size() > scene_recent_count)
         scene_recent_list.pop_back();
+
+    if (!FarkashedLauncher::Remember(FarkashedLauncher::FromAnsi(name),
+        FarkashedLauncher::FromAnsi(UI->EditorName())))
+        Msg("! Could not add the document to launcher history.");
 
     ExecCommand(COMMAND_REFRESH_UI_BAR);
 }

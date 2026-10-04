@@ -10,7 +10,11 @@
 // https://github.com/ocornut/imgui
 
 #pragma once
+#ifdef XR_IMGUI_STANDALONE
+#include "imgui.h"
+#else
 #include "..\XrEUI\stdafx.h" // IMGUI_IMPL_API
+#endif
 
 struct IDirect3DDevice9;
 

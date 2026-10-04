@@ -5,6 +5,8 @@
 
 #include "ui_main.h"
 #include "UI_ToolsCustom.h"
+#include "../../../Launcher/RecentFiles.h"
+#include <shellapi.h>
 
 #include "UIEditLightAnim.h"
 #include "UIImageEditorForm.h"
@@ -867,3 +869,66 @@ bool TUI::ApplyGlobalShortCut(DWORD Key, TShiftState Shift)
     return ExecCommand(SUB->parent->idx, SUB->p0, SUB->p1);
 }
 //---------------------------------------------------------------------------
+
+// Called after the main form is fully constructed, so document loads can refresh its UI.
+bool OpenLauncherDocument()
+{
+    int count = 0;
+    LPWSTR* arguments = CommandLineToArgvW(GetCommandLineW(), &count);
+    if (!arguments)
+        return false;
+    std::wstring document;
+    bool requested = false;
+    for (int i = 1; i < count; ++i)
+    {
+        if (wcscmp(arguments[i], L"--launcher-open") == 0)
+        {
+            requested = true;
+            if (i + 1 < count)
+                document = arguments[i + 1];
+            break;
+        }
+    }
+    LocalFree(arguments);
+    if (!requested)
+        return false;
+    document = FarkashedLauncher::FullPath(document);
+    if (document.empty() || !FarkashedLauncher::FileExists(document))
+    {
+        MessageBoxW(EDevice.m_hWnd, L"The document passed by the launcher does not exist.",
+            L"X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    // The editors still use ANSI paths internally. Never silently substitute characters.
+    const bool utf8ACP = GetACP() == CP_UTF8;
+    BOOL substituted = FALSE;
+    const DWORD flags = utf8ACP ? 0 : WC_NO_BEST_FIT_CHARS;
+    const int length = WideCharToMultiByte(CP_ACP, flags, document.c_str(), -1,
+        nullptr, 0, nullptr, utf8ACP ? nullptr : &substituted);
+    if (length <= 0 || length > sizeof(string_path) || substituted)
+    {
+        MessageBoxW(EDevice.m_hWnd, L"The document path is too long or contains characters "
+            L"that this editor's Windows code page cannot represent.",
+            L"X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
+        return false;
+    }
+    std::vector<char> buffer(length);
+    WideCharToMultiByte(CP_ACP, flags, document.c_str(), -1, buffer.data(), length,
+        nullptr, utf8ACP ? nullptr : &substituted);
+    if (substituted)
+        return false;
+    const xr_string path(buffer.data());
+    if (!xr_strcmp(UI->EditorName(), "level") || !xr_strcmp(UI->EditorName(), "actor"))
+    {
+        const u32 result = ExecCommand(COMMAND_LOAD, path);
+        return result && !stricmp(Tools->GetEditFileName().c_str(), path.c_str());
+    }
+    if (!xr_strcmp(UI->EditorName(), "particle"))
+    {
+        SECommand* command = FindCommandByName("COMMAND_LOAD_XR");
+        if (command)
+            return u32(ExecCommand(command->idx, path)) != 0;
+    }
+    return false;
+}

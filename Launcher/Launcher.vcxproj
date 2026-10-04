@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32"><Configuration>Debug</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64"><Configuration>Debug</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Development|Win32"><Configuration>Development</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64"><Configuration>Development</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32"><Configuration>Release</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A61D5472-AB21-46F6-B82B-92DA6C22AB48}</ProjectGuid>
+    <RootNamespace>FarkashedLauncher</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset Condition="'$(Configuration)|$(Platform)'=='Release|x64'">v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Debug'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <SolutionDir Condition="'$(SolutionDir)'=='' Or '$(SolutionDir)'=='*Undefined*'">$(MSBuildThisFileDirectory)..\</SolutionDir>
+    <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)output\Intermediate\$(Platform)\$(Configuration)\Launcher\</IntDir>
+    <TargetName>Launcher</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Editors\XrEUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;UNICODE;_UNICODE;XR_IMGUI_STANDALONE;IMGUI_DISABLE_INCLUDE_IMCONFIG_H;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <Optimization Condition="'$(Configuration)'!='Debug'">MaxSpeed</Optimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>d3d9.lib;dwmapi.lib;windowscodecs.lib;shell32.lib;ole32.lib;uuid.lib;imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(ProjectDir)Launcher.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Launcher.cpp" />
+    <ClCompile Include="Platform.cpp" />
+    <ClCompile Include="..\Editors\XrEUI\imgui.cpp" />
+    <ClCompile Include="..\Editors\XrEUI\imgui_demo.cpp" />
+    <ClCompile Include="..\Editors\XrEUI\imgui_draw.cpp" />
+    <ClCompile Include="..\Editors\XrEUI\imgui_tables.cpp" />
+    <ClCompile Include="..\Editors\XrEUI\imgui_widgets.cpp" />
+    <ClCompile Include="..\Editors\XrEUI\imgui_impl_dx9.cpp" />
+    <ClCompile Include="..\Editors\XrEUI\imgui_impl_win32.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Platform.h" />
+    <ClInclude Include="RecentFiles.h" />
+    <ResourceCompile Include="Launcher.rc" />
+    <None Include="Launcher.manifest" />
+    <None Include="README.md" />
+    <None Include="assets\gui\Launcher.pdn" />
+    <None Include="assets\gui\font.otf" />
+    <Image Include="assets\gui\*.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <LauncherAsset Include="assets\gui\*.png;assets\gui\font.otf" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyLauncherAssets" AfterTargets="Build">
+    <Copy SourceFiles="@(LauncherAsset)" DestinationFolder="$(OutDir)launcher\assets\gui" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

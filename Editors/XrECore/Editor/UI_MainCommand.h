@@ -165,6 +165,7 @@ ECORE_API CCommandVar ExecCommand(const xr_shortcut &val);
 ECORE_API void RegisterCommand(u32 cmd, SECommand *cmd_impl);
 ECORE_API void RegisterSubCommand(SECommand *cmd_impl, LPCSTR desc, CCommandVar p0, CCommandVar p1);
 ECORE_API void EnableReceiveCommands();
+ECORE_API bool OpenLauncherDocument();
 ECORE_API ECommandVec &GetEditorCommands();
 ECORE_API SESubCommand *FindCommandByShortcut(const xr_shortcut &val);
 ECORE_API BOOL LoadShortcuts(CInifile *ini);

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source"><UniqueIdentifier>{FF43C24F-7BD8-4478-9413-07B7590E1D8E}</UniqueIdentifier></Filter>
+    <Filter Include="ImGui"><UniqueIdentifier>{AC6B367E-F008-49BD-B9A7-3F65381A2D38}</UniqueIdentifier></Filter>
+    <Filter Include="Assets"><UniqueIdentifier>{5A363E51-16B3-412A-9926-15B7B3E4FD43}</UniqueIdentifier></Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Launcher.cpp"><Filter>Source</Filter></ClCompile>
+    <ClCompile Include="Platform.cpp"><Filter>Source</Filter></ClCompile>
+    <ClCompile Include="..\Editors\XrEUI\imgui.cpp"><Filter>ImGui</Filter></ClCompile>
+    <ClCompile Include="..\Editors\XrEUI\imgui_demo.cpp"><Filter>ImGui</Filter></ClCompile>
+    <ClCompile Include="..\Editors\XrEUI\imgui_draw.cpp"><Filter>ImGui</Filter></ClCompile>
+    <ClCompile Include="..\Editors\XrEUI\imgui_tables.cpp"><Filter>ImGui</Filter></ClCompile>
+    <ClCompile Include="..\Editors\XrEUI\imgui_widgets.cpp"><Filter>ImGui</Filter></ClCompile>
+    <ClCompile Include="..\Editors\XrEUI\imgui_impl_dx9.cpp"><Filter>ImGui</Filter></ClCompile>
+    <ClCompile Include="..\Editors\XrEUI\imgui_impl_win32.cpp"><Filter>ImGui</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Platform.h"><Filter>Source</Filter></ClInclude>
+    <ClInclude Include="RecentFiles.h"><Filter>Source</Filter></ClInclude>
+    <ResourceCompile Include="Launcher.rc"><Filter>Source</Filter></ResourceCompile>
+    <None Include="Launcher.manifest"><Filter>Source</Filter></None>
+    <None Include="README.md" />
+    <None Include="assets\gui\Launcher.pdn"><Filter>Assets</Filter></None>
+    <None Include="assets\gui\font.otf"><Filter>Assets</Filter></None>
+    <Image Include="assets\gui\*.png"><Filter>Assets</Filter></Image>
+  </ItemGroup>
+</Project>
