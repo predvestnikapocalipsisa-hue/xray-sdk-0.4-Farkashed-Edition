@@ -748,7 +748,7 @@ void TUI::RenderScene(bool environment)
 
 void TUI::ReportRenderError(LPCSTR details)
 {
-    RCache.Invalidate();
+    RCache.InvalidateEditorState();
     m_RenderPaused = true;
     m_ShowRenderError = true;
     m_RenderError = details ? details : "Unknown render error";

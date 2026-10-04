@@ -194,6 +194,11 @@ private:
 	void Invalidate();
 
 public:
+#ifdef _EDITOR
+	// Discard cached bindings after an interrupted editor render operation.
+	IC void InvalidateEditorState() { Invalidate(); }
+#endif
+
 	struct _stats
 	{
 		u32 polys;
