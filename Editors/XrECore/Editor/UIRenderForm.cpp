@@ -17,6 +17,16 @@ void UIRenderForm::Draw()
 {
 
 	const bool visible = ImGui::Begin("Render", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    if (Core.DebugMode)
+    {
+        if (visible)
+        {
+            ImGui::TextUnformatted("SDK DEBUG mode");
+            ImGui::TextWrapped("SDK errors are written to the log. Game rendering is disabled for debug startup.");
+        }
+        ImGui::End();
+        return;
+    }
 	if (!visible || !UI || !UI->RT->pSurface)
 	{
 		if (UI && m_mouse_down)

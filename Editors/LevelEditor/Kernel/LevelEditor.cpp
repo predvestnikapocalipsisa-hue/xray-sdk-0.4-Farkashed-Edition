@@ -199,7 +199,13 @@ extern "C" int __cdecl SDKEditorMain()
             saved ? "Emergency serialization completed. Check the recovery copy:" :
                 "Emergency serialization failed or was unavailable. The copy may be incomplete:",
             path[0] ? path : "No recovery file was created.");
-        MessageBoxA(NULL, message, "SDK recovery", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+        if (Core.DebugMode)
+        {
+            Msg("! [SDK DEBUG] %s", message);
+            FlushLog();
+        }
+        else
+            MessageBoxA(NULL, message, "SDK recovery", MB_OK | MB_ICONERROR | MB_TASKMODAL);
         // Do not run destructors or another frame against potentially corrupt state.
         ExitProcess(1);
     }

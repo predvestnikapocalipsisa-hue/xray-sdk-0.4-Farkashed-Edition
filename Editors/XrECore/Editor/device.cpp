@@ -75,12 +75,17 @@ void CEditorRenderDevice::Initialize()
 	//	Surface_Init();
 
 	// game materials
-	GMLib.Load();
+	if (!Core.DebugMode)
+        GMLib.Load();
+    else
+        Msg("! [SDK DEBUG] Skipping game material library initialization.");
 
 	// compiler shader
 	string_path fn;
 	FS.update_path(fn, _game_data_, "shaders_xrlc.xr");
-	if (FS.exist(fn))
+	if (Core.DebugMode)
+        Msg("! [SDK DEBUG] Skipping compiler shader library: %s", fn);
+    else if (FS.exist(fn))
 	{
 		ShaderXRLC.Load(fn);
 	}
@@ -242,17 +247,24 @@ void CEditorRenderDevice::_Create(IReader* F)
 	_SetupStates();
 
 	RCache.OnDeviceCreate();
-	Resources->OnDeviceCreate(F);
+	if (!Core.DebugMode)
+        Resources->OnDeviceCreate(F);
+    else
+        Msg("! [SDK DEBUG] Skipping shader library and 3D rendering resources.");
 	::Render->OnDeviceCreate();
 
-	m_WireShader.create("editor\\wire");
-	m_SelectionShader.create("editor\\selection");
+    if (!Core.DebugMode)
+    {
+        m_WireShader.create("editor\\wire");
+        m_SelectionShader.create("editor\\selection");
+    }
 
 	// signal another objects
 	UI->OnDeviceCreate();
 	//.	seqDevCreate.Process		(rp_DeviceCreate);
 
-	pSystemFont = xr_new<CGameFont>("hud_font_small");
+	if (!Core.DebugMode)
+        pSystemFont = xr_new<CGameFont>("hud_font_small");
 	//	pSystemFont					= xr_new<CGameFont>("hud_font_medium");
 }
 

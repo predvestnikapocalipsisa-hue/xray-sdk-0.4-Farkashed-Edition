@@ -870,6 +870,11 @@ bool OpenLauncherDocument()
     document = FarkashedLauncher::FullPath(document);
     if (document.empty() || !FarkashedLauncher::FileExists(document))
     {
+        if (Core.DebugMode)
+        {
+            Msg("! [SDK DEBUG] Launcher document does not exist; starting an empty editor.");
+            return false;
+        }
         MessageBoxW(EDevice.m_hWnd, L"The document passed by the launcher does not exist.",
             L"X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
         return false;

@@ -62,8 +62,13 @@ namespace XrSE_Factory
 
 		setup_luabind_allocator();
 
-		CCharacterInfo::InitInternal();
-		CSpecificCharacter::InitInternal();
+		if (!Core.DebugMode)
+        {
+            CCharacterInfo::InitInternal();
+            CSpecificCharacter::InitInternal();
+        }
+        else
+            Msg("! [SDK DEBUG] Skipping character profile initialization.");
 	}
 	FACTORY_API void destroy()
 	{

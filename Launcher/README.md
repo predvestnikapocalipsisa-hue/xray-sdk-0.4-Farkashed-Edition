@@ -28,6 +28,17 @@ launch is optional.
 
 ## Interface
 
+Settings contains `DEBUG mode (log errors and continue)`. The saved setting
+applies to newly launched editors through `-sdk_debug`, in any build configuration.
+Failed SDK checks and error dialogs are logged with an `[SDK DEBUG]` prefix without
+interrupting startup. Missing `fs.ltx` aliases, INI includes, sections and values
+use fallbacks. Debug startup skips game rendering resources, character profiles
+and particle libraries, and shows an empty viewport so the editor UI can be
+debugged without the game data. The existing SDK log location is used; if it is
+undefined, logs go to `_debug/logs/` beside the SDK modules. Editor/host DLLs and a
+working Direct3D device are still required. Hardware exceptions and exhaustion
+of memory cannot be continued.
+
 Discord Rich Presence uses application ID `1542531211602169966`. Discord displays
 that application's configured name as the title. The next line is `In Launcher`,
 `In Level Editor`, `In Actor Editor`, `In Particle Editor` or `In Shader Editor`.
