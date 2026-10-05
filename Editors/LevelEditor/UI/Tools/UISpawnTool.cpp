@@ -12,7 +12,6 @@ UISpawnTool::UISpawnTool()
     m_AutoShapeIsSphere = true;
     m_AutoShapeSize = 3.0f;
     m_GraphPointSpacing = 15.0f;
-    m_GraphPointSourceMode = 0;
     m_GraphPointClearExisting = false;
 }
 
@@ -124,10 +123,7 @@ void UISpawnTool::Draw()
             ImGui::SetNextItemWidth(-1);
             ImGui::DragFloat("##gp_spacing", &m_GraphPointSpacing, 0.5f, 3.0f, 100.0f, "%.1f m");
 
-            const char* source_modes[] = { "Auto (AI Map / Grid)", "From AI Map Nodes", "From Scene Geometry" };
-            ImGui::Text("Source:");
-            ImGui::SetNextItemWidth(-1);
-            ImGui::Combo("##gp_source", &m_GraphPointSourceMode, source_modes, IM_ARRAYSIZE(source_modes));
+            ImGui::TextWrapped("Source: AI Map nodes. Spacing is the minimum distance between generated points.");
 
             ImGui::Checkbox("Clear existing Graph Points", &m_GraphPointClearExisting);
 
@@ -136,7 +132,7 @@ void UISpawnTool::Draw()
                 ESceneSpawnTool* spawn_tool = dynamic_cast<ESceneSpawnTool*>(Scene->GetOTool(OBJCLASS_SPAWNPOINT));
                 if (spawn_tool)
                 {
-                    int count = spawn_tool->GenerateGraphPoints(m_GraphPointSpacing, m_GraphPointSourceMode, m_GraphPointClearExisting);
+                    int count = spawn_tool->GenerateGraphPoints(m_GraphPointSpacing, m_GraphPointClearExisting);
                     ELog.Msg(mtInformation, "Generated %d graph point(s).", count);
                 }
             }
