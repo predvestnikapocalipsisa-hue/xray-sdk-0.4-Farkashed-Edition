@@ -182,7 +182,7 @@ inline void Style()
 
 void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* ini_path)
 {
-    editorPresence.Initialize();
+    editorPresence.Initialize(true);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -330,12 +330,15 @@ void XrUIManager::Push(XrUI* ui, bool need_deleted)
     ui->Flags.set(!need_deleted, XrUI::F_NoDelete);
 }
 
-void XrUIManager::Draw()
+void XrUIManager::UpdateDiscordPresence()
 {
     const xr_string environment = DiscordEnvironment();
     const xr_string document = DiscordDocument();
     editorPresence.Tick(environment.c_str(), FarkashedDiscord::AnsiToUtf8(document.c_str()));
+}
 
+void XrUIManager::Draw()
+{
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
