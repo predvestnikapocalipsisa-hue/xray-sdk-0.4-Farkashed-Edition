@@ -62,7 +62,7 @@ public:
     virtual CCustomObject *CreateObject(LPVOID data, LPCSTR name);
     CEditableObject *get_draw_visual(u8 _RP_TeamID, u8 _RP_Type, const GameTypeChooser &_GameType);
 
-    int GenerateGraphPoints(float spacing = 15.0f, int mode = 0, bool clear_existing = false);
+    int GenerateGraphPoints(float spacing = 15.0f, bool clear_existing = false);
 };
 
 // refs
