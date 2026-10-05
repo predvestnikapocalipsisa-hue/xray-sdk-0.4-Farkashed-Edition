@@ -13,7 +13,7 @@ void ELogCallback(LPCSTR txt)
 {
 	if (0 == txt[0])
 		return;
-	bool bDlg = ('#' == txt[0]) || ((0 != txt[1]) && ('#' == txt[1]));
+	bool bDlg = !Core.DebugMode && (('#' == txt[0]) || ((0 != txt[1]) && ('#' == txt[1])));
 	TMsgDlgType mt = ('!' == txt[0]) || ((0 != txt[1]) && ('!' == txt[1])) ? mtError : mtInformation;
 	if (('!' == txt[0]) || ('#' == txt[0]))
 		txt++;
@@ -32,7 +32,7 @@ void ELogCallback(LPCSTR txt)
 {
 	if (0 == txt[0])
 		return;
-	bool bDlg = ('#' == txt[0]) || ((0 != txt[1]) && ('#' == txt[1]));
+	bool bDlg = !Core.DebugMode && (('#' == txt[0]) || ((0 != txt[1]) && ('#' == txt[1])));
 	if (bDlg)
 	{
 		int mt = ('!' == txt[0]) || ((0 != txt[1]) && ('!' == txt[1])) ? 1 : 0;
@@ -116,6 +116,11 @@ static LRESULT CALLBACK DlgMsgCBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 //----------------------------------------------------
 inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 {
+    if (Core.DebugMode && mt != mtConfirmation)
+    {
+        ::Msg("! [SDK DEBUG] Dialog suppressed: %s", text);
+        return mrOK;
+    }
 	UINT Flags = 0;
 	const char* Title = "";
 	switch (mt)

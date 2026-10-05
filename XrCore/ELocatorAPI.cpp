@@ -134,13 +134,32 @@ void ELocatorAPI::InitFS(u32 flags)
 		FS_Path *P = xr_new<FS_Path>(rootDir, lp_add, lp_def, lp_capt, fl);
 		I = pathes.insert(mk_pair(xr_strdup(id), P));
 
+        if (!I.second)
+            xr_delete(P);
 		R_ASSERT(I.second);
 	}
 
 	r_close(F);
 
+    if (Core.DebugMode)
+    {
+        const struct { LPCSTR alias; LPCSTR folder; } defaults[] = {
+            { "$local_root$", "_debug\\" }, { "$logs$", "_debug\\logs\\" },
+            { "$temp$", "_debug\\temp\\" }, { "$game_data$", "gamedata\\" },
+            { "$game_config$", "gamedata\\config\\" }, { "$game_textures$", "gamedata\\textures\\" },
+            { "$game_shaders$", "gamedata\\shaders\\" }, { "$game_sounds$", "gamedata\\sounds\\" },
+            { "$maps$", "maps\\" }
+        };
+        for (const auto& item : defaults)
+            if (!path_exist(item.alias))
+            {
+                Msg("! [SDK DEBUG] Missing path %s; using %s%s", item.alias, Core.ApplicationPath, item.folder);
+                append_path(item.alias, Core.ApplicationPath, item.folder, FALSE);
+            }
+    }
+
 	m_Flags.set(flReady, TRUE);
-	CreateLog(0 != strstr(Core.Params, "-nolog"));
+	CreateLog(!Core.DebugMode && 0 != strstr(Core.Params, "-nolog"));
 }
 
 void ELocatorAPI::DestroyFS()
@@ -348,7 +367,11 @@ IReader *ELocatorAPI::r_open(LPCSTR path, LPCSTR _fname)
 	// Search entry
 	FS_File desc;
 	if (!file_find(fname, desc))
+    {
+        if (Core.DebugMode)
+            Msg("! [SDK DEBUG] File not found: %s", fname);
 		return NULL;
+    }
 
 	dwOpenCounter++;
 
@@ -574,6 +597,11 @@ FS_Path *ELocatorAPI::append_path(LPCSTR path_alias, LPCSTR root, LPCSTR add, BO
 FS_Path *ELocatorAPI::get_path(LPCSTR path)
 {
 	PathPairIt P = pathes.find(path);
+    if (P == pathes.end() && Core.DebugMode)
+    {
+        Msg("! [SDK DEBUG] Undefined path %s; using application root", path);
+        return append_path(path, Core.ApplicationPath, nullptr, FALSE);
+    }
 	R_ASSERT2(P != pathes.end(), path);
 	return P->second;
 }

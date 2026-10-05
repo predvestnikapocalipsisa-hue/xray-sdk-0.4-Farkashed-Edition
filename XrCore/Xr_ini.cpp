@@ -278,6 +278,11 @@ void CInifile::Load(IReader *F, LPCSTR path
 #endif
 				{
 					IReader *I = FS.r_open(fn);
+                    if (!I && Core.DebugMode)
+                    {
+                        Msg("! [SDK DEBUG] Missing INI include: %s", fn);
+                        continue;
+                    }
 					R_ASSERT3(I, "Can't find include file:", inc_name);
 					Load(I, inc_path
 #if 1
@@ -291,6 +296,11 @@ void CInifile::Load(IReader *F, LPCSTR path
 		}
 		else if (str[0] && (str[0] == '[')) // new section ?
 		{
+            if (Core.DebugMode && !strchr(str, ']'))
+            {
+                Msg("! [SDK DEBUG] Skipping malformed INI section: %s", str);
+                continue;
+            }
 			// insert previous filled section
 			if (Current)
 			{
@@ -541,7 +551,12 @@ CInifile::Sect &CInifile::r_section(LPCSTR S) const
 
 		Debug.fatal(DEBUG_INFO, "Can't open section '%s'. Please attach [*.ini_log] file to your bug report", S);
 	}
-	return **I;
+	if (Core.DebugMode && (I == DATA.end() || xr_strcmp(*(*I)->Name, section) != 0))
+    {
+        debugEmptySection.Name = section;
+        return debugEmptySection;
+    }
+    return **I;
 }
 
 LPCSTR CInifile::r_string(LPCSTR S, LPCSTR L) const
@@ -552,6 +567,8 @@ LPCSTR CInifile::r_string(LPCSTR S, LPCSTR L) const
 		return *A->second;
 	else
 		Debug.fatal(DEBUG_INFO, "Can't find variable %s in [%s]", L, S);
+    if (Core.DebugMode)
+        return "";
 	return 0;
 }
 

@@ -54,6 +54,7 @@ private:
 	Flags8 m_flags;
 	string_path m_file_name;
 	Root DATA;
+    mutable Sect debugEmptySection;
 
 	void Load(IReader *F, LPCSTR path
 #if 1

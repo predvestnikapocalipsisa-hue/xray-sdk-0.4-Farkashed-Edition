@@ -57,6 +57,8 @@ TUI::~TUI()
 
 void TUI::OnDeviceCreate()
 {
+    if (Core.DebugMode)
+        return;
     DU_impl.OnDeviceCreate();
 }
 
@@ -428,7 +430,7 @@ void TUI::Redraw()
         {
             if (psDeviceFlags.is(rsRenderRealTime))
                 m_Flags.set(flRedraw, TRUE);
-            if (m_Flags.is(flRedraw))
+            if (m_Flags.is(flRedraw) && !Core.DebugMode)
             {
 
                 m_Flags.set(flRedraw, FALSE);

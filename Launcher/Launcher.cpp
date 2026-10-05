@@ -135,6 +135,7 @@ namespace
         bool showSettings = false;
         bool useBlur = true;
         bool minimizeOnLaunch = false;
+        bool debugMode = false;
         bool reduceMotion = false;
         bool historyDirty = true;
         bool assetWarning = false;
@@ -411,6 +412,10 @@ namespace
                     FarkashedLauncher::SetSetting(L"MinimizeOnLaunch", minimizeOnLaunch ? L"1" : L"0");
                 if (ImGui::Checkbox("Reduce animation", &reduceMotion))
                     FarkashedLauncher::SetSetting(L"ReduceMotion", reduceMotion ? L"1" : L"0");
+                if (ImGui::Checkbox("DEBUG mode (log errors and continue)", &debugMode))
+                    FarkashedLauncher::SetSetting(L"DebugMode", debugMode ? L"1" : L"0");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Applies to newly started editors. Logs SDK checks without dialogs.\nStarts with an empty viewport without loading game rendering resources.");
                 ImGui::Separator();
                 if (ImGui::Button("Done", Position(100.f, 0.f)))
                     ImGui::CloseCurrentPopup();
@@ -427,6 +432,7 @@ namespace
             useBlur = FarkashedLauncher::Setting(L"UseBlur") != L"0";
             minimizeOnLaunch = FarkashedLauncher::Setting(L"MinimizeOnLaunch") == L"1";
             reduceMotion = FarkashedLauncher::Setting(L"ReduceMotion") == L"1";
+            debugMode = FarkashedLauncher::Setting(L"DebugMode") == L"1";
             const std::wstring shade = FarkashedLauncher::Setting(L"BackgroundShade");
             if (!shade.empty())
                 darkening = (std::max)(0.45f, (std::min)(0.95f, float(_wtoi(shade.c_str())) / 100.f));

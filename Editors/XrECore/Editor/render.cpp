@@ -31,7 +31,10 @@ CRender::~CRender()
 
 void CRender::Initialize()
 {
-	PSLibrary.OnCreate();
+	if (!Core.DebugMode)
+        PSLibrary.OnCreate();
+    else
+        Msg("! [SDK DEBUG] Skipping particle library initialization.");
 }
 void CRender::ShutDown()
 {
