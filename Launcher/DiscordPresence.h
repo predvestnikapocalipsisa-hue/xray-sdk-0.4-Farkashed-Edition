@@ -40,19 +40,64 @@ namespace FarkashedDiscord
     class Presence
     {
         bool initialized = false;
-        bool wasForeground = false;
+        bool editor = false;
+        bool connected = false;
+        HANDLE editorMarker = nullptr;
+        HANDLE processMarker = nullptr;
+        HANDLE publisherMutex = nullptr;
         ULONGLONG nextPoll = 0;
         ULONGLONG lastSend = 0;
         std::string lastEnvironment;
         std::string lastDocument;
+
+        static std::wstring ProcessMarkerName(DWORD process)
+        {
+            return L"Local\\FarkashedSDK.Discord.Editor." + std::to_wstring(process);
+        }
+
+        static bool MarkerExists(const wchar_t* name)
+        {
+            HANDLE marker = OpenMutexW(SYNCHRONIZE, FALSE, name);
+            if (!marker)
+                return false;
+            CloseHandle(marker);
+            return true;
+        }
+
+        void Disconnect()
+        {
+            if (!connected)
+                return;
+            // Close the old connection before another SDK process acquires RPC.
+            Discord_Shutdown();
+            ReleaseMutex(publisherMutex);
+            connected = false;
+            lastSend = 0;
+            lastEnvironment.clear();
+            lastDocument.clear();
+        }
+
     public:
-        void Initialize()
+        void Initialize(bool isEditor = false)
         {
             if (initialized)
                 return;
-            DiscordEventHandlers handlers = {};
-            // Do not register join commands for the launcher/editor host.
-            Discord_Initialize(ApplicationId, &handlers, 0, nullptr);
+            editor = isEditor;
+            publisherMutex = CreateMutexW(nullptr, FALSE, L"Local\\FarkashedSDK.Discord.Publisher");
+            if (!publisherMutex)
+                return;
+            if (editor)
+            {
+                // Unowned mutex handles act as process-lifetime markers. Windows
+                // removes them on normal exit and on a crash, without stale flags.
+                editorMarker = CreateMutexW(nullptr, FALSE, L"Local\\FarkashedSDK.Discord.Editors");
+                processMarker = CreateMutexW(nullptr, FALSE, ProcessMarkerName(GetCurrentProcessId()).c_str());
+                if (!editorMarker || !processMarker)
+                {
+                    Shutdown();
+                    return;
+                }
+            }
             initialized = true;
         }
 
@@ -64,15 +109,35 @@ namespace FarkashedDiscord
             if (now < nextPoll)
                 return;
             nextPoll = now + 250;
-            Discord_RunCallbacks();
             DWORD foregroundProcess = 0;
             GetWindowThreadProcessId(GetForegroundWindow(), &foregroundProcess);
-            const bool foreground = foregroundProcess == GetCurrentProcessId();
+            const bool anotherEditorForeground = foregroundProcess != GetCurrentProcessId() &&
+                MarkerExists(ProcessMarkerName(foregroundProcess).c_str());
+            const bool eligible = editor ? !anotherEditorForeground :
+                !MarkerExists(L"Local\\FarkashedSDK.Discord.Editors");
+            if (!eligible)
+            {
+                Disconnect();
+                return;
+            }
+            bool justConnected = false;
+            if (!connected)
+            {
+                const DWORD result = WaitForSingleObject(publisherMutex, 0);
+                if (result != WAIT_OBJECT_0 && result != WAIT_ABANDONED)
+                    return;
+                DiscordEventHandlers handlers = {};
+                // Do not register join commands for the launcher/editor host.
+                Discord_Initialize(ApplicationId, &handlers, 0, nullptr);
+                connected = justConnected = true;
+            }
+            Discord_RunCallbacks();
             const std::string details = LimitText(environment);
             const std::string state = LimitText(document);
-            // Background launchers/editors must not overwrite the active editor.
-            if (foreground && (!wasForeground || details != lastEnvironment ||
-                state != lastDocument || now - lastSend >= 15000))
+            // Keep the selected editor visible when focus moves to Discord or
+            // the launcher. Only its connection can publish document updates.
+            if (justConnected || details != lastEnvironment ||
+                state != lastDocument || now - lastSend >= 15000)
             {
                 DiscordRichPresence activity = {};
                 // Discord supplies the first line from the application name.
@@ -85,15 +150,19 @@ namespace FarkashedDiscord
                 lastDocument = state;
                 lastSend = now;
             }
-            wasForeground = foreground;
         }
 
         void Shutdown()
         {
-            if (initialized)
-                Discord_Shutdown();
+            Disconnect();
+            if (processMarker)
+                CloseHandle(processMarker);
+            if (editorMarker)
+                CloseHandle(editorMarker);
+            if (publisherMutex)
+                CloseHandle(publisherMutex);
+            processMarker = editorMarker = publisherMutex = nullptr;
             initialized = false;
-            wasForeground = false;
             nextPoll = lastSend = 0;
             std::string().swap(lastEnvironment);
             std::string().swap(lastDocument);

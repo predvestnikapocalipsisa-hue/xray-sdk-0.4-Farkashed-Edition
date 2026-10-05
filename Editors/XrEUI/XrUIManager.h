@@ -17,6 +17,7 @@ public:
 	XrUIManager();
 	void Push(XrUI *ui, bool need_deleted = true);
 	void Draw();
+    void UpdateDiscordPresence();
 
 	virtual ~XrUIManager();
 

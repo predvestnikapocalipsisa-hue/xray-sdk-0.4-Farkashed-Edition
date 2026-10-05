@@ -36,10 +36,13 @@ selected particle/group name, or the selected shader/material library item. Empt
 editors show an explicit untitled/no-selection state; the launcher has no document
 line. Document names are converted from the SDK's Windows code page to UTF-8.
 
-Only the foreground SDK process publishes updates, so simultaneous editors and
-the background launcher do not keep overwriting each other's presence. Updates
-follow document/selection changes and focus changes; the existing `logo` image key
-is used for the new Discord application. RPC shuts down with its UI session.
+Only one SDK process owns an RPC connection at a time. Open editors take priority
+over the launcher, including while minimized or while another application has
+focus. Focusing another editor transfers ownership to it; otherwise the current
+editor keeps publishing document/selection changes. The launcher reconnects after
+the last editor exits. Process-lifetime markers and an abandoned-mutex check also
+allow recovery after an editor crash. The existing `logo` image key is used for
+the new Discord application. RPC shuts down with its UI session.
 
 - Red frame aligned to the window edge, original logo, editor icons, title-bar
   icons and OTF font. Icons are cropped to their visible bounds and area-filtered

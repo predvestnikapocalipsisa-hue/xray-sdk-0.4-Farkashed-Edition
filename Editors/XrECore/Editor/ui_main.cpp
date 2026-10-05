@@ -543,6 +543,7 @@ void TUI::RealRedrawScene()
 }
 void TUI::OnFrame()
 {
+    UpdateDiscordPresence();
     EDevice.FrameMove();
     SndLib->OnFrame();
     // tools on frame
