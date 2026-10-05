@@ -196,6 +196,16 @@ void UIContentBrowser::OnItemFocused(ListItem* item)
         ESceneGroupTool* tool = dynamic_cast<ESceneGroupTool*>(Scene->GetTool(OBJCLASS_GROUP));
         if (tool && m_CurrentItem.size())
             tool->SetCurrentObject(*m_CurrentItem);
+
+		EGroupThumbnail* thm = xr_new<EGroupThumbnail>(*m_CurrentItem, true);
+		if (thm && thm->Valid())
+		{
+			thm->Update((ImTextureID&)m_RealTexture);
+			PropItemVec info;
+			thm->FillInfo(info);
+			m_Props->AssignItems(info);
+		}
+		xr_delete(thm);
     }
 }
 
@@ -330,7 +340,9 @@ void UIContentBrowser::DrawTileGridCustom()
                     // use the regular object thumbnail format.
                     const ECustomThumbnail::THMType thumbType =
                         m_Mode == CBM_GROUP ? ECustomThumbnail::ETGroup : ECustomThumbnail::ETObject;
-                    EImageThumbnail* thm = CreateThumbnail(key, thumbType, true);
+                    EImageThumbnail* thm = m_Mode == CBM_GROUP
+						? static_cast<EImageThumbnail*>(xr_new<EGroupThumbnail>(key, true))
+						: ImageLib.CreateThumbnail(key, thumbType, true);
                     if (thm)
                     {
                         ImTextureID tex = nullptr;
@@ -460,7 +472,7 @@ void UIContentBrowser::Draw()
     DrawBreadcrumb();
     ImGui::Separator();
 
-    const float previewW = (m_bShowPreview && m_Mode == CBM_OBJECTS) ? 200.f : 0.f;
+    const float previewW = (m_bShowPreview && (m_Mode == CBM_OBJECTS || m_Mode == CBM_GROUP)) ? 200.f : 0.f;
     const float bodyH = ImGui::GetContentRegionAvail().y;
 
     ImGui::BeginChild("##cb_tree", ImVec2(160, bodyH), true);

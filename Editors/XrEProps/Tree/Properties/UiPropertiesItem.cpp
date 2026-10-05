@@ -1,5 +1,31 @@
 #include "stdafx.h"
 
+static bool IsTransformCopyPasteRow(const UIPropertiesItem* item)
+{
+	return item && item->Owner && xr_strcmp(*item->Owner->Name, "Transform") == 0 &&
+		strstr(*item->Name, " Copy/Paste") != nullptr;
+}
+
+static ButtonValue* FindTransformCopyPasteButtons(const UIPropertiesItem* item)
+{
+	if (!item || !item->Owner || xr_strcmp(*item->Owner->Name, "Transform") != 0)
+		return nullptr;
+	if (xr_strcmp(*item->Name, "Position") && xr_strcmp(*item->Name, "Rotation") && xr_strcmp(*item->Name, "Scale"))
+		return nullptr;
+
+	xr_string buttonName = *item->Name;
+	buttonName += " Copy/Paste";
+	for (UITreeItem* sibling : item->Owner->Items)
+	{
+		if (xr_strcmp(*sibling->Name, buttonName.c_str()) == 0)
+		{
+			UIPropertiesItem* buttonItem = static_cast<UIPropertiesItem*>(sibling);
+			return buttonItem->PItem ? dynamic_cast<ButtonValue*>(buttonItem->PItem->GetFrontValue()) : nullptr;
+		}
+	}
+	return nullptr;
+}
+
 UIPropertiesItem::UIPropertiesItem(shared_str Name, UIPropertiesForm* propertiesFrom) : UITreeItem(Name), PropertiesFrom(propertiesFrom)
 {
 	PItem = nullptr;
@@ -7,6 +33,9 @@ UIPropertiesItem::UIPropertiesItem(shared_str Name, UIPropertiesForm* properties
 
 void UIPropertiesItem::Draw()
 {
+	if (IsTransformCopyPasteRow(this))
+		return;
+
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
 
@@ -158,8 +187,30 @@ void UIPropertiesItem::DrawItem()
 			}
 			else
 			{
-				ImGui::PushItemWidth(-1);
-				DrawProp();
+				ButtonValue* transformButtons = type == PROP_VECTOR ? FindTransformCopyPasteButtons(this) : nullptr;
+				if (transformButtons && !transformButtons->value.empty())
+				{
+					ImGui::PushItemWidth(-52.f);
+					DrawProp();
+					ImGui::PopItemWidth();
+					ImGui::SameLine(0, 2);
+					for (size_t i = 0; i < transformButtons->value.size(); ++i)
+					{
+						if (i)
+							ImGui::SameLine(0, 2);
+						if (ImGui::Button(DX2U(transformButtons->value[i].c_str()), ImVec2(24.f, 0.f)))
+						{
+							transformButtons->btn_num = static_cast<int>(i);
+							bool safe = false;
+							transformButtons->OnBtnClick(safe);
+						}
+					}
+				}
+				else
+				{
+					ImGui::PushItemWidth(-1);
+					DrawProp();
+				}
 			}
 		}
 		ImGui::PopID();

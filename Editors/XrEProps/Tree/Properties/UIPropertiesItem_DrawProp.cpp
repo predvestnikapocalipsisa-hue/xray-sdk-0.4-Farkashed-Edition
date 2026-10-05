@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../../../XrECore/Editor/TransformDragSensitivity.h"
 
 static bool IsTransformComponent(const UITreeItem* item, const char* component)
 {
@@ -8,48 +9,6 @@ static bool IsTransformComponent(const UITreeItem* item, const char* component)
 		if (xr_strcmp(*parent->Name, "Transform") == 0)
 			return true;
 	return false;
-}
-
-static void WrapTransformDragCursor()
-{
-	ImGuiIO& io = ImGui::GetIO();
-	if (!io.MouseDown[ImGuiMouseButton_Left])
-		return;
-
-	ImGuiViewport* viewport = ImGui::GetWindowViewport();
-	HWND hwnd = viewport ? static_cast<HWND>(viewport->PlatformHandleRaw) : nullptr;
-	if (!hwnd)
-		return;
-
-	POINT cursor = { (LONG)io.MousePos.x, (LONG)io.MousePos.y };
-	if (!(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
-		ClientToScreen(hwnd, &cursor);
-
-	HMONITOR monitor = MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);
-	MONITORINFO info = {};
-	info.cbSize = sizeof(info);
-	if (!GetMonitorInfoA(monitor, &info))
-		return;
-
-	const RECT& bounds = info.rcMonitor;
-	POINT wrapped = cursor;
-	const LONG inset = 2;
-	if (cursor.x <= bounds.left + inset)
-		wrapped.x = bounds.right - inset;
-	else if (cursor.x >= bounds.right - 1 - inset)
-		wrapped.x = bounds.left + inset;
-	else if (cursor.y <= bounds.top + inset)
-		wrapped.y = bounds.bottom - inset;
-	else if (cursor.y >= bounds.bottom - 1 - inset)
-		wrapped.y = bounds.top + inset;
-	else
-		return;
-
-	if (!SetCursorPos(wrapped.x, wrapped.y))
-		return;
-	if (!(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
-		ScreenToClient(hwnd, &wrapped);
-	io.MousePos = ImVec2((float)wrapped.x, (float)wrapped.y);
 }
 
 #define TSTRING_COUNT 10
@@ -337,12 +296,12 @@ void UIPropertiesItem::DrawProp()
 		const bool transformPosition = IsTransformComponent(this, "Position");
 		const bool transformRotation = IsTransformComponent(this, "Rotation");
 		const bool transformScale = IsTransformComponent(this, "Scale");
-		if ((transformPosition || transformRotation || transformScale) && EPrefs)
+		ImGuiIO& io = ImGui::GetIO();
+		if (transformPosition || transformRotation || transformScale)
 		{
-			const float configuredSens = transformRotation ? EPrefs->tools_sens_rot :
-				transformScale ? EPrefs->tools_sens_scale : EPrefs->tools_sens_move;
-			const float sens = _max(configuredSens, 0.01f) / 0.3f;
-			const ImGuiIO& io = ImGui::GetIO();
+			const ETransformDragComponent component = transformRotation ? tdcRotation :
+				transformScale ? tdcScale : tdcPosition;
+			const float sens = GetTransformDragSensitivityScale(component);
 			const float mouseSpeed = io.DeltaTime > 0.f ? _abs(io.MouseDelta.x) / io.DeltaTime : 0.f;
 			const float normalizedSpeed = mouseSpeed / 600.f;
 			const float acceleration = _min(1.f + normalizedSpeed * normalizedSpeed * 4.f, 20.f);
@@ -370,8 +329,6 @@ void UIPropertiesItem::DrawProp()
 					Modified();
 			}
 		}
-		if ((transformPosition || transformRotation || transformScale) && ImGui::IsItemActive())
-			WrapTransformDragCursor();
 	}
 	break;
 

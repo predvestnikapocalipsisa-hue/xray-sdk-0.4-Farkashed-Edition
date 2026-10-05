@@ -70,7 +70,10 @@ namespace
         }
         while (FindNextFileA(search, &entry));
         FindClose(search);
-        xr_vector<std::pair<xr_string, ULONGLONG>> sorted(copies.begin(), copies.end());
+        xr_vector<std::pair<xr_string, ULONGLONG>> sorted;
+        sorted.reserve(copies.size());
+        for (auto it = copies.begin(); it != copies.end(); ++it)
+            sorted.push_back(std::make_pair(it->first, it->second));
         std::sort(sorted.begin(), sorted.end(), [](const std::pair<xr_string, ULONGLONG>& a,
             const std::pair<xr_string, ULONGLONG>& b)
         {
