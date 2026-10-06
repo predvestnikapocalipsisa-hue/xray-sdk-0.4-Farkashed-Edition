@@ -15,28 +15,42 @@ UIRenderForm::~UIRenderForm()
 
 void UIRenderForm::Draw()
 {
+	const bool visible = ImGui::Begin(
+		"Render",
+		nullptr,
+		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+	);
 
-	const bool visible = ImGui::Begin("Render", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    if (visible && UI)
-    {
-        int quality = UI->GetViewportScale() > 1.75f ? 2 : UI->GetViewportScale() > 1.1f ? 1 : 0;
-        const char* options[] = { "Off", "SSAA 1.5x", "SSAA 2x" };
-        const float scales[] = { 1.f, 1.5f, 2.f };
-        ImGui::SetNextItemWidth(130.f*XrUIManager::GetUIScale());
-        if (ImGui::Combo("Anti-aliasing", &quality, options, 3)) UI->SetViewportScale(scales[quality]);
+	if (visible && UI)
+	{
+		int quality = UI->GetViewportScale() > 1.75f ? 2 :
+			UI->GetViewportScale() > 1.1f ? 1 : 0;
 
-        if (Core.DebugMode)
-        {
-            if (ImGui::GetContentRegionAvail().x > ImGui::CalcTextSize("SDK DEBUG").x + ImGui::GetStyle().ItemSpacing.x)
-                ImGui::SameLine();
-            ImGui::TextDisabled("SDK DEBUG");
-            ImGui::TextUnformatted("SDK DEBUG mode");
-            ImGui::TextWrapped("SDK errors are written to the log. Game rendering is disabled for debug startup.");
-            ImGui::End();
-            return;
-        }
-    }
-    }
+		const char* options[] = { "Off", "SSAA 1.5x", "SSAA 2x" };
+		const float scales[] = { 1.f, 1.5f, 2.f };
+
+		ImGui::SetNextItemWidth(130.f * XrUIManager::GetUIScale());
+
+		if (ImGui::Combo("Anti-aliasing", &quality, options, 3))
+			UI->SetViewportScale(scales[quality]);
+
+		if (Core.DebugMode)
+		{
+			if (ImGui::GetContentRegionAvail().x >
+				ImGui::CalcTextSize("SDK DEBUG").x + ImGui::GetStyle().ItemSpacing.x)
+				ImGui::SameLine();
+
+			ImGui::TextDisabled("SDK DEBUG");
+			ImGui::TextUnformatted("SDK DEBUG mode");
+			ImGui::TextWrapped(
+				"SDK errors are written to the log. Game rendering is disabled for debug startup."
+			);
+
+			ImGui::End();
+			return;
+		}
+	}
+
 	if (!visible || !UI || !UI->RT->pSurface)
 	{
 		if (UI && m_mouse_down)
