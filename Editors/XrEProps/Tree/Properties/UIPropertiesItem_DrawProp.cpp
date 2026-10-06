@@ -1,4 +1,15 @@
 #include "stdafx.h"
+#include "../../../XrECore/Editor/TransformDragSensitivity.h"
+
+static bool IsTransformComponent(const UITreeItem* item, const char* component)
+{
+	if (!item || xr_strcmp(*item->Name, component) != 0)
+		return false;
+	for (const UITreeItem* parent = item->Owner; parent; parent = parent->Owner)
+		if (xr_strcmp(*parent->Name, "Transform") == 0)
+			return true;
+	return false;
+}
 
 #define TSTRING_COUNT 10
 const LPSTR TEXTUREString[TSTRING_COUNT] = { "Custom...", "$null", "$base0", "$base1", "$base2", "$base3", "$base4", "$base5", "$base6", "$base7" };
@@ -282,6 +293,20 @@ void UIPropertiesItem::DrawProp()
 		char fmt[16];
 		xr_sprintf(fmt, "%%.%df", V->dec);
 		float v_speed = V->inc.x != 0.0f ? V->inc.x : 0.05f;
+		const bool transformPosition = IsTransformComponent(this, "Position");
+		const bool transformRotation = IsTransformComponent(this, "Rotation");
+		const bool transformScale = IsTransformComponent(this, "Scale");
+		ImGuiIO& io = ImGui::GetIO();
+		if (transformPosition || transformRotation || transformScale)
+		{
+			const ETransformDragComponent component = transformRotation ? tdcRotation :
+				transformScale ? tdcScale : tdcPosition;
+			const float sens = GetTransformDragSensitivityScale(component);
+			const float mouseSpeed = io.DeltaTime > 0.f ? _abs(io.MouseDelta.x) / io.DeltaTime : 0.f;
+			const float normalizedSpeed = mouseSpeed / 600.f;
+			const float acceleration = _min(1.f + normalizedSpeed * normalizedSpeed * 4.f, 20.f);
+			v_speed *= sens * acceleration;
+		}
 
 		if (ImGui::DragFloat3("##value", vector, v_speed, 0.0f, 0.0f, fmt))
 		{

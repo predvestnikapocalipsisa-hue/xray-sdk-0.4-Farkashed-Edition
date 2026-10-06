@@ -137,7 +137,7 @@ void UIContentBrowser::Refresh()
             xr_string name = it.name;
             size_t dot = name.rfind('.');
             if (dot != xr_string::npos) name.resize(dot);
-            LHelper().CreateItem(items, name.c_str(), 0, 0, (LPVOID)0);
+            LHelper().CreateItem(items, name.c_str(), 0, ListItem::flDrawThumbnail, (LPVOID)0);
         }
         m_FolderHelper.ReleaseThumbnails();
     }
@@ -196,6 +196,16 @@ void UIContentBrowser::OnItemFocused(ListItem* item)
         ESceneGroupTool* tool = dynamic_cast<ESceneGroupTool*>(Scene->GetTool(OBJCLASS_GROUP));
         if (tool && m_CurrentItem.size())
             tool->SetCurrentObject(*m_CurrentItem);
+
+		EGroupThumbnail* thm = xr_new<EGroupThumbnail>(*m_CurrentItem, true);
+		if (thm && thm->Valid())
+		{
+			thm->Update((ImTextureID&)m_RealTexture);
+			PropItemVec info;
+			thm->FillInfo(info);
+			m_Props->AssignItems(info);
+		}
+		xr_delete(thm);
     }
 }
 
@@ -321,13 +331,18 @@ void UIContentBrowser::DrawTileGridCustom()
             ImVec2 iMax = ImVec2(iMin.x + tileSize, iMin.y + tileSize);
 
             ImTextureID thumb = nullptr;
-            if (m_Mode == CBM_OBJECTS)
+            if (m_Mode == CBM_OBJECTS || m_Mode == CBM_GROUP)
             {
                 thumb = m_FolderHelper.GetThumb(key);
                 if (!thumb)
                 {
-                    // Load this one thumbnail on demand
-                    EObjectThumbnail* thm = xr_new<EObjectThumbnail>(key, true);
+                    // Groups store their screenshots in group thumbnails; object items
+                    // use the regular object thumbnail format.
+                    const ECustomThumbnail::THMType thumbType =
+                        m_Mode == CBM_GROUP ? ECustomThumbnail::ETGroup : ECustomThumbnail::ETObject;
+                    EImageThumbnail* thm = m_Mode == CBM_GROUP
+						? static_cast<EImageThumbnail*>(xr_new<EGroupThumbnail>(key, true))
+						: ImageLib.CreateThumbnail(key, thumbType, true);
                     if (thm)
                     {
                         ImTextureID tex = nullptr;
@@ -394,7 +409,10 @@ void UIContentBrowser::LoadUserState()
     if (!ini.section_exist("state"))
         return;
 
-    m_bVisible = ini.r_bool("state", "visible");
+    if (ini.line_exist("state", "visible"))
+        m_bVisible = ini.r_bool("state", "visible");
+    if (ini.line_exist("state", "show_preview"))
+        m_bShowPreview = ini.r_bool("state", "show_preview");
 }
 
 void UIContentBrowser::SaveUserState()
@@ -404,6 +422,7 @@ void UIContentBrowser::SaveUserState()
 
     CInifile ini(fn, false, false, true);
     ini.w_bool("state", "visible", m_bVisible);
+    ini.w_bool("state", "show_preview", m_bShowPreview);
     ini.save_as(fn);
 }
 
@@ -453,7 +472,7 @@ void UIContentBrowser::Draw()
     DrawBreadcrumb();
     ImGui::Separator();
 
-    const float previewW = (m_bShowPreview && m_Mode == CBM_OBJECTS) ? 200.f : 0.f;
+    const float previewW = (m_bShowPreview && (m_Mode == CBM_OBJECTS || m_Mode == CBM_GROUP)) ? 200.f : 0.f;
     const float bodyH = ImGui::GetContentRegionAvail().y;
 
     ImGui::BeginChild("##cb_tree", ImVec2(160, bodyH), true);

@@ -41,6 +41,5 @@ private:
 
 	// Auto-fill Graph Points
 	float m_GraphPointSpacing;
-	int   m_GraphPointSourceMode;
 	bool  m_GraphPointClearExisting;
 };

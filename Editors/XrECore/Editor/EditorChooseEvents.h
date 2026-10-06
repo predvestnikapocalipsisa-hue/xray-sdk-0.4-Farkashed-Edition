@@ -446,14 +446,19 @@ namespace ChoseEvents
 
 void FillChooseEvents()
 {
+    // Debug startup deliberately skips game textures. The chooser can draw
+    // without a placeholder, just as it does before a preview is selected.
+    if (!Core.DebugMode)
     {
         ref_texture texture_null;
         texture_null.create("ed\\ed_nodata");
         texture_null->Load();
-        // surface_get() retains a valid surface, or returns nullptr when debug assets are absent.
-        auto* surface = texture_null->surface_get();
-        UIChooseForm::SetNullTexture(surface);
-        if (!surface)
+        if (auto surface = texture_null->surface_get())
+        {
+            // surface_get() already acquires the reference released by ClearEvents().
+            UIChooseForm::SetNullTexture(surface);
+        }
+        else
             Msg("! Choose dialogs: placeholder texture is unavailable; continuing without preview.");
     }
     UIChooseForm::AppendEvents(smSoundSource, "Select Sound Source", ChoseEvents::FillSoundSource, ChoseEvents::SelectSoundSource, 0, ChoseEvents::CloseSoundSource, 0);

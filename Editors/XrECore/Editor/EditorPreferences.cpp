@@ -5,8 +5,21 @@
 #include "ui_main.h"
 #include "ui_toolscustom.h"
 #include "../../../Launcher/RecentFiles.h"
+#include "TransformDragSensitivity.h"
 //---------------------------------------------------------------------------
 CCustomPreferences *EPrefs = 0;
+//---------------------------------------------------------------------------
+
+float GetTransformDragSensitivityScale(ETransformDragComponent component)
+{
+    if (!EPrefs)
+        return 1.f;
+
+    const float sensitivity = component == tdcRotation ? EPrefs->tools_sens_rot :
+        component == tdcScale ? EPrefs->tools_sens_scale : EPrefs->tools_sens_move;
+    return _max(sensitivity, 0.01f) / 0.3f;
+}
+
 //---------------------------------------------------------------------------
 
 CCustomPreferences::CCustomPreferences()

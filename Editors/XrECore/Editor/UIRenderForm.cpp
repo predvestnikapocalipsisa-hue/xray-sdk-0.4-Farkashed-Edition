@@ -24,12 +24,18 @@ void UIRenderForm::Draw()
         const float scales[] = { 1.f, 1.5f, 2.f };
         ImGui::SetNextItemWidth(130.f*XrUIManager::GetUIScale());
         if (ImGui::Combo("Anti-aliasing", &quality, options, 3)) UI->SetViewportScale(scales[quality]);
+
         if (Core.DebugMode)
         {
             if (ImGui::GetContentRegionAvail().x > ImGui::CalcTextSize("SDK DEBUG").x + ImGui::GetStyle().ItemSpacing.x)
                 ImGui::SameLine();
             ImGui::TextDisabled("SDK DEBUG");
+            ImGui::TextUnformatted("SDK DEBUG mode");
+            ImGui::TextWrapped("SDK errors are written to the log. Game rendering is disabled for debug startup.");
+            ImGui::End();
+            return;
         }
+    }
     }
 	if (!visible || !UI || !UI->RT->pSurface)
 	{
@@ -148,11 +154,11 @@ void UIRenderForm::Draw()
 		if (sdk_overlay_texture)
 		{
 			const float overlay_aspect = 256.f / 256.f;
-			const float margin = 12.f; // Чуть уменьшил отступ от края
+			const float margin = 12.f; // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
 
-			// Уменьшаем размер рамки на экране
+			// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 			const float overlay_width = 40.f;
-			const float overlay_height = overlay_width / overlay_aspect; // Вычислится автоматически
+			const float overlay_height = overlay_width / overlay_aspect; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
 			const ImVec2 overlay_size = { overlay_width, overlay_height };
 			const ImVec2 overlay_pos =

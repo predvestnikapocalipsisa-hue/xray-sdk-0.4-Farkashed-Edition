@@ -285,7 +285,7 @@ void ESceneGroupTool::MakeThumbnail()
         u32 w = 512, h = 512;
         if (EDevice.MakeScreenshot(pixels, w, h))
         {
-            xr_string tex_name = ChangeFileExt(object->GetName(), ".thm");
+            xr_string tex_name = ChangeFileExt(object->RefName(), ".thm");
             SStringVec lst;
 
             ObjectList grp_lst;

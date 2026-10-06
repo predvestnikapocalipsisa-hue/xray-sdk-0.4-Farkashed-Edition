@@ -137,7 +137,7 @@ void xrCore::InitCore(const char* AppName, LogCallback cb)
 
 	FS.InitFS(flags);
     if (DebugMode)
-        Msg("! [SDK DEBUG] Log-only checks enabled; editor rendering uses available resources and debug shader fallbacks.");
+        Msg("! [SDK DEBUG] Log-only checks enabled; editor rendering uses available resources and debug shader fallbacks; game rendering resources are skipped.");
 	PrintBuildId();
 	EFS._initialize();
 
