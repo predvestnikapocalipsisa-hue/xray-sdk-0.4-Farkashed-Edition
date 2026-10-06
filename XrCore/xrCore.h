@@ -251,6 +251,7 @@ struct XRCORE_API xrCore
 	string64 CompName;
 	string512 Params;
 	bool SocSdk; // cop if false
+    bool DebugMode = false; // Runtime launcher option, independent of build configuration.
 
 	void InitCore(const char* AppName, LogCallback cb = nullptr);
 	void DestroyCore();

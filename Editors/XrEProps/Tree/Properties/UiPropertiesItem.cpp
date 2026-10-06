@@ -38,7 +38,11 @@ void UIPropertiesItem::Draw()
 	}
 	else
 	{
-		ImGui::TreeNodeEx(DX2U(Name.c_str()), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth);
+		ImGui::TreeNodeEx(DX2U(Name.c_str()), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+		const ImVec2 row = ImGui::GetItemRectMin();
+		const float fontSize = ImGui::GetFontSize();
+		ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(row.x + fontSize * .5f, row.y + fontSize * .5f),
+			fontSize * .085f, ImGui::GetColorU32(ImGuiCol_TextDisabled), 12);
 		ImGui::TableNextColumn();
 		DrawItem();
 	}
@@ -74,6 +78,7 @@ void UIPropertiesItem::DrawItem()
 			CanvasValue* val = dynamic_cast<CanvasValue*>(PItem->GetFrontValue()); R_ASSERT(val);
 			if (!val->OnDrawCanvasEvent.empty())
 				val->OnDrawCanvasEvent(val);
+			ImGui::PopItemWidth();
 		}
 	}
 	break;
@@ -91,30 +96,39 @@ void UIPropertiesItem::DrawItem()
 
 			if (!V->value.empty())
 			{
-				ImGui::PushItemWidth(-1);
-				float size = float(ImGui::CalcItemWidth());
-				float dx = floorf(size / float(V->value.size()));
-				float offset = size - (dx * V->value.size());
+				const float available = ImGui::GetContentRegionAvail().x;
+				float minimum = ImGui::GetFrameHeight();
+				for (const shared_str& label : V->value)
+				{
+					const float width = ImGui::CalcTextSize(DX2U(label.c_str())).x + ImGui::GetStyle().FramePadding.x * 2.f;
+					if (width > minimum) minimum = width;
+				}
+				int columns = int((available + 2.f) / (minimum + 2.f));
+				if (columns < 1) columns = 1;
+				if (columns > int(V->value.size())) columns = int(V->value.size());
+				float dx = (available - 2.f * (columns - 1)) / columns;
+				if (dx < 1.f) dx = 1.f;
 				V->btn_num = V->value.size();
 
 				for (RStringVecIt it = V->value.begin(); it != V->value.end(); it++)
 				{
 					int k = it - V->value.begin();
 
-					if (ImGui::Button(DX2U(it->c_str()), ImVec2(dx + offset, 0)))
+					if (ImGui::Button(DX2U(it->c_str()), ImVec2(dx, 0)))
 					{
 						V->btn_num = k;
 						bRes |= V->OnBtnClick(bSafe);
 					}
 
-					offset = 0;
-					ImGui::SameLine(0, 2);
+					if ((k + 1) % columns != 0 && k + 1 < int(V->value.size()))
+						ImGui::SameLine(0, 2);
 				}
 			}
 			else			
 				ImGui::Text("");
 			
 			ImGui::PopID();
+            if (bRes) PropertiesFrom->Modified();
 		}
 		break;
 
@@ -160,6 +174,7 @@ void UIPropertiesItem::DrawItem()
 			{
 				ImGui::PushItemWidth(-1);
 				DrawProp();
+				ImGui::PopItemWidth();
 			}
 		}
 		ImGui::PopID();

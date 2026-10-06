@@ -87,6 +87,9 @@ CParticleEffect::~CParticleEffect()
 
 void CParticleEffect::Play()
 {
+    if (!m_Def) return;
+    m_MemDT = 0;
+    m_fElapsedLimit = m_Def->m_fTimeLimit;
 	m_RT_Flags.set(flRT_DefferedStop, FALSE);
 	m_RT_Flags.set(flRT_Playing, TRUE);
 	ParticleManager()->PlayEffect(m_HandleEffect, m_HandleActionList);

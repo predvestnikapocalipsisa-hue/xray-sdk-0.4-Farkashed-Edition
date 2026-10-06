@@ -3,6 +3,7 @@
 #include "UISceneTabBar.h"
 #include "UIContentBrowser.h" 
 #include "converter_menu.h"
+#include "UIWorkspace.h"
 
 UIMainMenuForm::UIMainMenuForm()
 {
@@ -497,14 +498,16 @@ void UIMainMenuForm::Draw()
                 {
                     ExecCommand(COMMAND_LOG_COMMANDS);
                 }
-                if (ImGui::MenuItem("SDK Version", ""))
-                {
-                    MessageBoxA(NULL, "Current SDK version: 4.6", "Information", MB_OK | MB_ICONINFORMATION);
-                }
             }
 
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Workspace"))
+        {
+            if (ImGui::MenuItem("Restore minimal layout")) UIWorkspace::ResetRequested() = true;
+            ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem("About")) XrUIManager::ShowAbout();
         ImGui::EndMainMenuBar();
     }
 

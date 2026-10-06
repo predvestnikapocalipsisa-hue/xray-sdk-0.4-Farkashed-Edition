@@ -141,8 +141,7 @@ void PS::CPGDef::OnEffectEditClick(ButtonValue *B, bool &bDataModified, bool &bS
 
 void PS::CPGDef::OnParamsChange(PropValue *sender)
 {
-    PTools->SetCurrentPG(0);
-    PTools->SetCurrentPG(this);
+    PTools->RefreshPreview();
 }
 
 void PS::CPGDef::FillProp(LPCSTR pref, ::PropItemVec &items, ::ListItem *owner)

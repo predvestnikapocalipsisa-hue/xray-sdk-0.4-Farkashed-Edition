@@ -13,7 +13,7 @@ void UIPortalTool::Draw()
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Command"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         {
             if (ImGui::Button("Invert Orientation", ImVec2(-1, 0)))
             {
@@ -51,7 +51,7 @@ void UIPortalTool::Draw()
             }
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
 }

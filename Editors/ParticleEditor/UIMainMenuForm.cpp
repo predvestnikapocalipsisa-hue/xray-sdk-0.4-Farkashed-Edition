@@ -282,6 +282,7 @@ void UIMainMenuForm::Draw()
             }
             ImGui::EndMenu();
         }
+        if (ImGui::MenuItem("About")) XrUIManager::ShowAbout();
         ImGui::EndMainMenuBar();
     }
 }

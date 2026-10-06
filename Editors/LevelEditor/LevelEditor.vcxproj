@@ -252,6 +252,7 @@
     <ClInclude Include="UI\UIEditLibrary.h" />
     <ClInclude Include="UI\UILeftBarForm.h" />
     <ClInclude Include="UI\UIMainForm.h" />
+    <ClInclude Include="UI\UIWorkspace.h" />
     <ClInclude Include="UI\UIMainMenuForm.h" />
     <ClInclude Include="UI\UISceneTabBar.h" />
     <ClInclude Include="UI\UILPropertiesFrom.h" />
@@ -280,7 +281,9 @@
     <Image Include="Resources\IconLE.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Resources\LevelEditor.rc" />
+    <ResourceCompile Include="Resources\LevelEditor.rc">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Launcher\assets\gui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------------
 
 #include "stdafx.h"
+#include "../XrEUI/SDKMessageBox.h"
 #pragma hdrstop
 
 #include "ui_main.h"
@@ -870,8 +871,13 @@ bool OpenLauncherDocument()
     document = FarkashedLauncher::FullPath(document);
     if (document.empty() || !FarkashedLauncher::FileExists(document))
     {
-        MessageBoxW(EDevice.m_hWnd, L"The document passed by the launcher does not exist.",
-            L"X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
+        if (Core.DebugMode)
+        {
+            Msg("! [SDK DEBUG] Launcher document does not exist; starting an empty editor.");
+            return false;
+        }
+        SDKDialogs::Show(EDevice.m_hWnd, "The document passed by the launcher does not exist.",
+            "X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
         return false;
     }
 
@@ -883,9 +889,9 @@ bool OpenLauncherDocument()
         nullptr, 0, nullptr, utf8ACP ? nullptr : &substituted);
     if (length <= 0 || length > sizeof(string_path) || substituted)
     {
-        MessageBoxW(EDevice.m_hWnd, L"The document path is too long or contains characters "
-            L"that this editor's Windows code page cannot represent.",
-            L"X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
+        SDKDialogs::Show(EDevice.m_hWnd, "The document path is too long or contains characters "
+            "that this editor's Windows code page cannot represent.",
+            "X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
         return false;
     }
     std::vector<char> buffer(length);

@@ -1,9 +1,12 @@
 #include <windows.h>
+#include "../LauncherAssets/ResourceIds.h"
+#include "SdkBuildInfo.rcinc"
+IDR_SDK_BUILD_INFO RCDATA "SdkBuildInfo.txt"
 1 ICON "assets/gui/Icon.ico"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION SDK_VERSION_NUMBERS
+ PRODUCTVERSION SDK_VERSION_NUMBERS
  FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
  FILEFLAGS 0
  FILEOS VOS_NT_WINDOWS32
@@ -14,7 +17,8 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "X-Ray SDK Farkashed Edition Launcher\0"
-            VALUE "FileVersion", "1.0.0.0\0"
+            VALUE "FileVersion", SDK_VERSION_TEXT
+            VALUE "ProductVersion", SDK_VERSION_TEXT
             VALUE "ProductName", "X-Ray SDK Farkashed Edition\0"
             VALUE "OriginalFilename", "Launcher.exe\0"
         END
@@ -24,3 +28,4 @@ BEGIN
         VALUE "Translation", 0x0409, 1200
     END
 END
+IDR_SDK_UPDATE_SCRIPT RCDATA "UpdateWorker.ps1"

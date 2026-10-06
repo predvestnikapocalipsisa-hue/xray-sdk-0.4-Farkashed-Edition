@@ -14,6 +14,8 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup><SolutionDir Condition="'$(SolutionDir)'=='' Or '$(SolutionDir)'=='*Undefined*'">$(MSBuildThisFileDirectory)..\</SolutionDir></PropertyGroup>
   <ImportGroup Label="PropertySheets"><Import Project="..\Default.props" /></ImportGroup>
+  <!-- Resource-only DLL: avoid MSVC's incremental IMAGE::EmitRelocations crash. -->
+  <PropertyGroup><LinkIncremental>false</LinkIncremental></PropertyGroup>
   <ItemDefinitionGroup><Link><NoEntryPoint>true</NoEntryPoint></Link></ItemDefinitionGroup>
   <ItemGroup><ResourceCompile Include="LauncherAssets.rc" /><ClInclude Include="ResourceIds.h" /></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

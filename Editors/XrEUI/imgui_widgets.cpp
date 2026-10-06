@@ -39,6 +39,7 @@ Index of this file:
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include "imgui_internal.h"
+#include "ModernUI.h"
 
 // System includes
 #if defined(_MSC_VER) && _MSC_VER <= 1500 // MSVC 2008 or earlier
@@ -681,10 +682,15 @@ bool ImGui::ButtonEx(const char* label, const ImVec2& size_arg, ImGuiButtonFlags
     const ImGuiID id = window->GetID(label);
     const ImVec2 label_size = CalcTextSize(label, NULL, true);
 
+    const bool classic = ModernUI::ClassicCustomization(window->Name);
+    const char* icon = classic ? nullptr : ModernUI::CaptionIcon(label, false);
+    const float icon_size = g.FontSize;
+    float icon_space = icon ? icon_size + 4.f : 0.f;
+    if (size_arg.x > 0.f && size_arg.x < label_size.x + icon_space + style.FramePadding.x*2.f) icon_space = 0.f;
     ImVec2 pos = window->DC.CursorPos;
     if ((flags & ImGuiButtonFlags_AlignTextBaseLine) && style.FramePadding.y < window->DC.CurrLineTextBaseOffset) // Try to vertically align buttons that are smaller/have no padding so that text baseline matches (bit hacky, since it shouldn't be a flag)
         pos.y += window->DC.CurrLineTextBaseOffset - style.FramePadding.y;
-    ImVec2 size = CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+    ImVec2 size = CalcItemSize(size_arg, label_size.x + icon_space + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
 
     const ImRect bb(pos, pos + size);
     ItemSize(size, style.FramePadding.y);
@@ -699,12 +705,26 @@ bool ImGui::ButtonEx(const char* label, const ImVec2& size_arg, ImGuiButtonFlags
 
     // Render
     const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
-    RenderNavHighlight(bb, id);
-    RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+    if (classic || !std::strcmp(label,"##tool")) RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+    else
+    {
+        const bool mouse_hover = hovered && IsMouseHoveringRect(bb.Min,bb.Max) && !g.IO.AppFocusLost;
+        const float fade = ModernUI::Animate(window->DC.StateStorage,id,mouse_hover ? 1.f : 0.f);
+        ModernUI::ButtonSurface(window->DrawList,bb.Min,bb.Max,fade,held);
+    }
 
+    RenderNavHighlight(bb, id);
     if (g.LogEnabled)
         LogSetNextTextDecoration("[", "]");
-    RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, style.ButtonTextAlign, &bb);
+    if (icon_space > 0.f)
+    {
+        const float left = bb.Min.x + style.FramePadding.x + ImMax(0.f, size.x-style.FramePadding.x*2.f-label_size.x-icon_space)*style.ButtonTextAlign.x;
+        window->DrawList->PushClipRect(bb.Min,bb.Max,true);
+        ModernUI::DrawPath(icon,ImVec2(left,bb.Min.y+(size.y-icon_size)*.5f),icon_size,GetColorU32(ImGuiCol_Text),window->DrawList);
+        RenderTextClipped(ImVec2(left+icon_space,bb.Min.y+style.FramePadding.y),bb.Max-style.FramePadding,label,NULL,&label_size,ImVec2(0.f,style.ButtonTextAlign.y),&bb);
+        window->DrawList->PopClipRect();
+    }
+    else RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, style.ButtonTextAlign, &bb);
 
     // Automatically close popups
     //if (pressed && !(flags & ImGuiButtonFlags_DontClosePopups) && (window->Flags & ImGuiWindowFlags_Popup))
@@ -821,7 +841,7 @@ bool ImGui::CloseButton(ImGuiID id, const ImVec2& pos)
     ImU32 col = GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
     ImVec2 center = bb.GetCenter();
     if (hovered)
-        window->DrawList->AddCircleFilled(center, ImMax(2.0f, g.FontSize * 0.5f + 1.0f), col, 12);
+        window->DrawList->AddRectFilled(center-ImVec2(g.FontSize*.5f+2.f,g.FontSize*.5f+2.f), center+ImVec2(g.FontSize*.5f+2.f,g.FontSize*.5f+2.f), col, 4.f);
 
     float cross_extent = g.FontSize * 0.5f * 0.7071f - 1.0f;
     ImU32 cross_col = GetColorU32(ImGuiCol_Text);
@@ -848,7 +868,7 @@ bool ImGui::CollapseButton(ImGuiID id, const ImVec2& pos, ImGuiDockNode* dock_no
     ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
     ImU32 text_col = GetColorU32(ImGuiCol_Text);
     if (hovered || held)
-        window->DrawList->AddCircleFilled(bb.GetCenter() + ImVec2(0,-0.5f), g.FontSize * 0.5f + 1.0f, bg_col, 12);
+        window->DrawList->AddRectFilled(bb.Min+ImVec2(1.f,1.f), bb.Max-ImVec2(1.f,1.f), bg_col, 4.f);
 
     if (dock_node)
         RenderArrowDockMenu(window->DrawList, bb.Min + g.Style.FramePadding, g.FontSize, text_col);
@@ -1091,10 +1111,11 @@ bool ImGui::Checkbox(const char* label, bool* v)
     const ImGuiID id = window->GetID(label);
     const ImVec2 label_size = CalcTextSize(label, NULL, true);
 
-    const float square_sz = GetFrameHeight();
+    const float pad_y = ModernUI::ClassicCustomization(window->Name) ? style.FramePadding.y : ImMin(style.FramePadding.y, 2.f*g.IO.FontGlobalScale);
+    const float square_sz = g.FontSize + pad_y*2.f;
     const ImVec2 pos = window->DC.CursorPos;
-    const ImRect total_bb(pos, pos + ImVec2(square_sz + (label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f), label_size.y + style.FramePadding.y * 2.0f));
-    ItemSize(total_bb, style.FramePadding.y);
+    const ImRect total_bb(pos, pos + ImVec2(square_sz + (label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f), ImMax(square_sz,label_size.y + pad_y*2.f)));
+    ItemSize(total_bb, pad_y);
     if (!ItemAdd(total_bb, id))
     {
         IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags | ImGuiItemStatusFlags_Checkable | (*v ? ImGuiItemStatusFlags_Checked : 0));
@@ -1127,7 +1148,7 @@ bool ImGui::Checkbox(const char* label, bool* v)
         RenderCheckMark(window->DrawList, check_bb.Min + ImVec2(pad, pad), check_col, square_sz - pad * 2.0f);
     }
 
-    ImVec2 label_pos = ImVec2(check_bb.Max.x + style.ItemInnerSpacing.x, check_bb.Min.y + style.FramePadding.y);
+    ImVec2 label_pos = ImVec2(check_bb.Max.x + style.ItemInnerSpacing.x, check_bb.Min.y + pad_y);
     if (g.LogEnabled)
         LogRenderedText(&label_pos, mixed_value ? "[~]" : *v ? "[x]" : "[ ]");
     if (label_size.x > 0.0f)
@@ -6020,7 +6041,10 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
         if (flags & ImGuiTreeNodeFlags_Bullet)
             RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.60f, text_pos.y + g.FontSize * 0.5f), text_col);
         else if (!is_leaf)
-            RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y), text_col, is_open ? ImGuiDir_Down : ImGuiDir_Right, 1.0f);
+            {
+            if (ModernUI::ClassicCustomization(window->Name)) RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y), text_col, is_open ? ImGuiDir_Down : ImGuiDir_Right, 1.0f);
+            else ModernUI::Disclosure(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y), text_col, ModernUI::Animate(window->DC.StateStorage,id,is_open ? 1.f : 0.f), 1.0f);
+        }
         else // Leaf without bullet, left-adjusted text
             text_pos.x -= text_offset_x;
         if (flags & ImGuiTreeNodeFlags_ClipLabelForTrailingButton)
@@ -6042,7 +6066,10 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
         if (flags & ImGuiTreeNodeFlags_Bullet)
             RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.5f, text_pos.y + g.FontSize * 0.5f), text_col);
         else if (!is_leaf)
-            RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y + g.FontSize * 0.15f), text_col, is_open ? ImGuiDir_Down : ImGuiDir_Right, 0.70f);
+            {
+            if (ModernUI::ClassicCustomization(window->Name)) RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y + g.FontSize * 0.15f), text_col, is_open ? ImGuiDir_Down : ImGuiDir_Right, 0.70f);
+            else ModernUI::Disclosure(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y + g.FontSize * 0.15f), text_col, ModernUI::Animate(window->DC.StateStorage,id,is_open ? 1.f : 0.f), 0.70f);
+        }
         if (g.LogEnabled)
             LogSetNextTextDecoration(">", NULL);
         RenderText(text_pos, label, label_end, false);
@@ -8313,6 +8340,7 @@ ImVec2 ImGui::TabItemCalcSize(const char* label, bool has_close_button)
 {
     ImGuiContext& g = *GImGui;
     ImVec2 label_size = CalcTextSize(label, NULL, true);
+    if (!ModernUI::ClassicCustomization(g.CurrentWindow->Name) && ModernUI::CaptionIcon(label,true)) label_size.x += g.FontSize + 4.f;
     ImVec2 size = ImVec2(label_size.x + g.Style.FramePadding.x, label_size.y + g.Style.FramePadding.y * 2.0f);
     if (has_close_button)
         size.x += g.Style.FramePadding.x + (g.Style.ItemInnerSpacing.x + g.FontSize); // We use Y intentionally to fit the close button circle.
@@ -8371,6 +8399,16 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb, 
 
     // Render text label (with clipping + alpha gradient) + unsaved marker
     ImRect text_pixel_clip_bb(bb.Min.x + frame_padding.x, bb.Min.y + frame_padding.y, bb.Max.x - frame_padding.x, bb.Max.y);
+    if (const char* icon = ModernUI::ClassicCustomization(g.CurrentWindow->Name) ? nullptr : ModernUI::CaptionIcon(label,true))
+    {
+        if (text_pixel_clip_bb.GetWidth() > g.FontSize+4.f)
+        {
+            draw_list->PushClipRect(text_pixel_clip_bb.Min,text_pixel_clip_bb.Max,true);
+            ModernUI::DrawPath(icon,text_pixel_clip_bb.Min,g.FontSize,GetColorU32(ImGuiCol_TextDisabled),draw_list);
+            draw_list->PopClipRect();
+            text_pixel_clip_bb.Min.x += g.FontSize+4.f;
+        }
+    }
     ImRect text_ellipsis_clip_bb = text_pixel_clip_bb;
 
     // Return clipped state ignoring the close button

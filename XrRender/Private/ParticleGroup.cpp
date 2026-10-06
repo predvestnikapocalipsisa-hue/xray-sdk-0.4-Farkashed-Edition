@@ -470,6 +470,8 @@ u32 CParticleGroup::SItem::ParticlesCount()
 //------------------------------------------------------------------------------
 CParticleGroup::CParticleGroup()
 {
+    m_Def = nullptr;
+    m_CurrentTime = 0.0f;
     m_RT_Flags.zero();
     m_InitialPosition.set(0, 0, 0);
 }
@@ -545,6 +547,8 @@ void CParticleGroup::UpdateParent(const Fmatrix &m, const Fvector &velocity, BOO
 
 BOOL CParticleGroup::Compile(CPGDef *def)
 {
+    m_RT_Flags.zero();
+    m_CurrentTime = 0.0f;
     m_Def = def;
     // destroy existing
     for (SItemVecIt i_it = items.begin(); i_it != items.end(); i_it++)
@@ -556,6 +560,14 @@ BOOL CParticleGroup::Compile(CPGDef *def)
         items.resize(m_Def->m_Effects.size());
         for (CPGDef::EffectVec::const_iterator e_it = m_Def->m_Effects.begin(); e_it != m_Def->m_Effects.end(); e_it++)
         {
+#ifdef _EDITOR
+            // Newly added/unfinished group entries must remain editable.
+            if (!(*e_it)->m_EffectName.size() || !RImplementation.PSLibrary.FindPED(*(*e_it)->m_EffectName))
+            {
+                items[e_it - def->m_Effects.begin()].Set(nullptr);
+                continue;
+            }
+#endif
             CParticleEffect *eff = (CParticleEffect *)RImplementation.model_CreatePE(*(*e_it)->m_EffectName);
             eff->SetBirthDeadCB(OnGroupParticleBirth, OnGroupParticleDead, this, u32(e_it - m_Def->m_Effects.begin()));
             items[e_it - def->m_Effects.begin()].Set(eff);
@@ -566,6 +578,7 @@ BOOL CParticleGroup::Compile(CPGDef *def)
 
 void CParticleGroup::Play()
 {
+    if (!m_Def) return;
     m_CurrentTime = 0;
     m_RT_Flags.set(flRT_DefferedStop, FALSE);
     m_RT_Flags.set(flRT_Playing, TRUE);

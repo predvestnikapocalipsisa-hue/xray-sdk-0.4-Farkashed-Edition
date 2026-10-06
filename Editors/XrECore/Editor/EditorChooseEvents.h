@@ -450,9 +450,11 @@ void FillChooseEvents()
         ref_texture texture_null;
         texture_null.create("ed\\ed_nodata");
         texture_null->Load();
-        VERIFY(texture_null->surface_get());
-        texture_null->surface_get()->AddRef();
-        UIChooseForm::SetNullTexture(texture_null->surface_get());
+        // surface_get() retains a valid surface, or returns nullptr when debug assets are absent.
+        auto* surface = texture_null->surface_get();
+        UIChooseForm::SetNullTexture(surface);
+        if (!surface)
+            Msg("! Choose dialogs: placeholder texture is unavailable; continuing without preview.");
     }
     UIChooseForm::AppendEvents(smSoundSource, "Select Sound Source", ChoseEvents::FillSoundSource, ChoseEvents::SelectSoundSource, 0, ChoseEvents::CloseSoundSource, 0);
     UIChooseForm::AppendEvents(smSoundEnv, "Select Sound Environment", ChoseEvents::FillSoundEnv, 0, 0, 0, 0);

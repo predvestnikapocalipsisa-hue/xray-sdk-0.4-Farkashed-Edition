@@ -56,6 +56,7 @@
     <ClCompile Include="Launcher.cpp" />
     <ClCompile Include="Platform.cpp" />
     <ClCompile Include="EditorHost.cpp" />
+    <ClCompile Include="..\Editors\XrEUI\SDKMessageBox.cpp" />
     <ClCompile Include="..\Editors\XrEUI\imgui.cpp" />
     <ClCompile Include="..\Editors\XrEUI\imgui_demo.cpp" />
     <ClCompile Include="..\Editors\XrEUI\imgui_draw.cpp" />
@@ -66,14 +67,21 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Platform.h" />
+    <ClInclude Include="Updates.h" />
+    <ClInclude Include="UpdateBridge.h" />
     <ClInclude Include="RecentFiles.h" />
     <ClInclude Include="EditorHost.h" />
     <ClInclude Include="DiscordPresence.h" />
     <ResourceCompile Include="Launcher.rc" />
     <None Include="Launcher.manifest" />
     <None Include="README.md" />
+    <None Include="..\version.json" />
+    <None Include="Generate-BuildInfo.ps1" />
+    <None Include="UpdateWorker.ps1" />
+    <None Include="BuildInfo.targets" />
     <None Include="assets\gui\Launcher.pdn" />
     <None Include="assets\gui\font.otf" />
+    <None Include="assets\gui\error.mp3" />
     <Image Include="assets\gui\*.png" />
     <Image Include="assets\gui\Icon.ico" />
   </ItemGroup>
@@ -86,4 +94,5 @@
     <ProjectReference Include="..\XrCPU_Pipe\XrCPU_Pipe.vcxproj"><Project>{E671B0D4-52F0-471B-90B4-8317946C3C26}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="BuildInfo.targets" />
 </Project>

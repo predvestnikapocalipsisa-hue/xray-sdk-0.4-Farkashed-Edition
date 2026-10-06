@@ -27,6 +27,7 @@ TUI::TUI()
     UI = this;
     m_AppClosed = false;
     m_RenderPaused = false;
+    m_ViewportScale = 1.5f;
     m_ShowRenderError = false;
     m_bAppActive = false;
     m_bReady = false;
@@ -407,14 +408,25 @@ void TUI::Redraw()
     try
     {
 
-        if (u32(RTSize.x * EDevice.m_ScreenQuality) != RT->dwWidth || u32(RTSize.y * EDevice.m_ScreenQuality) != RT->dwHeight || !RT->pSurface)
+        // Clamp supersampling to the device's texture limits before allocating targets.
+        D3DCAPS9 viewportCaps = {};
+        HW.pDevice->GetDeviceCaps(&viewportCaps);
+        EDevice.m_ScreenQuality = m_ViewportScale;
+        if (RTSize.x && RTSize.y)
+        {
+            const float maxX = float(viewportCaps.MaxTextureWidth) / RTSize.x;
+            const float maxY = float(viewportCaps.MaxTextureHeight) / RTSize.y;
+            if (maxX > 0.f && EDevice.m_ScreenQuality > maxX) EDevice.m_ScreenQuality = maxX;
+            if (maxY > 0.f && EDevice.m_ScreenQuality > maxY) EDevice.m_ScreenQuality = maxY;
+        }
+        if (u32(RTSize.x * EDevice.m_ScreenQuality) != RT->dwWidth || u32(RTSize.y * EDevice.m_ScreenQuality) != RT->dwHeight || !RT->pSurface || !ZB->pRT)
         {
             GetRenderWidth() = RTSize.x * EDevice.m_ScreenQuality;
             GetRenderHeight() = RTSize.y * EDevice.m_ScreenQuality;
             RT.destroy();
             ZB.destroy();
             RT.create("rt_color", RTSize.x * EDevice.m_ScreenQuality, RTSize.y * EDevice.m_ScreenQuality, HW.Caps.fTarget);
-            ZB.create("rt_depth", RTSize.x * EDevice.m_ScreenQuality, RTSize.y * EDevice.m_ScreenQuality, D3DFORMAT::D3DFMT_D24X8);
+            ZB.create("rt_depth", RTSize.x * EDevice.m_ScreenQuality, RTSize.y * EDevice.m_ScreenQuality, HW.Caps.fDepth);
             m_Flags.set(flRedraw, TRUE);
             EDevice.fASPECT = ((float)RTSize.y) / ((float)RTSize.x);
             EDevice.mProject.build_projection(deg2rad(EDevice.fFOV), EDevice.fASPECT, EDevice.m_Camera.m_Znear, EDevice.m_Camera.m_Zfar);
@@ -428,7 +440,7 @@ void TUI::Redraw()
         {
             if (psDeviceFlags.is(rsRenderRealTime))
                 m_Flags.set(flRedraw, TRUE);
-            if (m_Flags.is(flRedraw))
+            if (m_Flags.is(flRedraw) && RT->pRT && ZB->pRT)
             {
 
                 m_Flags.set(flRedraw, FALSE);
@@ -436,7 +448,7 @@ void TUI::Redraw()
                 RCache.set_ZB(ZB->pRT);
                 EDevice.Statistic->RenderDUMP_RT.Begin();
                 {
-                    CHK_DX(HW.pDevice->Clear(0, 0, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, EPrefs ? EPrefs->scene_clear_color : 0x0, 1, 0));
+                    CHK_DX(HW.pDevice->Clear(0, 0, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, (EPrefs ? EPrefs->scene_clear_color : 0x0) | 0xFF000000, 1, 0));
                 }
                 EDevice.UpdateView();
                 EDevice.ResetMaterial();
@@ -649,7 +661,7 @@ bool TUI::OnCreate()
     RCache.set_xform_project(EDevice.mProject);
     RCache.set_xform_world(Fidentity);
     RT.create("rt_color", RTSize.x * EDevice.m_ScreenQuality, RTSize.y * EDevice.m_ScreenQuality, HW.Caps.fTarget);
-    ZB.create("rt_depth", RTSize.x * EDevice.m_ScreenQuality, RTSize.y * EDevice.m_ScreenQuality, D3DFORMAT::D3DFMT_D24X8);
+    ZB.create("rt_depth", RTSize.x * EDevice.m_ScreenQuality, RTSize.y * EDevice.m_ScreenQuality, HW.Caps.fDepth);
 
     return true;
 }

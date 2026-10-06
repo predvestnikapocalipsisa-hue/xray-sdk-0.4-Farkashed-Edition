@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "ELog.h"
 #include "UILogForm.h"
+#include "../XrEUI/SDKMessageBox.h"
 #include "..\XrCore\os_clipboard.h"
 #define MSG_ERROR 0x00C4C4FF
 #define MSG_INFO 0x00E6FFE7
@@ -38,7 +39,9 @@ void UILogForm::AddMessage(TMsgDlgType mt, const xr_string &msg)
 
 void UILogForm::AddDlgMessage(TMsgDlgType mt, const xr_string &msg)
 {
-	GetList()->push_back(XrUIManager::ConvertCP1251ToUTF8(msg.c_str()));
+	AddMessage(mt, msg);
+    SDKDialogs::Notify(msg.c_str(), mt == mtError ? "Error" : mt == mtConfirmation ? "Warning" : "Information",
+        MB_OK | (mt == mtError ? MB_ICONERROR : mt == mtConfirmation ? MB_ICONWARNING : MB_ICONINFORMATION));
 }
 
 void UILogForm::Show()
@@ -61,6 +64,7 @@ void UILogForm::Update()
 			ImGui::End();
 			return;
 		}
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6,3));
 		if (ImGui::Button("Clear"))
 		{
 			GetList()->clear();
@@ -72,23 +76,32 @@ void UILogForm::Update()
 			FlushLog();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Copy All"))
+		if (ImGui::Button("Copy"))
 		{
 			NeedCopy = true;
 		}
 		ImGui::SameLine();
-		ImGui::Checkbox("Auto Scroll", &bAutoScroll);
-		ImGui::SameLine();
-		ImGui::Checkbox("Only Error", &bOnlyError);
+        if (ImGui::Button("Filters")) ImGui::OpenPopup("Log filters");
+        if (ImGui::BeginPopup("Log filters"))
+        {
+            ImGui::Checkbox("Auto scroll", &bAutoScroll);
+            ImGui::Checkbox("Errors only", &bOnlyError);
+            ImGui::EndPopup();
+        }
+        ImGui::PopStyleVar();
+        static ImGuiTextFilter filter;
+        filter.Draw("##Search log", ImGui::GetContentRegionAvail().x);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Filter messages; use -word to exclude");
 
 		ImGui::Spacing();
 		if (ImGui::BeginChild("Log", ImVec2(0, 0), true))
 		{
-			xr_string CopyLog;
-			int visibleIndex = 0;
+            const bool followTail = ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 2.f;
+            xr_string CopyLog;
+            int visibleIndex = 0;
 			for (int i = 0; i < (int)GetList()->size(); i++)
 			{
-				ImVec4 Color = {1, 1, 1, 1};
+				ImVec4 Color = ImGui::GetStyle().Colors[ImGuiCol_Text];
 				const char *Str = GetList()->at(i).c_str();
 				bool isError = false;
 				if (strncmp(Str, "###", 3) == 0)
@@ -103,17 +116,14 @@ void UILogForm::Update()
 					Str += 3;
 				}
 
-				if (bOnlyError && !isError)
+				if ((bOnlyError && !isError) || !filter.PassFilter(Str))
 					continue;
-
-				if (NeedCopy)
-					CopyLog.append(Str).append("\r\n");
 
 				bool isSelected = (selectedLine == i);
 
 				// Highlight selected line background
 				if (isSelected)
-					ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.5f, 0.85f, 0.6f));
+					ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_HeaderActive]);
 
 				ImGui::PushStyleColor(ImGuiCol_Text, Color);
 				char selId[32];
@@ -126,11 +136,9 @@ void UILogForm::Update()
 				if (isSelected)
 					ImGui::PopStyleColor(); // Header
 
-				// Draw text overlaid on the Selectable
-				ImGui::SameLine();
-				ImGui::PushStyleColor(ImGuiCol_Text, Color);
-				ImGui::TextUnformatted(Str);
-				ImGui::PopStyleColor();
+                // Draw inside the row instead of SameLine after its full width.
+                const ImVec2 row = ImGui::GetItemRectMin();
+                ImGui::GetWindowDrawList()->AddText(row, ImGui::GetColorU32(Color), Str);
 
 				// Right-click context menu
 				if (ImGui::BeginPopupContextItem(selId))
@@ -139,7 +147,7 @@ void UILogForm::Update()
 					{
 						os_clipboard::copy_to_clipboard(Str);
 					}
-					if (ImGui::MenuItem("Copy all"))
+					if (ImGui::MenuItem("Copy filtered messages"))
 					{
 						NeedCopy = true;
 					}
@@ -150,22 +158,22 @@ void UILogForm::Update()
 			}
 			if (NeedCopy)
 			{
-				// Rebuild full copy if triggered from context menu after loop
-				if (CopyLog.empty())
+                // Assemble once after the loop, including a context-menu request.
+				if (NeedCopy)
 				{
 					for (int i = 0; i < (int)GetList()->size(); i++)
 					{
 						const char *Str = GetList()->at(i).c_str();
 						if (strncmp(Str, "###", 3) == 0) Str += 3;
 						else if (strncmp(Str, "##@", 3) == 0) Str += 3;
-						if (!bOnlyError || strncmp(GetList()->at(i).c_str(), "###", 3) == 0)
+						if ((!bOnlyError || strncmp(GetList()->at(i).c_str(), "###", 3) == 0) && filter.PassFilter(Str))
 							CopyLog.append(Str).append("\r\n");
 					}
 				}
 				os_clipboard::copy_to_clipboard(CopyLog.c_str());
 			}
-			if (bAutoScroll)
-				ImGui::SetScrollHereY();
+			if (bAutoScroll && followTail)
+				ImGui::SetScrollHereY(1.f);
 		}
 		ImGui::EndChild();
 		ImGui::End();

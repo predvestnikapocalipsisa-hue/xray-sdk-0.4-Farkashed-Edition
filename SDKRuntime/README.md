@@ -1,5 +1,8 @@
 # Compact SDK package
 
+For ordinary module edits and copying changed binaries into an existing SDK, see
+[Incremental build instructions](INCREMENTAL_BUILD.md) and the root `Build-SDK.ps1`.
+
 `xraySdkEditors.sln` produces one SDK executable, `Launcher.exe`, and six SDK DLLs:
 
 - `SDKRuntime.dll`: core, API, collision, physics, particles, CPU dispatch, audio,

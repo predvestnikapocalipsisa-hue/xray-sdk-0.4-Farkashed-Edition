@@ -1,3 +1,4 @@
+#include "SDKMessageBox.h"
 #include "Platform.h"
 #include "RecentFiles.h"
 #include "imgui.h"
@@ -435,7 +436,8 @@ bool LauncherPlatform::StartEditor(const std::wstring& executable, const std::ws
         error = L"Editor executable was not found:\n" + executable + L"\n\nChoose the SDK folder in Settings.";
         return false;
     }
-    if (!file.empty() && !FarkashedLauncher::FileExists(file))
+    const bool debugMode = FarkashedLauncher::Setting(L"DebugMode") == L"1";
+    if (!debugMode && !file.empty() && !FarkashedLauncher::FileExists(file))
     {
         error = L"This recent file has been moved or deleted:\n" + file;
         return false;
@@ -453,6 +455,8 @@ bool LauncherPlatform::StartEditor(const std::wstring& executable, const std::ws
         return false;
     }
     std::wstring arguments = QuoteArgument(host) + L" --sdk-editor " + editor;
+    if (debugMode)
+        arguments += L" -sdk_debug";
     if (!file.empty())
         arguments += L" --launcher-open " + QuoteArgument(file);
     std::vector<wchar_t> commandLine(arguments.begin(), arguments.end());
@@ -488,6 +492,8 @@ LRESULT CALLBACK LauncherPlatform::WindowProc(HWND window, UINT message, WPARAM 
         app = static_cast<LauncherPlatform*>(reinterpret_cast<CREATESTRUCTW*>(lParam)->lpCreateParams);
         SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(app));
     }
+    LRESULT dialogResult = 0;
+    if (SDKDialogs::HandleMessage(message, lParam, dialogResult)) return dialogResult;
     if (ImGui::GetCurrentContext() && ImGui_ImplWin32_WndProcHandler(window, message, wParam, lParam))
         return TRUE;
     if (app)

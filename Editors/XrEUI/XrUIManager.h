@@ -10,7 +10,8 @@ enum TShiftState_
 	ssMiddle = 32,
 };
 using TShiftState = int;
-constexpr int UIToolBarSize = 24;
+constexpr int UIToolBarSize = 40;
+constexpr int UITitleBarSize = 34;
 class XREUI_API XrUIManager
 {
 public:
@@ -24,6 +25,15 @@ public:
 	LRESULT WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	void Initialize(HWND hWnd, IDirect3DDevice9 *device, const char *ini_path);
 	void Destroy();
+    static void SetWindowEffects(const float* glowColor, float glowWidth, float glowStrength,
+        bool glowEnabled, bool backgroundBlur, float backgroundOpacity);
+    static bool IsBackgroundBlurAvailable();
+    static void SetUIScale(float scale);
+    static float GetUIScale();
+    static float GetToolBarHeight();
+    static float GetTitleBarHeight();
+    static void ShowAbout();
+    static bool HandleWindowFrame(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& result);
 
 	void ResetBegin();
 	void ResetEnd();

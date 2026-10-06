@@ -1,17 +1,18 @@
 #include "stdafx.h"
+#include "../XrEUI/SDKMessageBox.h"
 
 UIEditLibrary *UIEditLibrary::Form = nullptr;
 
-UIEditLibrary::UIEditLibrary()
+UIEditLibrary::UIEditLibrary() : m_NullTexture(nullptr), m_RealTexture(nullptr)
 {
 	{
 		ref_texture texture_null;
 		texture_null.create("ed\\ed_nodata");
 		texture_null->Load();
-		VERIFY(texture_null->surface_get());
-		texture_null->surface_get()->AddRef();
+		// surface_get() already retains the surface; missing debug assets return nullptr.
 		m_NullTexture = texture_null->surface_get();
-		m_RealTexture = nullptr;
+		if (!m_NullTexture)
+			Msg("! Object library: placeholder texture is unavailable; continuing without preview.");
 	}
 
 	m_ObjectList = xr_new<UIItemListForm>();
@@ -54,6 +55,8 @@ void UIEditLibrary::OnItemFocused(ListItem *item)
 
 UIEditLibrary::~UIEditLibrary()
 {
+	if (m_NullTexture)
+		static_cast<ID3DBaseTexture*>(m_NullTexture)->Release();
 }
 
 void UIEditLibrary::InitObjects()
@@ -434,7 +437,7 @@ void UIEditLibrary::OnMakeThmClick()
 
 void UIEditLibrary::OnPropertiesClick()
 {
-	MessageBoxA(0, 0, 0, 0);
+	SDKDialogs::Show(nullptr, "This operation is not implemented.", "Information", MB_OK | MB_ICONINFORMATION);
 }
 
 void UIEditLibrary::DrawRightBar()

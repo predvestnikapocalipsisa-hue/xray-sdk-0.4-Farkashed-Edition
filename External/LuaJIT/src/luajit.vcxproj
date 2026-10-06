@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -46,71 +46,29 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <NMakeOutput>..\bin\$(PlatformShortName)\LuaJIT.dll</NMakeOutput>
+    <NMakeOutput>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.dll</NMakeOutput>
     <NMakeUseOemCodePage>true</NMakeUseOemCodePage>
-    <NMakeBuildCommandLine>
-		if not exist "..\bin\$(PlatformShortName)\LuaJIT.dll" (
-			call msvcbuild.bat $(PlatformShortName)
-		)
-
-		if not exist "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.dll" (
-			if not exist "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\*.*" (
-				md "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)"
-			)
-			copy /Y "..\bin\$(PlatformShortName)\LuaJIT.dll" "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.dll"
-			copy /Y "..\bin\$(PlatformShortName)\LuaJIT.pdb" "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.pdb"
-		)
-
-		if not exist "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\LuaJIT.lib" (
-			if not exist "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\*.*" (
-				md "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\"
-			)
-			copy /Y "..\bin\$(PlatformShortName)\LuaJIT.lib" "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\LuaJIT.lib"
-		)
-		if not exist "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\LuaJIT.exp" (
-			if not exist "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\*.*" (
-				md "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\"
-			)
-			copy /Y "..\bin\$(PlatformShortName)\LuaJIT.exp" "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\LuaJIT.exp"
-		)
-	
-    </NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>
-		RD /S/Q ..\bin
-		call msvcbuild.bat $(PlatformShortName)
-
-		if not exist "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\*.*" (
-			md "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\"
-		)
-		copy /Y "..\bin\$(PlatformShortName)\LuaJIT.dll" "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.dll"
-		copy /Y "..\bin\$(PlatformShortName)\LuaJIT.pdb" "$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\LuaJIT.pdb"
-		if not exist "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\*.*" (
-			md "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\"
-		)
-		copy /Y "..\bin\$(PlatformShortName)\LuaJIT.lib" "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\LuaJIT.lib"
-		if not exist "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\*.*" (
-			md "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\"
-		)
-		copy /Y "..\bin\$(PlatformShortName)\LuaJIT.exp" "$(SolutionDir)\output\libraries_$(platform)_$(Configuration)\LuaJIT.exp"
-	</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine>RD /S/Q ..\bin</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Build-LuaJIT.ps1" -SolutionRoot "$(SolutionDir)." -Platform "$(Platform)" -Configuration "$(Configuration)"</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Build-LuaJIT.ps1" -SolutionRoot "$(SolutionDir)." -Platform "$(Platform)" -Configuration "$(Configuration)" -Force</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)Build-LuaJIT.ps1" -SolutionRoot "$(SolutionDir)." -Platform "$(Platform)" -Configuration "$(Configuration)" -Clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\output\intermediate\$(ProjectName)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)output\Intermediate\$(Platform)\$(Configuration)\LuaJIT\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\output\intermediate\$(ProjectName)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)output\Intermediate\$(Platform)\$(Configuration)\LuaJIT\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'">
     <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\output\intermediate\$(ProjectName)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)output\Intermediate\$(Platform)\$(Configuration)\LuaJIT\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
     <OutDir>$(SolutionDir)BuildedSDK\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\output\intermediate\$(ProjectName)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)output\Intermediate\$(Platform)\$(Configuration)\LuaJIT\</IntDir>
   </PropertyGroup>
+  <ItemGroup><None Include="Build-LuaJIT.ps1" /></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

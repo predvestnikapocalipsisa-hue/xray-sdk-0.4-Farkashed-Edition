@@ -13,11 +13,14 @@ UILeftBarForm::~UILeftBarForm()
 
 void UILeftBarForm::Draw()
 {
-	ImGui::Begin("LeftBar", 0);
+	if (!ImGui::Begin("LeftBar", 0)) { ImGui::End(); return; }
+    static ImGuiTextFilter toolFilter;
+    toolFilter.Draw("##Find tools", ImGui::GetContentRegionAvail().x);
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Filter object tools by name");
+    ImGui::Spacing();
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
-	if (ImGui::TreeNode("Tools"))
+	if (ImGui::CollapsingHeader("Tools"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
 		static ObjClassID Tools[OBJCLASS_COUNT + 1] = {
 			OBJCLASS_SCENEOBJECT,
 			OBJCLASS_LIGHT,
@@ -36,45 +39,55 @@ void UILeftBarForm::Draw()
 			OBJCLASS_FOG_VOL,
 			OBJCLASS_force_dword};
 
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 1));
-		ImGui::Columns(2);
-		ImGui::Separator();
-		for (u32 i = 0; Tools[i] != OBJCLASS_force_dword; i++)
-		{
-			u32 id = 0;
-			if (i % 2)
-				id = ((OBJCLASS_COUNT + 1) / 2) + (i / 2);
-			else
-				id = (i / 2);
-			ESceneToolBase *tool = Scene->GetTool(Tools[id]);
-			bool visble = tool->IsVisible();
-			ImGui::PushID(tool->ClassName());
-			if (ImGui::Checkbox("##value", &visble))
-			{
-				tool->m_EditFlags.set(ESceneToolBase::flVisible, visble);
-				UI->RedrawScene();
-			};
-			ImGui::SameLine();
+        xr_vector<ObjClassID> visibleTools;
+        for (u32 i = 0; Tools[i] != OBJCLASS_force_dword; ++i)
+            if (toolFilter.PassFilter(Scene->GetTool(Tools[i])->ClassDesc()))
+                visibleTools.push_back(Tools[i]);
 
-			if (ImGui::RadioButton(tool->ClassDesc(), LTools->GetTarget() == Tools[id]))
-			{
-				ExecCommand(COMMAND_CHANGE_TARGET, Tools[id]);
-			}
-			ImGui::PopID();
-			ImGui::NextColumn();
-		}
-		ImGui::Columns(1);
-		ImGui::Separator();
-		ImGui::PopStyleVar(2);
-		ImGui::TreePop();
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 1));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(2, 1));
+        const ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_NoSavedSettings |
+            ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_BordersInnerV;
+        if (ImGui::BeginTable("Tool grid", 2, flags))
+        {
+            const u32 rows = (visibleTools.size() + 1) / 2;
+            for (u32 row = 0; row < rows; ++row)
+            {
+                ImGui::TableNextRow();
+                for (u32 column = 0; column < 2; ++column)
+                {
+                    ImGui::TableSetColumnIndex(column);
+                    const u32 index = row + column * rows;
+                    if (index >= visibleTools.size()) continue;
+                    const ObjClassID id = visibleTools[index];
+                    ESceneToolBase* tool = Scene->GetTool(id);
+                    ImGui::PushID(tool->ClassName());
+                    bool visible = tool->IsVisible();
+                    if (ImGui::Checkbox("##visible", &visible))
+                    {
+                        tool->m_EditFlags.set(ESceneToolBase::flVisible, visible);
+                        UI->RedrawScene();
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show/hide %s", tool->ClassDesc());
+                    ImGui::SameLine();
+                    float width = ImGui::GetContentRegionAvail().x;
+                    if (width < 1.f) width = 1.f;
+                    if (ImGui::Selectable(tool->ClassDesc(), LTools->GetTarget() == id, 0,
+                        ImVec2(width, ImGui::GetFrameHeight())))
+                        ExecCommand(COMMAND_CHANGE_TARGET, id);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tool->ClassDesc());
+                    ImGui::PopID();
+                }
+            }
+            ImGui::EndTable();
+        }
+        ImGui::PopStyleVar(3);
 
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
 	}
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
-	if (ImGui::TreeNode("Snap List"))
+	if (ImGui::CollapsingHeader("Snap List"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 1));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 4));
@@ -134,10 +147,8 @@ void UILeftBarForm::Draw()
 			"##snap_list_box", &m_SnapItem_Current, [](void *data, int ind, const char **out) -> bool
 			{auto item = reinterpret_cast<ObjectList*>(data)->begin(); std::advance(item, ind); *out = (*item)->GetName(); return true; },
 			reinterpret_cast<void *>(lst), lst->size(), 7);
-		ImGui::TreePop();
 		ImGui::PopStyleVar(2);
 
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
 	}
 	if (LTools->GetToolForm())
 		LTools->GetToolForm()->Draw();

@@ -827,6 +827,7 @@ CODE
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include "imgui_internal.h"
+#include "ModernUI.h"
 
 // System includes
 #include <ctype.h>                        // toupper
@@ -6640,6 +6641,16 @@ void ImGui::RenderWindowTitleBarContents(ImGuiWindow *window, const ImRect &titl
         pad_r = ImMax(pad_r, pad_extend * centerness);
     }
 
+    if (const char* icon = ModernUI::ClassicCustomization(name) ? nullptr : ModernUI::CaptionIcon(name,true))
+    {
+        if (title_bar_rect.GetWidth()-pad_l-pad_r > g.FontSize+4.f)
+        {
+            window->DrawList->PushClipRect(title_bar_rect.Min,title_bar_rect.Max,true);
+            ModernUI::DrawPath(icon,ImVec2(title_bar_rect.Min.x+pad_l,title_bar_rect.Min.y+(title_bar_rect.GetHeight()-g.FontSize)*.5f),g.FontSize,GetColorU32(ImGuiCol_TextDisabled),window->DrawList);
+            window->DrawList->PopClipRect();
+            pad_l += g.FontSize+4.f;
+        }
+    }
     ImRect layout_r(title_bar_rect.Min.x + pad_l, title_bar_rect.Min.y, title_bar_rect.Max.x - pad_r, title_bar_rect.Max.y);
     ImRect clip_r(layout_r.Min.x, layout_r.Min.y, ImMin(layout_r.Max.x + g.Style.ItemInnerSpacing.x, title_bar_rect.Max.x), layout_r.Max.y);
     if (flags & ImGuiWindowFlags_UnsavedDocument)

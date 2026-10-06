@@ -30,12 +30,25 @@
 #include <dinput.h>
 
 // DirectX data
-static LPDIRECT3DDEVICE9 g_pd3dDevice = NULL;
-static LPDIRECT3DVERTEXBUFFER9 g_pVB = NULL;
-static LPDIRECT3DINDEXBUFFER9 g_pIB = NULL;
-static LPDIRECT3DTEXTURE9 g_FontTexture = NULL;
-static int g_VertexBufferSize = 5000, g_IndexBufferSize = 10000;
-
+// Renderer resources belong to the current context, including synchronous SDK popups.
+struct ImGui_ImplDX9_Data
+{
+    LPDIRECT3DDEVICE9 Device = nullptr;
+    LPDIRECT3DVERTEXBUFFER9 VB = nullptr;
+    LPDIRECT3DINDEXBUFFER9 IB = nullptr;
+    LPDIRECT3DTEXTURE9 FontTexture = nullptr;
+    int VertexBufferSize = 5000, IndexBufferSize = 10000;
+};
+static ImGui_ImplDX9_Data* ImGui_ImplDX9_GetBackendData()
+{
+    return ImGui::GetCurrentContext() ? static_cast<ImGui_ImplDX9_Data*>(ImGui::GetIO().BackendRendererUserData) : nullptr;
+}
+#define g_pd3dDevice (ImGui_ImplDX9_GetBackendData()->Device)
+#define g_pVB (ImGui_ImplDX9_GetBackendData()->VB)
+#define g_pIB (ImGui_ImplDX9_GetBackendData()->IB)
+#define g_FontTexture (ImGui_ImplDX9_GetBackendData()->FontTexture)
+#define g_VertexBufferSize (ImGui_ImplDX9_GetBackendData()->VertexBufferSize)
+#define g_IndexBufferSize (ImGui_ImplDX9_GetBackendData()->IndexBufferSize)
 struct CUSTOMVERTEX
 {
     float pos[3];
@@ -66,6 +79,11 @@ static void ImGui_ImplDX9_SetupRenderState(ImDrawData *draw_data)
     g_pd3dDevice->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
     g_pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
     g_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    // Preserve source-over alpha for DWM composition instead of squaring source alpha.
+    g_pd3dDevice->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
+    g_pd3dDevice->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
+    g_pd3dDevice->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_INVSRCALPHA);
+    g_pd3dDevice->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
     g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
     g_pd3dDevice->SetRenderState(D3DRS_SHADEMODE, D3DSHADE_GOURAUD);
     g_pd3dDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
@@ -225,6 +243,8 @@ bool ImGui_ImplDX9_Init(IDirect3DDevice9 *device)
 {
     // Setup back-end capabilities flags
     ImGuiIO &io = ImGui::GetIO();
+    IM_ASSERT(io.BackendRendererUserData == nullptr);
+    io.BackendRendererUserData = IM_NEW(ImGui_ImplDX9_Data)();
     io.BackendRendererName = "imgui_impl_dx9";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
 
@@ -235,12 +255,18 @@ bool ImGui_ImplDX9_Init(IDirect3DDevice9 *device)
 
 void ImGui_ImplDX9_Shutdown()
 {
+    if (!ImGui_ImplDX9_GetBackendData()) return;
     ImGui_ImplDX9_InvalidateDeviceObjects();
     if (g_pd3dDevice)
     {
         g_pd3dDevice->Release();
         g_pd3dDevice = NULL;
     }
+    ImGuiIO& io = ImGui::GetIO();
+    IM_DELETE(ImGui_ImplDX9_GetBackendData());
+    io.BackendRendererUserData = nullptr;
+    io.BackendRendererName = nullptr;
+    io.BackendFlags &= ~ImGuiBackendFlags_RendererHasVtxOffset;
 }
 
 static bool ImGui_ImplDX9_CreateFontsTexture()
@@ -270,7 +296,7 @@ static bool ImGui_ImplDX9_CreateFontsTexture()
 
 bool ImGui_ImplDX9_CreateDeviceObjects()
 {
-    if (!g_pd3dDevice)
+    if (!ImGui_ImplDX9_GetBackendData() || !g_pd3dDevice)
         return false;
     if (!ImGui_ImplDX9_CreateFontsTexture())
         return false;
@@ -279,7 +305,7 @@ bool ImGui_ImplDX9_CreateDeviceObjects()
 
 void ImGui_ImplDX9_InvalidateDeviceObjects()
 {
-    if (!g_pd3dDevice)
+    if (!ImGui_ImplDX9_GetBackendData() || !g_pd3dDevice)
         return;
     if (g_pVB)
     {

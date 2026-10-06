@@ -139,7 +139,7 @@ void UIObjectTool::Draw()
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Commands"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         {
             if (ImGui::Button("Multiple Append", ImVec2(-1, 0)))
             {
@@ -155,7 +155,8 @@ void UIObjectTool::Draw()
                 {
                     ParentTools->ActivateAppendRandom(m_RandomAppend);
                 }
-                ImGui::SameLine(0, 10);
+                if (ImGui::GetContentRegionAvail().x > ImGui::CalcTextSize("Random Props...").x + ImGui::GetStyle().FramePadding.x * 2.f + 10.f)
+                    ImGui::SameLine(0, 10);
                 if (ImGui::Button("Random Props...", ImVec2(-1, 0)))
                 {
                     m_PropRandom = true;
@@ -164,16 +165,15 @@ void UIObjectTool::Draw()
             }
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Reference Select"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         {
             ImGui::Text("Select by Current: ");
-            ImGui::SameLine();
             if (ImGui::Button(" +"))
             {
                 SelByRefObject(true);
@@ -184,7 +184,6 @@ void UIObjectTool::Draw()
                 SelByRefObject(false);
             }
             ImGui::Text("Select by Selected:");
-            ImGui::SameLine();
             if (ImGui::Button("=%"))
             {
                 MultiSelByRefObject(true);
@@ -199,14 +198,14 @@ void UIObjectTool::Draw()
             ImGui::DragFloat("%", &m_selPercent, 1, 0, 100, "%.1f");
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Surface"))
     {
 
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         {
             if (ImGui::Button("Clear Surface in select", ImVec2(-1, 0)))
             {
@@ -223,13 +222,13 @@ void UIObjectTool::Draw()
             }
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("LOD Generator"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         {
             static int lodQualityIdx = 1; // 0 = Low (1), 1 = Medium (4), 2 = High (7)
             const char* qualityNames[] = { "Low (1)", "Medium (4)", "High (7)" };
@@ -253,14 +252,14 @@ void UIObjectTool::Draw()
             }
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Current Object"))
     {
 
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         {
             if (ImGui::Button("Select ...", ImVec2(-1, 0)))
             {
@@ -273,26 +272,26 @@ void UIObjectTool::Draw()
             }
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Preview"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         ImGui::Image(m_RealTexture ? m_RealTexture : (m_TextureNull->surface_get()), ImVec2(128, 128));
         ImGui::SameLine();
         ImGui::BeginChild("Props", ImVec2(0, 128));
         m_Props->Draw();
         ImGui::EndChild();
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Object List"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());;
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);;
         ImGui::Separator();
         if (ImGui::BeginChild("ObjectListRegion", ImVec2(0, 400), true))
         {
@@ -300,7 +299,7 @@ void UIObjectTool::Draw()
             ImGui::EndChild();
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
 

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "../XrECore/Editor/EditorChooseEvents.h"
 #include "UISceneTabBar.h"
+#include "UIWorkspace.h"
 
 UIMainForm* MainForm = nullptr;
 
@@ -48,6 +49,7 @@ UIMainForm::~UIMainForm()
 
 void UIMainForm::Draw()
 {
+    UIWorkspace::ApplyLayout();
     m_MainMenu->Draw(); 
 
     m_TopBar->Draw();

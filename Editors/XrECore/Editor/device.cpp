@@ -75,12 +75,17 @@ void CEditorRenderDevice::Initialize()
 	//	Surface_Init();
 
 	// game materials
-	GMLib.Load();
+    string_path materials;
+    FS.update_path(materials, _game_data_, "gamemtl.xr");
+    if (!Core.DebugMode || FS.exist(materials)) GMLib.Load();
+    else Msg("! [SDK DEBUG] Material assets are unavailable; using editor defaults.");
 
 	// compiler shader
 	string_path fn;
 	FS.update_path(fn, _game_data_, "shaders_xrlc.xr");
-	if (FS.exist(fn))
+	if (Core.DebugMode)
+        Msg("! [SDK DEBUG] Skipping compiler shader library: %s", fn);
+    else if (FS.exist(fn))
 	{
 		ShaderXRLC.Load(fn);
 	}
@@ -242,17 +247,18 @@ void CEditorRenderDevice::_Create(IReader* F)
 	_SetupStates();
 
 	RCache.OnDeviceCreate();
-	Resources->OnDeviceCreate(F);
+    Resources->OnDeviceCreate(F);
 	::Render->OnDeviceCreate();
 
-	m_WireShader.create("editor\\wire");
-	m_SelectionShader.create("editor\\selection");
+    m_WireShader.create("editor\\wire");
+    m_SelectionShader.create("editor\\selection");
 
 	// signal another objects
 	UI->OnDeviceCreate();
 	//.	seqDevCreate.Process		(rp_DeviceCreate);
 
-	pSystemFont = xr_new<CGameFont>("hud_font_small");
+	if (!Core.DebugMode)
+        pSystemFont = xr_new<CGameFont>("hud_font_small");
 	//	pSystemFont					= xr_new<CGameFont>("hud_font_medium");
 }
 
@@ -467,6 +473,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void CEditorRenderDevice::CreateWindow()
 {
 	m_WC = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), UI->EditorIcon() , NULL, NULL, NULL, TEXT("X-Ray editor") , NULL };
+	m_WC.hIconSm = m_WC.hIcon; // All editors embed the shared Launcher/assets/gui/Icon.ico.
 	::RegisterClassEx(&m_WC);
 	m_hWnd = ::CreateWindowA(m_WC.lpszClassName, UI->EditorDesc(), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, m_WC.hInstance, NULL);
 
@@ -481,6 +488,9 @@ void CEditorRenderDevice::DestryWindow()
 }
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    LRESULT frameResult = 0;
+    if (XrUIManager::HandleWindowFrame(hWnd, msg, wParam, lParam, frameResult))
+        return frameResult;
 	switch (msg)
 	{
 	case WM_DROPFILES:

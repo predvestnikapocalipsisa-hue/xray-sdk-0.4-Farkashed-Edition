@@ -125,7 +125,7 @@ const typename ITEM_DATA *CSXML_IdToIndex::GetByIndex(int index, bool no_assert)
 TEMPLATE_SPECIALIZATION
 void CSXML_IdToIndex::DeleteIdToIndexData()
 {
-	VERIFY(m_pItemDataVector);
+	if (!m_pItemDataVector) return; // Debug startup may skip profile tables.
 	_destroy_item_data_vector_cont(m_pItemDataVector);
 
 	xr_delete(m_pItemDataVector);

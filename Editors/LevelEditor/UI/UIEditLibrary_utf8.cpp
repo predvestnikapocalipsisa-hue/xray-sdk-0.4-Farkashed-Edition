@@ -1,4 +1,5 @@
 ﻿#include "stdafx.h"
+#include "../XrEUI/SDKMessageBox.h"
 
 UIEditLibrary *UIEditLibrary::Form = nullptr;
 
@@ -438,7 +439,7 @@ void UIEditLibrary::OnMakeThmClick()
 
 void UIEditLibrary::OnPropertiesClick()
 {
-	MessageBoxA(0, 0, 0, 0);
+	SDKDialogs::Show(nullptr, "This operation is not implemented.", "Information", MB_OK | MB_ICONINFORMATION);
 }
 
 void UIEditLibrary::DrawRightBar()

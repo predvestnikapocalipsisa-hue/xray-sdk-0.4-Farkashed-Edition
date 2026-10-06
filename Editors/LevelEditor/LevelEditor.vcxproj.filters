@@ -546,6 +546,9 @@
     <ClInclude Include="UI\UIMainForm.h">
       <Filter>UI</Filter>
     </ClInclude>
+<ClInclude Include="UI\UIWorkspace.h">
+      <Filter>UI</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\XrRender\Private\DetailManager.h">
       <Filter>Render</Filter>
     </ClInclude>

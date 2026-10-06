@@ -1,4 +1,6 @@
+#include "SDKMessageBox.h"
 #include "Platform.h"
+#include "Updates.h"
 #include "EditorHost.h"
 #include "DiscordPresence.h"
 #include "../LauncherAssets/ResourceIds.h"
@@ -131,10 +133,12 @@ namespace
         std::function<void()> pendingAction;
         std::string error;
         std::string status;
+        SDKUpdates::Panel updates;
         bool showError = false;
         bool showSettings = false;
         bool useBlur = true;
         bool minimizeOnLaunch = false;
+        bool debugMode = false;
         bool reduceMotion = false;
         bool historyDirty = true;
         bool assetWarning = false;
@@ -411,6 +415,10 @@ namespace
                     FarkashedLauncher::SetSetting(L"MinimizeOnLaunch", minimizeOnLaunch ? L"1" : L"0");
                 if (ImGui::Checkbox("Reduce animation", &reduceMotion))
                     FarkashedLauncher::SetSetting(L"ReduceMotion", reduceMotion ? L"1" : L"0");
+                if (ImGui::Checkbox("DEBUG mode (log errors and continue)", &debugMode))
+                    FarkashedLauncher::SetSetting(L"DebugMode", debugMode ? L"1" : L"0");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Applies to newly started editors. Logs SDK checks without dialogs.\nStarts with an empty viewport without loading game rendering resources.");
                 ImGui::Separator();
                 if (ImGui::Button("Done", Position(100.f, 0.f)))
                     ImGui::CloseCurrentPopup();
@@ -427,6 +435,7 @@ namespace
             useBlur = FarkashedLauncher::Setting(L"UseBlur") != L"0";
             minimizeOnLaunch = FarkashedLauncher::Setting(L"MinimizeOnLaunch") == L"1";
             reduceMotion = FarkashedLauncher::Setting(L"ReduceMotion") == L"1";
+            debugMode = FarkashedLauncher::Setting(L"DebugMode") == L"1";
             const std::wstring shade = FarkashedLauncher::Setting(L"BackgroundShade");
             if (!shade.empty())
                 darkening = (std::max)(0.45f, (std::min)(0.95f, float(_wtoi(shade.c_str())) / 100.f));
@@ -499,8 +508,17 @@ namespace
             platform.fontsDirty = false;
         }
 
+        void InitializeUpdates()
+        {
+            if (updates.InitializeFromCommandLine())
+            {
+                sdkDirectory = updates.Target();
+                historyDirty = true;
+            }
+        }
         void OpenPath(const std::wstring& path)
         {
+            if (updates.Busy()) return;
             const std::wstring fullPath = FarkashedLauncher::FullPath(path);
             const std::wstring editor = EditorForFile(fullPath);
             if (editor.empty())
@@ -523,6 +541,8 @@ namespace
 
         void Draw()
         {
+            updates.Poll();
+            if (updates.Busy()) platform.closeRequested = false;
             if (!status.empty() && ImGui::GetTime() >= statusExpires)
                 status.clear();
             if (!platform.moving && (historyDirty || ImGui::GetTime() >= nextRefresh))
@@ -551,7 +571,7 @@ namespace
             if (AnimatedButton("Minimize", 493.f, 9.f, 30.f, 29.f, "", minimizeIcon.get(), true, true))
                 pendingAction = [this] { ShowWindow(platform.window, SW_MINIMIZE); };
             if (AnimatedButton("Close", 526.f, 9.f, 30.f, 29.f, "", closeIcon.get(), true, true))
-                platform.closeRequested = true;
+                if (!updates.Busy()) platform.closeRequested = true;
             if (!minimizeIcon)
                 Text(draw, 506.f, 12.f, "-", 1.f, 18.f);
             if (!closeIcon)
@@ -570,7 +590,7 @@ namespace
             {
                 const auto& editor = Editors[i];
                 if (AnimatedButton(editor.label, 39.f, 261.f + float(i) * 31.f, 211.f, 29.f,
-                    editor.label, icons[i].get(), available[i]))
+                    editor.label, icons[i].get(), available[i] && !updates.Busy()))
                 {
                     const std::wstring id = editor.id;
                     pendingAction = [this, id] { Launch(id, L"", sdkDirectory); };
@@ -589,6 +609,7 @@ namespace
             draw->AddRectFilledMultiColor(Position(275.f, 311.f), Position(277.f, 373.f),
                 Color(1, 1, 1, 0.45f), Color(1, 1, 1, 0.45f), Color(1, 1, 1, 0.f), Color(1, 1, 1, 0.f));
             DrawRecentFiles();
+            if (!updates.Busy()) {
             if (AnimatedButton("OpenFile", 39.f, 393.f, 116.f, 25.f, "Open file..."))
                 pendingAction = [this]
                 {
@@ -598,8 +619,15 @@ namespace
                 };
             if (AnimatedButton("Settings", 160.f, 393.f, 90.f, 25.f, "Settings"))
                 showSettings = true;
-            Text(draw, 303.f, 399.f, assetWarning ? "Some artwork is missing" : status.empty() ?
-                "Drop a project here to open it" : status, 0.43f, 11.f, 239.f);
+            if (assetWarning || !status.empty())
+                Text(draw, 303.f, 421.f, assetWarning ? "Some artwork is missing" : status, 0.43f, 11.f, 239.f);
+            if (AnimatedButton("Updates", 303.f, 393.f, 239.f, 25.f, "Check updates"))
+                pendingAction = [this] {
+                    if (SDKUpdates::Open(sdkDirectory)) platform.closeRequested = true;
+                    else { error = "Cannot open SDK updater."; showError = true; }
+                };
+            }
+            updates.Draw(platform.dpiScale);
             DrawSettings();
             if (showError)
             {
@@ -618,7 +646,7 @@ namespace
                 ImGui::EndPopup();
             }
             if (!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId) && ImGui::IsKeyPressed(ImGuiKey_Escape))
-                platform.closeRequested = true;
+                if (!updates.Busy()) platform.closeRequested = true;
             ImGui::End();
         }
     };
@@ -635,7 +663,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
     LauncherPlatform platform;
     if (!platform.Initialize(instance))
     {
-        MessageBoxW(nullptr, L"Could not initialize the launcher. Check DirectX 9 and LauncherAssets.dll beside Launcher.exe.",
+        SDKDialogs::ShowWide(nullptr, L"Could not initialize the launcher. Check DirectX 9 and LauncherAssets.dll beside Launcher.exe.",
             L"X-Ray SDK Launcher", MB_OK | MB_ICONERROR);
         platform.Shutdown();
         CoUninitialize();
@@ -647,9 +675,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
     ImGui::GetIO().IniFilename = nullptr;
     ImGui_ImplWin32_Init(platform.window);
     ImGui_ImplDX9_Init(platform.device);
+    SDKDialogs::Initialize(platform.window);
     {
         LauncherUI ui(platform);
         ui.LoadFonts();
+        ui.InitializeUpdates();
         ShowWindow(platform.window, showCommand);
         UpdateWindow(platform.window);
         FarkashedDiscord::Presence discord;
@@ -694,6 +724,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
         platform.redrawDuringMove = {};
 
     } // Release artwork while the D3D device and ImGui context still exist.
+    SDKDialogs::Shutdown();
     ImGui_ImplDX9_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();

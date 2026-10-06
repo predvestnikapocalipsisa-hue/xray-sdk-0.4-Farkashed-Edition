@@ -71,7 +71,9 @@
     <Image Include="se.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="resources\ShaderEditor.rc" />
+    <ResourceCompile Include="resources\ShaderEditor.rc">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Launcher\assets\gui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
