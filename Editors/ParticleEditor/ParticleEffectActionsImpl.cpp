@@ -158,11 +158,6 @@ void EParticleAction::Load(IReader &F)
 {
 	u32 vers = F.r_u32();
 
-	if(Core.SocSdk)
-		R_ASSERT(vers == PARTICLE_ACTION_VERSION_SOC);
-	else
-		R_ASSERT(vers == PARTICLE_ACTION_VERSION);
-
 	F.r_stringZ(actionName);
 	flags.assign(F.r_u32());
 	for (PFloatMapIt f_it = floats.begin(); f_it != floats.end(); f_it++)
