@@ -26,6 +26,14 @@
 //#		define SMART_CAST_STATS_ALL
 #endif
 
+// Make the primary template visible on both declaration and implementation
+// passes, including when IntelliSense parses this header outside the PCH.
+namespace SmartDynamicCast
+{
+    template <typename T1, typename T2>
+    inline T1* smart_cast(T2* p);
+}
+
 #ifndef DECLARE_SPECIALIZATION
 #include "smart_cast_impl0.h"
 #else
@@ -71,7 +79,7 @@ namespace Feel
 }
 typedef Feel::Sound Feel__Sound;
 template <>
-extern Feel::Sound *SmartDynamicCast::smart_cast<Feel::Sound, ISpatial>(ISpatial *p);
+Feel::Sound *SmartDynamicCast::smart_cast<Feel::Sound, ISpatial>(ISpatial *p);
 add_to_cast_list(Feel__Sound, ISpatial);
 #undef cast_type_list
 #define cast_type_list save_cast_list(Feel__Sound, ISpatial)

@@ -9,11 +9,12 @@
 #ifdef _EDITOR
 #include "UILogForm.h"
 #include "ui_main.h"
+#include "../XrEUI/SDKMessageBox.h"
 void ELogCallback(LPCSTR txt)
 {
 	if (0 == txt[0])
 		return;
-	bool bDlg = ('#' == txt[0]) || ((0 != txt[1]) && ('#' == txt[1]));
+	bool bDlg = !Core.DebugMode && (('#' == txt[0]) || ((0 != txt[1]) && ('#' == txt[1])));
 	TMsgDlgType mt = ('!' == txt[0]) || ((0 != txt[1]) && ('!' == txt[1])) ? mtError : mtInformation;
 	if (('!' == txt[0]) || ('#' == txt[0]))
 		txt++;
@@ -32,7 +33,7 @@ void ELogCallback(LPCSTR txt)
 {
 	if (0 == txt[0])
 		return;
-	bool bDlg = ('#' == txt[0]) || ((0 != txt[1]) && ('#' == txt[1]));
+	bool bDlg = !Core.DebugMode && (('#' == txt[0]) || ((0 != txt[1]) && ('#' == txt[1])));
 	if (bDlg)
 	{
 		int mt = ('!' == txt[0]) || ((0 != txt[1]) && ('!' == txt[1])) ? 1 : 0;
@@ -116,6 +117,11 @@ static LRESULT CALLBACK DlgMsgCBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 //----------------------------------------------------
 inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 {
+    if (Core.DebugMode && mt != mtConfirmation)
+    {
+        ::Msg("! [SDK DEBUG] Dialog suppressed: %s", text);
+        return mrOK;
+    }
 	UINT Flags = 0;
 	const char* Title = "";
 	switch (mt)
@@ -142,7 +148,7 @@ inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 	{
 		Flags |= MB_OK;
 	}
-	if (btn == mbOK)
+	else if (btn == mbOK)
 	{
 		Flags |= MB_OK;
 	}
@@ -162,11 +168,16 @@ inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 	if (need_caption_hook)
 		s_DlgMsgHook = SetWindowsHookEx(WH_CBT, DlgMsgCBTProc, NULL, GetCurrentThreadId());
 
-	int msgboxID = MessageBox(
+	int msgboxID =
+#ifdef _EDITOR
+        SDKDialogs::Show(NULL, text, Title, Flags, g_DlgMsgBtnCaptions);
+#else
+        MessageBox(
 		NULL,
 		text,
 		Title,
 		Flags);
+#endif
 
 	if (need_caption_hook)
 	{
@@ -189,11 +200,11 @@ inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 		return mrOK;
 		break;
 	}
-	if (btn | mbCancel)
+	if (btn & mbCancel)
 		return mrCancel;
-	if (btn | mbNo)
+	if (btn & mbNo)
 		return mrNo;
-	if (btn == mbOK)
+	else if (btn == mbOK)
 		return mrOK;
 	return mrYes;
 }
@@ -203,7 +214,9 @@ int CLog::DlgMsg(TMsgDlgType mt, int btn, LPCSTR _Format, ...)
 	char buf[4096];
 	va_list l;
 	va_start(l, _Format);
-	vsprintf(buf, _Format, l);
+	vsnprintf(buf, sizeof(buf) - 32, _Format, l);
+    buf[sizeof(buf) - 33] = 0;
+    va_end(l);
 
 	int res = 0;
 #ifdef _EDITOR
@@ -276,7 +289,9 @@ int CLog::DlgMsg(TMsgDlgType mt, LPCSTR _Format, ...)
 	char buf[4096];
 	va_list l;
 	va_start(l, _Format);
-	vsprintf(buf, _Format, l);
+	vsnprintf(buf, sizeof(buf) - 32, _Format, l);
+    buf[sizeof(buf) - 33] = 0;
+    va_end(l);
 
 	int res = 0;
 #ifdef _EDITOR
@@ -346,7 +361,9 @@ void CLog::Msg(TMsgDlgType mt, LPCSTR _Format, ...)
 	char buf[4096];
 	va_list l;
 	va_start(l, _Format);
-	vsprintf(buf, _Format, l);
+	vsnprintf(buf, sizeof(buf) - 32, _Format, l);
+    buf[sizeof(buf) - 33] = 0;
+    va_end(l);
 
 #ifdef _EDITOR
 	UILogForm::AddMessage(mt, xr_string(buf));

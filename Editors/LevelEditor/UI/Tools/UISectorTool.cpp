@@ -17,7 +17,7 @@ void UISectorTool::Draw()
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNode("Command"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         {
             if (ImGui::Button("Validate Sectors", ImVec2(-1, 0)))
             {
@@ -60,14 +60,14 @@ void UISectorTool::Draw()
             }
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
     if (m_Edit)
         ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     if (m_Edit && ImGui::TreeNode("Edit"))
     {
-        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
         {
             if (ImGui::Checkbox("Create New Single (From Mesh)", &m_CreateNewSingle))
             {
@@ -97,7 +97,7 @@ void UISectorTool::Draw()
             }
         }
         ImGui::Separator();
-        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
         ImGui::TreePop();
     }
 }

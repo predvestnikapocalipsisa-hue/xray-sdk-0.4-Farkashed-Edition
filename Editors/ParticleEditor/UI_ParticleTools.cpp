@@ -42,6 +42,7 @@ CParticleTool::CParticleTool()
     m_Flags.zero();
     pCreateEAction = pCreateEActionImpl;
     m_LibPED = 0;
+    m_LibPGD = 0;
     m_EditPG = 0;
     m_EditPE = 0;
 }
@@ -132,7 +133,7 @@ void CParticleTool::Modified()
 void CParticleTool::OnItemModified()
 {
     Modified();
-    if (m_LibPED)
+    if (HasCurrent())
         CompileEffect();
     ExecCommand(COMMAND_UPDATE_PROPERTIES);
 }
@@ -178,7 +179,7 @@ void CParticleTool::Render()
             for (int k = 0; k < cnt; k++)
             {
                 PS::CParticleEffect *E = (PS::CParticleEffect *)m_EditPG->items[k]._effect;
-                if (E && E->GetDefinition() && m_LibPGD->m_Effects[k]->m_Flags.is(PS::CPGDef::SEffect::flEnabled))
+                if (E && E->GetDefinition() && m_LibPGD && k < (int)m_LibPGD->m_Effects.size() && m_LibPGD->m_Effects[k]->m_Flags.is(PS::CPGDef::SEffect::flEnabled))
                     E->GetDefinition()->Render(m_Transform);
             }
         }
@@ -365,6 +366,8 @@ bool CParticleTool::Save(bool bAsXR)
 {
     VERIFY(m_bReady);
 
+    if (m_Flags.is(flRemoveAction)) RealRemoveAction();
+    if (m_Flags.is(flCompileEffect)) RealCompileEffect();
     // validate
     if (!Validate(true))
     {
@@ -594,87 +597,89 @@ void CParticleTool::CloneCurrent()
 void CParticleTool::ResetCurrent()
 {
     VERIFY(m_bReady);
-    if (m_LibPED)
-        m_EditPE->Stop(FALSE);
-    if (m_LibPGD)
-        m_EditPG->Stop(FALSE);
-    m_LibPED = 0;
-    m_LibPGD = 0;
+    if (m_Flags.is(flRemoveAction)) RealRemoveAction();
+    if (m_Flags.is(flCompileEffect)) RealCompileEffect();
+    StopCurrent(false);
+    if (m_ItemProps) m_ItemProps->ClearProperties();
+    // Detach definitions before a library reload or deletion frees them.
+    m_EditPE->Compile(nullptr);
+    m_EditPG->Compile(nullptr);
+    m_LibPED = nullptr;
+    m_LibPGD = nullptr;
+    m_EditMode = emNone;
+    m_Flags.set(flCompileEffect | flRemoveAction | flApplyParent, FALSE);
 }
 
 void CParticleTool::SetCurrentPE(PS::CPEDef *P)
 {
     VERIFY(m_bReady);
-    m_EditPG->Compile(0);
-    if (m_LibPED != P)
-    {
-        m_LibPED = P;
-        m_EditPE->Compile(m_LibPED);
-        if (m_LibPED)
-            m_EditMode = emEffect;
-    }
+    if (m_LibPED == P && m_EditMode == emEffect) return;
+    ResetCurrent();
+    m_LibPED = P;
+    m_EditPE->Compile(P);
+    if (P) m_EditMode = emEffect;
+    ApplyParent(true);
 }
 
 void CParticleTool::SetCurrentPG(PS::CPGDef *P)
 {
     VERIFY(m_bReady);
-    m_EditPE->Compile(0);
-    if (m_LibPGD != P)
-    {
-        m_LibPGD = P;
-        m_EditPG->Compile(m_LibPGD);
-        if (m_LibPGD)
-            m_EditMode = emGroup;
-    }
+    if (m_LibPGD == P && m_EditMode == emGroup) return;
+    ResetCurrent();
+    m_LibPGD = P;
+    m_EditPG->Compile(P);
+    if (P) m_EditMode = emGroup;
+    ApplyParent(true);
 }
 
+bool CParticleTool::IsPlaying() const
+{
+    return (m_EditPE && m_EditPE->IsPlaying()) || (m_EditPG && m_EditPG->IsPlaying());
+}
+
+u32 CParticleTool::ParticlesCount() const
+{
+    return (m_EditPE ? m_EditPE->ParticlesCount() : 0) +
+        (m_EditPG ? m_EditPG->ParticlesCount() : 0);
+}
 void CParticleTool::DrawReferenceList()
 {
-    if (m_EditMode == emGroup)
+    auto drawReference = [this](const shared_str& name)
     {
-        if (m_EditPG->GetDefinition())
+        if (name.size() && ImGui::Selectable(DX2U(name.c_str()))) SelectEffect(name.c_str());
+    };
+    if (m_EditMode == emGroup && m_LibPGD)
+    {
+        for (const auto* effect : m_LibPGD->m_Effects)
         {
-            xr_vector<PS::CPGDef::SEffect *>::const_iterator pe_it = m_EditPG->GetDefinition()->m_Effects.begin();
-            xr_vector<PS::CPGDef::SEffect *>::const_iterator pe_it_e = m_EditPG->GetDefinition()->m_Effects.end();
-            for (; pe_it != pe_it_e; ++pe_it)
-            {
-                ImGui::Text((*pe_it)->m_EffectName.c_str() ? (*pe_it)->m_EffectName.c_str() : 0);
-            }
-            if (m_EditPG->GetDefinition()->m_Flags.test(PS::CPGDef::SEffect::flOnPlayChild))
-                ImGui::Text((*pe_it)->m_OnPlayChildName.c_str());
-            if (m_EditPG->GetDefinition()->m_Flags.test(PS::CPGDef::SEffect::flOnBirthChild))
-                ImGui::Text((*pe_it)->m_OnBirthChildName.c_str());
-            if (m_EditPG->GetDefinition()->m_Flags.test(PS::CPGDef::SEffect::flOnDeadChild))
-                ImGui::Text((*pe_it)->m_OnDeadChildName.c_str());
+            ImGui::PushID(effect);
+            drawReference(effect->m_EffectName);
+            if (effect->m_Flags.test(PS::CPGDef::SEffect::flOnPlayChild)) drawReference(effect->m_OnPlayChildName);
+            if (effect->m_Flags.test(PS::CPGDef::SEffect::flOnBirthChild)) drawReference(effect->m_OnBirthChildName);
+            if (effect->m_Flags.test(PS::CPGDef::SEffect::flOnDeadChild)) drawReference(effect->m_OnDeadChildName);
+            ImGui::PopID();
         }
     }
-    else
+    else if (m_EditMode == emEffect && m_LibPED)
     {
-        if (m_EditPE->GetDefinition())
+        for (auto group = ::Render->PSLibrary.FirstPGD(); group != ::Render->PSLibrary.LastPGD(); ++group)
         {
-            PS::PGDIt G = ::Render->PSLibrary.FirstPGD();
-            PS::PGDIt G_e = ::Render->PSLibrary.LastPGD();
-            for (; G != G_e; ++G)
+            for (const auto* effect : (*group)->m_Effects)
             {
-                PS::CPGDef *def = (*G);
-                PS::CPGDef::EffectIt pe_it = def->m_Effects.begin();
-                PS::CPGDef::EffectIt pe_it_e = def->m_Effects.end();
-                for (; pe_it != pe_it_e; ++pe_it)
+                if (effect->m_EffectName == m_LibPED->m_Name ||
+                    (effect->m_Flags.test(PS::CPGDef::SEffect::flOnPlayChild) && effect->m_OnPlayChildName == m_LibPED->m_Name) ||
+                    (effect->m_Flags.test(PS::CPGDef::SEffect::flOnBirthChild) && effect->m_OnBirthChildName == m_LibPED->m_Name) ||
+                    (effect->m_Flags.test(PS::CPGDef::SEffect::flOnDeadChild) && effect->m_OnDeadChildName == m_LibPED->m_Name))
                 {
-                    if ((*pe_it)->m_EffectName == m_EditPE->Name())
-                        ImGui::Text(def->m_Name.c_str());
-                    else if ((*pe_it)->m_OnPlayChildName == m_EditPE->Name())
-                        ImGui::Text(def->m_Name.c_str());
-                    else if ((*pe_it)->m_OnBirthChildName == m_EditPE->Name())
-                        ImGui::Text(def->m_Name.c_str());
-                    else if ((*pe_it)->m_OnDeadChildName == m_EditPE->Name())
-                        ImGui::Text(def->m_Name.c_str());
+                    ImGui::PushID(*group);
+                    drawReference((*group)->m_Name);
+                    ImGui::PopID();
+                    break;
                 }
             }
         }
     }
 }
-
 void CParticleTool::CommandJumpToItem()
 {
     /* for(int i=0; i<fraLeftBar->refLB->Count; ++i)
@@ -700,6 +705,8 @@ PS::CPGDef *CParticleTool::FindPG(LPCSTR name)
 void CParticleTool::PlayCurrent(int idx)
 {
     VERIFY(m_bReady);
+    if (!HasCurrent()) return;
+    if (m_Flags.is(flCompileEffect)) RealCompileEffect();
     StopCurrent(false);
     switch (m_EditMode)
     {
@@ -711,21 +718,24 @@ void CParticleTool::PlayCurrent(int idx)
     case emGroup:
         if (idx > -1)
         {
-            VERIFY(idx < (int)m_EditPG->items.size());
-            m_LibPED = ((PS::CParticleEffect *)m_EditPG->items[idx]._effect)->GetDefinition();
-            m_EditPE->Compile(m_LibPED);
+            if (idx >= (int)m_EditPG->items.size()) return;
+            auto* effect = static_cast<PS::CParticleEffect*>(m_EditPG->items[idx]._effect);
+            if (!effect || !effect->GetDefinition()) return;
+            m_EditPE->Compile(effect->GetDefinition());
             m_EditPE->Play();
         }
         else
         {
-            // play all
+            // Clear an individual child preview before playing the complete group.
+            m_EditPE->Compile(nullptr);
             m_EditPG->Play();
         }
         break;
     default:
         THROW;
     }
-    ApplyParent();
+    ApplyParent(true);
+    UI->RedrawScene();
 }
 
 void CParticleTool::StopCurrent(bool bFinishPlaying)
@@ -756,7 +766,7 @@ bool CParticleTool::MouseStart(TShiftState Shift)
         break;
     case etaMove:
     {
-        if (Shift | ssCtrl)
+        if (Shift & ssCtrl)
         {
             if (m_EditObject)
             {
@@ -846,6 +856,8 @@ void CParticleTool::RealApplyParent()
         break;
     case emGroup:
         m_EditPG->UpdateParent(m_Transform, m_Vel, m_Flags.is(flSetXFORM));
+        if (m_EditPE->GetDefinition())
+            m_EditPE->UpdateParent(m_Transform, m_Vel, m_Flags.is(flSetXFORM));
         break;
     default:
         THROW;
@@ -855,21 +867,41 @@ void CParticleTool::RealApplyParent()
 
 void CParticleTool::RealCompileEffect()
 {
-    if (m_LibPED)
-        m_LibPED->Compile(m_LibPED->m_EActionList);
     m_Flags.set(flCompileEffect, FALSE);
+    const bool playing = IsPlaying();
+    StopCurrent(false);
+    if (m_LibPED)
+    {
+        // Runtime-only .xr definitions can lack editor action data. Appearance
+        // edits must preserve their existing compiled emission/actions.
+        if (!m_LibPED->m_EActionList.empty() || m_LibPED->m_Actions.size() <= sizeof(u32))
+            m_LibPED->Compile(m_LibPED->m_EActionList);
+        // Reload the runtime action list, shader, capacity and time limit too.
+        m_EditPE->Compile(m_LibPED);
+        ApplyParent(true);
+        if (playing) m_EditPE->Play();
+    }
+    else if (m_LibPGD)
+    {
+        m_EditPE->Compile(nullptr);
+        m_EditPG->Compile(m_LibPGD);
+        ApplyParent(true);
+        if (playing) m_EditPG->Play();
+    }
+    UI->RedrawScene();
 }
 
 void CParticleTool::RealRemoveAction()
 {
-    if (m_LibPED)
+    m_Flags.set(flRemoveAction, FALSE);
+    if (m_LibPED && remove_action_num < m_LibPED->m_EActionList.size())
     {
         xr_delete(m_LibPED->m_EActionList[remove_action_num]);
         m_LibPED->m_EActionList.erase(m_LibPED->m_EActionList.begin() + remove_action_num);
+        if (m_LibPED->m_EActionList.empty()) m_LibPED->Compile(m_LibPED->m_EActionList);
+        CompileEffect();
     }
-    m_Flags.set(flRemoveAction, FALSE);
 }
-
 LPCSTR CParticleTool::GetInfo()
 {
     return 0;

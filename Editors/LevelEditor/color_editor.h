@@ -1,10 +1,15 @@
 #pragma once
 #include <d3d9.h>
 #include <fstream>
+#include <sstream>
+#include <shlobj.h>
+#pragma comment(lib, "shell32.lib")
 #include <string>
+#include <cmath>
 #include <windows.h>
 #include <stdio.h>
 #include "../XrEUI/imgui.h"
+#include "../XrEUI/XrUIManager.h"
 
 namespace Colors {
 
@@ -12,34 +17,50 @@ namespace Colors {
 //  State
 // ============================================================
 static bool  s_showGui       = false;
-static int   s_activeTheme   = 0;   // Current theme index (-1 = custom)
+static int   s_activeTheme   = 14;   // Current theme index (-1 = custom)
 
 // ============================================================
 //  Palette (User-editable)
 // ============================================================
-static float s_windowBg[4]     = { 0.09f, 0.10f, 0.15f, 0.97f };
-static float s_childBg[4]      = { 0.12f, 0.13f, 0.18f, 0.60f };
-static float s_popupBg[4]      = { 0.10f, 0.11f, 0.15f, 0.96f };
-static float s_accent[4]       = { 0.28f, 0.56f, 1.00f, 1.00f };
-static float s_text[4]         = { 0.94f, 0.95f, 0.98f, 1.00f };
-static float s_textDisabled[4] = { 0.48f, 0.50f, 0.56f, 1.00f };
-static float s_border[4]       = { 0.22f, 0.26f, 0.35f, 0.65f };
-static float s_scrollbar[4]    = { 0.07f, 0.08f, 0.11f, 1.00f };
+static float s_windowBg[4]     = { 0.035f, 0.035f, 0.040f, 1.00f };
+static float s_childBg[4]      = { 0.045f, 0.045f, 0.050f, 1.00f };
+static float s_popupBg[4]      = { 0.065f, 0.065f, 0.070f, 1.00f };
+static float s_accent[4]       = { 0.82f, 0.16f, 0.20f, 1.00f };
+static float s_text[4]         = { 0.90f, 0.90f, 0.92f, 1.00f };
+static float s_textDisabled[4] = { 0.48f, 0.48f, 0.51f, 1.00f };
+static float s_border[4]       = { 0.16f, 0.16f, 0.18f, 1.00f };
+static float s_scrollbar[4]    = { 0.035f, 0.035f, 0.040f, 1.00f };
 
 // ============================================================
 //  Shape / Spacing
 // ============================================================
-static float s_rounding    = 6.0f;
-static float s_framePad    = 5.0f;
-static float s_itemSpacing = 7.0f;
-static float s_windowPad   = 14.0f;
+static float s_rounding    = 10.0f;
+static float s_framePad    = 2.0f;
+static float s_itemSpacing = 2.0f;
+static float s_windowPad   = 10.0f;
 static float s_borderSize  = 1.0f;
-static float s_alpha       = 0.98f;
+static float s_alpha       = 1.00f;
+static float s_dpiScale    = 1.f;
+static bool s_glowEnabled = false;
+static float s_glowColor[4] = { .82f, .16f, .20f, 1.f };
+static float s_glowWidth = 0.f;
+static float s_glowStrength = 0.f;
+static bool s_backgroundBlur = false;
+static float s_backgroundOpacity = 1.f;
 
 // ============================================================
 //  Config
 // ============================================================
-static const char* s_cfgFile = "ui_settings.cfg";
+static std::string s_savedSettings;
+static inline std::wstring SettingsPath()
+{
+    wchar_t documents[MAX_PATH] = {};
+    if (FAILED(SHGetFolderPathW(nullptr, CSIDL_PERSONAL | CSIDL_FLAG_CREATE, nullptr, SHGFP_TYPE_CURRENT, documents))) return {};
+    const std::wstring directory = std::wstring(documents) + L"\\X-Ray SDK";
+    if (!CreateDirectoryW(directory.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) return {};
+    return directory + L"\\theme.cfg";
+}
+inline void AutoSaveSettings();
 
 // ============================================================
 //  Built-in themes
@@ -80,8 +101,10 @@ static const Theme s_themes[] = {
       { 0.93f, 0.94f, 0.96f, 1.00f }, { 0.18f, 0.46f, 0.88f, 1.00f }, { 0.08f, 0.09f, 0.13f, 1.00f }, 5.0f },
     { "Sand Storm",     "[Sand]",
       { 0.17f, 0.15f, 0.11f, 0.97f }, { 0.85f, 0.70f, 0.32f, 1.00f }, { 0.98f, 0.95f, 0.84f, 1.00f }, 5.0f },
-    { "Obsidian Pure",  "[Obsd]",
+    { "Zarya",  "[Zarya]",
       { 0.04f, 0.04f, 0.05f, 0.98f }, { 0.85f, 0.88f, 0.95f, 1.00f }, { 0.95f, 0.96f, 0.98f, 1.00f }, 4.0f },
+    { "Lunar", "[Lunar]",
+      { 0.035f, 0.035f, 0.040f, 1.00f }, { 0.82f, 0.16f, 0.20f, 1.00f }, { 0.90f, 0.90f, 0.92f, 1.00f }, 10.0f },
 };
 static const int s_themeCount = (int)(sizeof(s_themes) / sizeof(s_themes[0]));
 
@@ -121,6 +144,9 @@ static inline ImVec4 Mix(const ImVec4& a, const ImVec4& b, float t)
 // ============================================================
 inline void UpdateImGuiStyle()
 {
+    XrUIManager::SetUIScale(s_dpiScale);
+    XrUIManager::SetWindowEffects(s_glowColor, s_glowWidth, s_glowStrength,
+        s_glowEnabled, s_backgroundBlur, s_backgroundOpacity);
     ImGuiStyle& st = ImGui::GetStyle();
 
     const float r           = s_rounding;
@@ -133,20 +159,45 @@ inline void UpdateImGuiStyle()
     st.TabRounding          = ClampF(r - 2.0f, 0.0f, 10.0f);
 
     st.WindowBorderSize     = s_borderSize;
-    st.FrameBorderSize      = s_borderSize > 0.5f ? 1.0f : 0.0f;
+    st.FrameBorderSize      = 0.0f;
     st.PopupBorderSize      = s_borderSize;
     st.ChildBorderSize      = s_borderSize;
-    st.TabBorderSize        = s_borderSize > 0.5f ? 1.0f : 0.0f;
+    st.TabBorderSize        = 0.0f;
 
-    st.FramePadding         = { s_framePad * 1.8f, s_framePad };
-    st.ItemSpacing          = { s_itemSpacing * 1.6f, s_itemSpacing };
-    st.ItemInnerSpacing     = { s_itemSpacing * 0.9f, s_itemSpacing * 0.9f };
+    st.FramePadding         = { 5.f, ClampF(s_framePad,1.f,3.f) };
+    st.ItemSpacing          = { 4.f, ClampF(s_itemSpacing,1.f,3.f) };
+    st.ItemInnerSpacing     = { 3.f, 2.f };
     st.WindowPadding        = { s_windowPad, s_windowPad };
     st.ScrollbarSize        = 13.0f;
     st.GrabMinSize          = 11.0f;
     st.IndentSpacing        = 18.0f;
     st.WindowTitleAlign     = { 0.0f, 0.5f };
-    st.Alpha                = s_alpha;
+    st.Alpha                = 1.f;
+    st.AntiAliasedLines     = true;
+    st.AntiAliasedLinesUseTex = true;
+    st.AntiAliasedFill      = true;
+    st.CurveTessellationTol = 0.8f;
+
+    const float dpi = XrUIManager::GetUIScale();
+    st.WindowRounding *= dpi;
+    st.ChildRounding *= dpi;
+    st.FrameRounding *= dpi;
+    st.PopupRounding *= dpi;
+    st.ScrollbarRounding *= dpi;
+    st.GrabRounding *= dpi;
+    st.TabRounding *= dpi;
+    st.WindowBorderSize *= dpi;
+    st.FrameBorderSize *= dpi;
+    st.PopupBorderSize *= dpi;
+    st.ChildBorderSize *= dpi;
+    st.TabBorderSize *= dpi;
+    st.ScrollbarSize *= dpi;
+    st.GrabMinSize *= dpi;
+    st.IndentSpacing *= dpi;
+    st.FramePadding.x *= dpi; st.FramePadding.y *= dpi;
+    st.ItemSpacing.x *= dpi; st.ItemSpacing.y *= dpi;
+    st.ItemInnerSpacing.x *= dpi; st.ItemInnerSpacing.y *= dpi;
+    st.WindowPadding.x *= dpi; st.WindowPadding.y *= dpi;
 
     const ImVec4 accent     = ToImVec4(s_accent);
     const ImVec4 accentHov  = Brighten(accent, 1.18f);
@@ -165,9 +216,9 @@ inline void UpdateImGuiStyle()
     const ImVec4 frameBgHov = Brighten(bg, 1.65f);
 
     const ImVec4 titleBg    = Darken(bg, 0.75f);
-    const ImVec4 titleActive= Darken(Mix(bg, accent, 0.30f), 0.90f);
+    const ImVec4 titleActive= Brighten(bg, 1.65f);
     const ImVec4 menuBg     = Darken(bg, 0.85f);
-    const ImVec4 tabBg      = Darken(accent, 0.40f);
+    const ImVec4 tabBg      = Brighten(bg, 1.20f);
 
     // Apply colors to all ImGui slots
     st.Colors[ImGuiCol_Text]                  = txt;
@@ -185,18 +236,18 @@ inline void UpdateImGuiStyle()
     st.Colors[ImGuiCol_TitleBgCollapsed]      = Darken(titleBg, 0.75f);
     st.Colors[ImGuiCol_MenuBarBg]             = menuBg;
     st.Colors[ImGuiCol_ScrollbarBg]           = scrollbar;
-    st.Colors[ImGuiCol_ScrollbarGrab]         = accentDim;
+    st.Colors[ImGuiCol_ScrollbarGrab]         = Mix(bg, txt, 0.22f);
     st.Colors[ImGuiCol_ScrollbarGrabHovered]  = accent;
     st.Colors[ImGuiCol_ScrollbarGrabActive]   = accentAct;
     st.Colors[ImGuiCol_CheckMark]             = accent;
     st.Colors[ImGuiCol_SliderGrab]            = accent;
     st.Colors[ImGuiCol_SliderGrabActive]      = accentHov;
-    st.Colors[ImGuiCol_Button]                = accentDim;
-    st.Colors[ImGuiCol_ButtonHovered]         = accent;
-    st.Colors[ImGuiCol_ButtonActive]          = accentAct;
-    st.Colors[ImGuiCol_Header]                = accentFade;
-    st.Colors[ImGuiCol_HeaderHovered]         = WithAlpha(accent, 0.55f);
-    st.Colors[ImGuiCol_HeaderActive]          = accent;
+    st.Colors[ImGuiCol_Button]                = Mix(bg, txt, 0.06f);
+    st.Colors[ImGuiCol_ButtonHovered]         = Mix(bg, txt, 0.12f);
+    st.Colors[ImGuiCol_ButtonActive]          = Mix(bg, accent, 0.28f);
+    st.Colors[ImGuiCol_Header]                = Mix(bg, txt, 0.06f);
+    st.Colors[ImGuiCol_HeaderHovered]         = Mix(bg, txt, 0.12f);
+    st.Colors[ImGuiCol_HeaderActive]          = Mix(bg, accent, 0.22f);
     st.Colors[ImGuiCol_Separator]             = WithAlpha(border, 0.70f);
     st.Colors[ImGuiCol_SeparatorHovered]      = accent;
     st.Colors[ImGuiCol_SeparatorActive]       = accentAct;
@@ -204,12 +255,15 @@ inline void UpdateImGuiStyle()
     st.Colors[ImGuiCol_ResizeGripHovered]     = WithAlpha(accent, 0.70f);
     st.Colors[ImGuiCol_ResizeGripActive]      = accent;
     st.Colors[ImGuiCol_Tab]                   = tabBg;
-    st.Colors[ImGuiCol_TabHovered]            = accentHov;
-    st.Colors[ImGuiCol_TabActive]             = accent;
+    st.Colors[ImGuiCol_TabHovered]            = Mix(bg, txt, 0.12f);
+    st.Colors[ImGuiCol_TabActive]             = Mix(bg, accent, 0.18f);
     st.Colors[ImGuiCol_TabUnfocused]          = Darken(tabBg, 0.75f);
     st.Colors[ImGuiCol_TabUnfocusedActive]    = tabBg;
     st.Colors[ImGuiCol_DockingPreview]        = WithAlpha(accent, 0.70f);
     st.Colors[ImGuiCol_DockingEmptyBg]        = Darken(bg, 0.60f);
+    st.Colors[ImGuiCol_WindowBg].w = 1.f;
+    st.Colors[ImGuiCol_MenuBarBg].w = 1.f;
+    st.Colors[ImGuiCol_TitleBg].w = st.Colors[ImGuiCol_TitleBgActive].w = 1.f;
     st.Colors[ImGuiCol_PlotLines]             = accent;
     st.Colors[ImGuiCol_PlotLinesHovered]      = accentHov;
     st.Colors[ImGuiCol_PlotHistogram]         = accent;
@@ -225,6 +279,7 @@ inline void UpdateImGuiStyle()
     st.Colors[ImGuiCol_NavWindowingHighlight] = WithAlpha(accent, 0.75f);
     st.Colors[ImGuiCol_NavWindowingDimBg]     = { 0.15f, 0.15f, 0.18f, 0.40f };
     st.Colors[ImGuiCol_ModalWindowDimBg]      = { 0.04f, 0.04f, 0.07f, 0.60f };
+    AutoSaveSettings();
 }
 
 // ============================================================
@@ -256,43 +311,117 @@ static inline void ApplyTheme(int idx)
     s_textDisabled[2] = ClampF(t.text[2] * 0.54f, 0.0f, 1.0f);
     s_textDisabled[3] = 1.00f;
 
+    if (idx == 14)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            s_childBg[i] = t.bg[i] + 0.01f;
+            s_popupBg[i] = t.bg[i] + 0.03f;
+            s_border[i] = i == 2 ? 0.18f : 0.16f;
+        }
+        s_childBg[3] = s_popupBg[3] = s_border[3] = 1.f;
+        s_framePad = 2.f; s_itemSpacing = 2.f; s_windowPad = 10.f;
+        s_borderSize = 1.f; s_alpha = 1.f;
+    }
     s_rounding     = t.rounding;
+    for (int i = 0; i < 4; ++i) s_glowColor[i] = t.accent[i];
     UpdateImGuiStyle();
 }
 
 // ============================================================
 //  Save / Load
 // ============================================================
-inline void SaveSettings()
+inline std::string SerializeSettings()
 {
-    std::ofstream f(s_cfgFile);
-    if (!f.is_open()) return;
-    f << "v3\n";
+    std::ostringstream f;
+    f << "v5\n";
     auto w4 = [&](const float c[4]) { f << c[0] << " " << c[1] << " " << c[2] << " " << c[3] << "\n"; };
     w4(s_windowBg); w4(s_childBg); w4(s_popupBg);
     w4(s_accent); w4(s_text); w4(s_textDisabled); w4(s_border); w4(s_scrollbar);
-    f << s_rounding    << "\n" << s_framePad   << "\n" << s_itemSpacing << "\n"
-      << s_windowPad   << "\n" << s_borderSize << "\n" << s_alpha      << "\n";
+    f << s_rounding << "\n" << s_framePad << "\n" << s_itemSpacing << "\n"
+      << s_windowPad << "\n" << s_borderSize << "\n" << s_alpha << "\n";
     f << s_activeTheme << "\n";
-    f.close();
+    w4(s_glowColor);
+    f << s_glowEnabled << " " << s_glowWidth << " " << s_glowStrength << "\n"
+      << s_backgroundBlur << " " << s_backgroundOpacity << "\n";
+    f << s_dpiScale << "\n";
+    return f.str();
 }
-
+inline void SaveSettings()
+{
+    const std::wstring path = SettingsPath();
+    if (path.empty()) return;
+    const std::string settings = SerializeSettings();
+    const std::wstring temporary = path + L"." + std::to_wstring(GetCurrentProcessId()) + L".tmp";
+    std::ofstream f(temporary.c_str(), std::ios::binary | std::ios::trunc);
+    if (!f) return;
+    f.write(settings.data(), settings.size());
+    f.close();
+    if (f && MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+        s_savedSettings = settings;
+    else DeleteFileW(temporary.c_str());
+}
+inline void AutoSaveSettings()
+{
+    if (SerializeSettings() != s_savedSettings) SaveSettings();
+}
+inline void ResetDefaults();
 inline void LoadSettings()
 {
-    std::ifstream f(s_cfgFile);
-    if (!f.is_open()) return;
+    const std::wstring path = SettingsPath();
+    std::ifstream f(path.c_str());
+    // A distributed SDK must never import the packager's personal palette.
+    // Only this Windows user's Documents file can override Lunar.
+    if (!f.is_open()) { ResetDefaults(); return; }
+    const auto useDefaults = [&]() { f.close(); ResetDefaults(); };
     std::string tag; f >> tag;
-    if (tag != "v3") { f.close(); return; }
+    if (tag != "v3" && tag != "v4" && tag != "v5") { useDefaults(); return; }
+    // Validate the complete file before changing the live palette.
+    std::ostringstream contents; contents << f.rdbuf();
+    std::istringstream check(contents.str());
+    const int fieldCount = tag == "v3" ? 39 : tag == "v4" ? 48 : 49;
+    for (int i = 0; i < fieldCount; ++i)
+    {
+        double value = 0;
+        if (!(check >> value) || !std::isfinite(value)) { useDefaults(); return; }
+        if (i == 38 && (value < -1 || value >= s_themeCount || value != std::floor(value))) { useDefaults(); return; }
+        if ((i == 43 || i == 46) && value != 0 && value != 1) { useDefaults(); return; }
+    }
+    f.clear(); f.seekg(0); f >> tag;
     auto r4 = [&](float c[4]) { f >> c[0] >> c[1] >> c[2] >> c[3]; };
     r4(s_windowBg); r4(s_childBg); r4(s_popupBg);
     r4(s_accent); r4(s_text); r4(s_textDisabled); r4(s_border); r4(s_scrollbar);
     f >> s_rounding >> s_framePad >> s_itemSpacing >> s_windowPad >> s_borderSize >> s_alpha;
     f >> s_activeTheme;
+    if (tag == "v4" || tag == "v5")
+    {
+        r4(s_glowColor);
+        f >> s_glowEnabled >> s_glowWidth >> s_glowStrength >> s_backgroundBlur >> s_backgroundOpacity;
+    }
+    else for (int i = 0; i < 4; ++i) s_glowColor[i] = s_accent[i];
+    s_dpiScale = 1.f;
+    if (tag == "v5") f >> s_dpiScale;
+    if (!std::isfinite(s_dpiScale)) s_dpiScale = 1.f;
+    s_dpiScale = ClampF(s_dpiScale,.75f,2.f);
+    s_glowEnabled = false;
+    s_backgroundBlur = false;
+    s_backgroundOpacity = s_alpha = 1.f;
+    s_framePad = ClampF(s_framePad,1.f,3.f);
+    s_itemSpacing = ClampF(s_itemSpacing,1.f,3.f);
+    s_glowWidth = ClampF(s_glowWidth, 0.f, 48.f);
+    s_glowStrength = ClampF(s_glowStrength, 0.f, 1.f);
+    s_backgroundOpacity = ClampF(s_backgroundOpacity, .2f, 1.f);
     f.close();
     UpdateImGuiStyle();
 }
 
-inline void ResetDefaults() { ApplyTheme(0); }
+inline void ResetDefaults()
+{
+    s_dpiScale = 1.f;
+    s_glowEnabled = false; s_glowWidth = 0.f; s_glowStrength = 0.f;
+    s_backgroundBlur = false; s_backgroundOpacity = 1.f;
+    ApplyTheme(14);
+}
 
 // ============================================================
 //  Public API
@@ -336,16 +465,28 @@ inline void Render()
 
     if (!s_showGui) return;
 
+    // Restore the customization panel's original control layout only.
+    struct PanelSpacing
+    {
+        PanelSpacing()
+        {
+            const float dpi = XrUIManager::GetUIScale();
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f*dpi,5.f*dpi));
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.f*dpi,5.f*dpi));
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(4.f*dpi,4.f*dpi));
+        }
+        ~PanelSpacing() { ImGui::PopStyleVar(3); }
+    } panelSpacing;
+
     // ---- Window sizing ----
-    ImGui::SetNextWindowSize({ 480, 0 }, ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSizeConstraints({ 400, 280 }, { 680, 960 });
+    ImGui::SetNextWindowSize({ 480*XrUIManager::GetUIScale(), 0 }, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSizeConstraints({ 400*XrUIManager::GetUIScale(), 280*XrUIManager::GetUIScale() }, { 680*XrUIManager::GetUIScale(), 960*XrUIManager::GetUIScale() });
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,   { s_windowPad, s_windowPad });
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,  s_rounding);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,    { 8.0f, 5.0f });
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,   { s_windowPad*XrUIManager::GetUIScale(), s_windowPad*XrUIManager::GetUIScale() });
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,  s_rounding*XrUIManager::GetUIScale());
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,    { 8.0f*XrUIManager::GetUIScale(), 5.0f*XrUIManager::GetUIScale() });
 
-    const bool open = ImGui::Begin("XrEUI Style & Color Manager", &s_showGui,
-        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    const bool open = ImGui::Begin("XrEUI Style & Color Manager", &s_showGui);
 
     ImGui::PopStyleVar(3);
 
@@ -391,7 +532,7 @@ inline void Render()
     //  TAB BAR
     // ================================================================
     ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, s_rounding);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 12.f, 5.f });
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 12.f*XrUIManager::GetUIScale(), 5.f*XrUIManager::GetUIScale() });
     if (ImGui::BeginTabBar("##main_tabs", ImGuiTabBarFlags_None))
     {
         ImGui::PopStyleVar(2);
@@ -435,7 +576,7 @@ inline void Render()
 
                 char bid[64];
                 _snprintf(bid, sizeof(bid), "%s %s##th%d", th.icon, th.name, i);
-                if (ImGui::Button(bid, { bw, 32.f }))
+                if (ImGui::Button(bid, { bw, 32.f*XrUIManager::GetUIScale() }))
                     ApplyTheme(i);
 
                 ImGui::PopStyleColor(4);
@@ -487,7 +628,15 @@ inline void Render()
             bool changed = false;
 
             auto Row = [&](const char* label, const char* tip, float c[4]) {
+                // Keep the caption above the editor: full-width RGBA fields cannot share
+                // a row with an inline caption without pushing it outside the window.
+                ImGui::BeginGroup();
+                const std::string caption(label);
+                const size_t suffix = caption.find("##");
+                ImGui::TextUnformatted(caption.substr(0, suffix).c_str());
+                ImGui::SetNextItemWidth(-1.f);
                 if (ImGui::ColorEdit4(label, c,
+                    ImGuiColorEditFlags_NoLabel |
                     ImGuiColorEditFlags_AlphaBar |
                     ImGuiColorEditFlags_AlphaPreviewHalf |
                     ImGuiColorEditFlags_PickerHueWheel))
@@ -495,6 +644,7 @@ inline void Render()
                     changed = true;
                     s_activeTheme = -1; 
                 }
+                ImGui::EndGroup();
                 if (tip && ImGui::IsItemHovered())
                     ImGui::SetTooltip("%s", tip);
             };
@@ -535,7 +685,6 @@ inline void Render()
                 ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_textDisabled));
                 ImGui::TextUnformatted("Derived state tones:");
                 ImGui::PopStyleColor();
-                ImGui::SameLine(0, 10);
                 ImVec4 av = ToImVec4(s_accent);
                 struct { ImVec4 c; const char* lbl; } tones[] = {
                     { av,                   "Base"    },
@@ -568,6 +717,15 @@ inline void Render()
             ImGui::Spacing();
             bool changed = false;
 
+            SectionLabel("  DPI Scale");
+            ImGui::SetNextItemWidth(-150.f*XrUIManager::GetUIScale());
+            float dpiPercent = s_dpiScale*100.f;
+            if (ImGui::SliderFloat("DPI Scale", &dpiPercent,75.f,200.f,"%.0f%%"))
+            { s_dpiScale = dpiPercent/100.f; changed = true; }
+            if (ImGui::SmallButton("Reset DPI to 100%")) { s_dpiScale = 1.f; changed = true; }
+            ImGui::TextWrapped("Scales text, controls and toolbars. Applied on the next frame. Save Settings preserves this value.");
+            ThinSeparator();
+
             SectionLabel("  Rounding & Spacing");
 
             ImGui::PushItemWidth(-150);
@@ -577,11 +735,9 @@ inline void Render()
             if (ImGui::SliderFloat("Window Pad##wp",   &s_windowPad,   4.0f, 24.0f, "%.1f px")) { changed = true; }
             if (ImGui::SliderFloat("Border Size##bs",  &s_borderSize,  0.0f,  2.0f, "%.1f px")) { changed = true; }
             ImGui::Spacing();
-            if (ImGui::SliderFloat("Opacity##op",      &s_alpha,       0.2f,  1.0f, "%.2f"))    { changed = true; }
             ImGui::PopItemWidth();
 
             ThinSeparator();
-
             SectionLabel("  Shape Presets");
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 10.f, 4.f });
             struct ShapePreset { const char* label; float round; float border; };
@@ -647,9 +803,9 @@ inline void Render()
             ThinSeparator();
 
             ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_textDisabled));
-            ImGui::Text("Config file: %s", s_cfgFile);
+            ImGui::TextUnformatted("Config file: Documents / X-Ray SDK / theme.cfg");
             ImGui::Spacing();
-            ImGui::TextWrapped("Tip: Style adjustments apply immediately. Click 'Save Settings' to preserve theme changes across editor sessions.");
+            ImGui::TextWrapped("Theme changes are saved automatically and restored across SDK editor sessions.");
             ImGui::PopStyleColor();
 
             ImGui::Spacing();

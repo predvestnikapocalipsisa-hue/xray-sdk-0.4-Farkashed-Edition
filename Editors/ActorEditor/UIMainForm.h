@@ -6,6 +6,7 @@ public:
 	virtual ~UIMainForm();
 	virtual void Draw();
 	bool Frame();
+	static void ResetWorkspace();
 	IC UILeftBarForm *GetLeftBarForm() { return m_LeftBar; }
 	IC UITopBarForm *GetTopBarForm() { return m_TopBar; }
 	IC UIKeyForm *GetKeyForm() { return m_KeyForm; }

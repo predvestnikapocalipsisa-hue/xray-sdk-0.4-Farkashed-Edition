@@ -28,6 +28,17 @@ launch is optional.
 
 ## Interface
 
+Settings contains `DEBUG mode (log errors and continue)`. The saved setting
+applies to newly launched editors through `-sdk_debug`, in any build configuration.
+Failed SDK checks and error dialogs are logged with an `[SDK DEBUG]` prefix without
+interrupting startup. Missing `fs.ltx` aliases, INI includes, sections and values
+use fallbacks. Debug startup skips game rendering resources, character profiles
+and particle libraries, and shows an empty viewport so the editor UI can be
+debugged without the game data. The existing SDK log location is used; if it is
+undefined, logs go to `_debug/logs/` beside the SDK modules. Editor/host DLLs and a
+working Direct3D device are still required. Hardware exceptions and exhaustion
+of memory cannot be continued.
+
 Discord Rich Presence uses application ID `1542531211602169966`. Discord displays
 that application's configured name as the title. The next line is `In Launcher`,
 `In Level Editor`, `In Actor Editor`, `In Particle Editor` or `In Shader Editor`.
@@ -96,3 +107,12 @@ path buffer are rejected with a message, rather than silently substituted.
 
 No build or runtime verification was performed while implementing this feature,
 as requested. The project/manifest paths and changes were inspected statically.
+
+## SDK build metadata
+
+The root `version.json` is the source for the SDK version string. Before resource compilation, `Generate-BuildInfo.ps1` generates version-resource definitions and an embedded four-line record (version, build date, Git hash, branch) in the launcher intermediate directory. Editors read this record from the hosting Launcher.exe for About, using the embedded launcher logo. Unchanged inputs preserve generated timestamps. Rebuild the launcher with changed editor DLLs to refresh the SDK build date.
+# SDK binary updates
+
+The launcher Check updates button and the editors' About > Check Updates open an ImGui updater using the latest stable GitHub release from `predvestnikapocalipsisa-hue/xray-sdk-0.4-Farkashed-Edition`. Installed versions come from the target Launcher's embedded build information. Numeric comparison prevents downgrades (4.7 FE stays installed when GitHub has v4.6).
+
+Download and install is an explicit action. The updater runs from a temporary copy, downloads the selected SDK release asset (not converter or source archives), displays progress and MB/s, validates archive paths, links, checksum when GitHub provides one, embedded version, required modules and architecture, then waits for editors and launchers to close. Windows `tar.exe` extracts ZIP/RAR/7z archives. Only EXE/DLL files beside the archived Launcher are installed; project files, libraries and settings are preserved. The worker backs up overwritten files and attempts rollback on installation failure, reporting the backup path if recovery is incomplete. New editor sessions are blocked during installation by `.sdk-update.lock`. Staging and backups remain in the temporary updater directory for recovery.

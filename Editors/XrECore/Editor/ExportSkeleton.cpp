@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../XrEUI/SDKMessageBox.h"
 #pragma hdrstop
 
 #include "ExportSkeleton.h"
@@ -267,7 +268,7 @@ void CExportSkeleton::SSplit::Save(IWriter &F)
 
         default:
             std::string message = "��� ����� �������: " + std::to_string(m_SkeletonLinkType) + ", ������������ �� �� ������ ��������� ������� ��� ogf.";
-            MessageBoxA(0, message.c_str(), "��������!", 0);
+            SDKDialogs::Show(nullptr, message.c_str(), "Warning", MB_OK | MB_ICONWARNING);
             F.w_u32(m_SkeletonLinkType);
             break;
         }

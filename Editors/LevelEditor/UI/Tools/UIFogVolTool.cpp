@@ -9,7 +9,7 @@ void UIFogVolTool::Draw()
 
 	if (ImGui::TreeNode("Commands"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		ImGui::PushItemWidth(-1);
 		float size = float(ImGui::CalcItemWidth());
 
@@ -23,7 +23,7 @@ void UIFogVolTool::Draw()
 				ParentTools->UnGroupCurrent();
 		}
 
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
 		ImGui::TreePop();
 	}
 }

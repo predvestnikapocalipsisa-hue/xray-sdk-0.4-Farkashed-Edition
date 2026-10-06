@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <algorithm>
 
 UIKeyForm::UIKeyForm() : m_AutoChange(true), m_TimeFactor(1), m_Position(0), m_currentEditMotion(nullptr)
 {
@@ -10,154 +11,59 @@ UIKeyForm::~UIKeyForm()
 
 void UIKeyForm::Draw()
 {
-	m_currentEditMotion = ATools->GetCurrentMotion();
-
-	bool bMarksPresent12 = (m_currentEditMotion && m_currentEditMotion->marks.size() >= 2);
-	bool bMarksPresent34 = (m_currentEditMotion && m_currentEditMotion->marks.size() == 4);
-
-	bool Mark1 = bMarksPresent12 || ((CAEPreferences *)EPrefs)->bAlwaysShowKeyBar12 || ((CAEPreferences *)EPrefs)->bAlwaysShowKeyBar34;
-	bool Mark2 = bMarksPresent12 || ((CAEPreferences *)EPrefs)->bAlwaysShowKeyBar12 || ((CAEPreferences *)EPrefs)->bAlwaysShowKeyBar34;
-	bool Mark3 = bMarksPresent34 || ((CAEPreferences *)EPrefs)->bAlwaysShowKeyBar34;
-	bool Mark4 = bMarksPresent34 || ((CAEPreferences *)EPrefs)->bAlwaysShowKeyBar34;
-
-	ImGui::Begin("KeyForm");
-	{
-
-		float a, b, c;
-		ATools->GetStatTime(a, b, c);
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-		ImGui::BeginChild("Left", ImVec2(60, 0));
-		{
-
-			ImGui::Checkbox("Auto", &m_AutoChange);
-			ImGui::Text("Left1");
-			ImGui::Text("Right1");
-			ImGui::Text("Left2");
-			ImGui::Text("Right2");
-			ImGui::EndChild();
-		}
-		ImGui::SameLine();
-		ImGui::BeginChild("Midle", ImVec2(-120, 0));
-		{
-			ImGui::SetNextItemWidth(-1);
-			if (AutoChange())
-				m_Position = c;
-			ImGui::SliderFloat("##key1", &m_Position, a, b, "%.4f");
-			ImGui::SetNextItemWidth(-1);
-			ImVec2 size = ImGui::GetItemRectSize();
-			static float Zero = 0;
-			if (size.x != m_TempForPlotHistogram.size())
-			{
-				m_TempForPlotHistogram.resize(size.x);
-			}
-			if (Mark1)
-				DrawMark(0);
-			ImGui::PlotHistogram("##left1", Mark1 ? m_TempForPlotHistogram.data() : &Zero, Mark1 ? m_TempForPlotHistogram.size() : 1, 0, NULL, 0.0f, 1.0f, size);
-			if (Mark2)
-				DrawMark(1);
-			ImGui::PlotHistogram("##right1", Mark2 ? m_TempForPlotHistogram.data() : &Zero, Mark2 ? m_TempForPlotHistogram.size() : 1, 0, NULL, 0.0f, 1.0f, size);
-			if (Mark3)
-				DrawMark(2);
-			ImGui::PlotHistogram("##left2", Mark3 ? m_TempForPlotHistogram.data() : &Zero, Mark3 ? m_TempForPlotHistogram.size() : 1, 0, NULL, 0.0f, 1.0f, size);
-			if (Mark4)
-				DrawMark(3);
-			ImGui::PlotHistogram("##right2", Mark4 ? m_TempForPlotHistogram.data() : &Zero, Mark4 ? m_TempForPlotHistogram.size() : 1, 0, NULL, 0.0f, 1.0f, size);
-
-			ImGui::EndChild();
-		}
-		ImGui::SameLine();
-		ImGui::BeginChild("Back", ImVec2(120, 0));
-		{
-
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 0));
-			{
-				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-				ImGui::Text("LOD:");
-				ImGui::SameLine();
-				ImGui::PopStyleVar();
-			}
-			ImGui::SetNextItemWidth(-1);
-			float LOD_TimeFactor[2] = {ATools->m_RenderObject.m_fLOD, m_TimeFactor};
-			ImGui::SliderFloat2("##lod", LOD_TimeFactor, 0, 1);
-			ATools->m_RenderObject.m_fLOD = LOD_TimeFactor[0];
-			if (m_TimeFactor != LOD_TimeFactor[1])
-			{
-				m_TimeFactor = LOD_TimeFactor[1];
-				EDevice.time_factor(m_TimeFactor);
-			}
-
-			ImGui::PushID("left1");
-			if (ImGui::Button("Del") && Mark1)
-			{
-				SetMark(0, 3);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Up") && Mark1)
-			{
-				SetMark(0, 2);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Down", ImVec2(-1, 0)) && Mark1)
-			{
-				SetMark(0, 1);
-			}
-			ImGui::PopID();
-			ImGui::PushID("right1");
-			if (ImGui::Button("Del") && Mark2)
-			{
-				SetMark(1, 3);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Up") && Mark2)
-			{
-				SetMark(1, 2);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Down", ImVec2(-1, 0)) && Mark2)
-			{
-				SetMark(1, 1);
-			}
-			ImGui::PopID();
-			ImGui::PushID("left2");
-			if (ImGui::Button("Del") && Mark3)
-			{
-				SetMark(2, 3);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Up") && Mark3)
-			{
-				SetMark(2, 2);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Down", ImVec2(-1, 0)) && Mark3)
-			{
-				SetMark(2, 1);
-			}
-			ImGui::PopID();
-			ImGui::PushID("right2");
-			if (ImGui::Button("Del") && Mark4)
-			{
-				SetMark(3, 3);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Up") && Mark4)
-			{
-				SetMark(3, 2);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Down", ImVec2(-1, 0)) && Mark4)
-			{
-				SetMark(3, 1);
-			}
-			ImGui::PopID();
-
-			ImGui::PopStyleVar();
-			ImGui::EndChild();
-		}
-		ImGui::PopStyleVar();
-	}
-	ImGui::End();
+    m_currentEditMotion = ATools->GetCurrentMotion();
+    const float dpi = XrUIManager::GetUIScale();
+    if (ImGui::Begin("KeyForm"))
+    {
+        float a, b, c;
+        ATools->GetStatTime(a,b,c);
+        if (AutoChange()) m_Position = c;
+        ImGui::Checkbox("Auto", &m_AutoChange);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth((std::max)(80.f*dpi,ImGui::GetContentRegionAvail().x));
+        ImGui::SliderFloat("##position", &m_Position,a,b,"%.4f");
+        ImGui::SetNextItemWidth(120.f*dpi);
+        ImGui::SliderFloat("LOD", &ATools->m_RenderObject.m_fLOD,0.f,1.f);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(120.f*dpi);
+        if (ImGui::SliderFloat("Time factor", &m_TimeFactor,0.f,1.f)) EDevice.time_factor(m_TimeFactor);
+        if (ImGui::BeginTable("Motion marks",3,ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Mark",ImGuiTableColumnFlags_WidthFixed,64.f*dpi);
+            ImGui::TableSetupColumn("Timeline",ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Actions",ImGuiTableColumnFlags_WidthFixed,146.f*dpi);
+            const char* labels[] = {"Left1","Right1","Left2","Right2"};
+            const CAEPreferences* prefs = (CAEPreferences*)EPrefs;
+            for (int id=0;id<4;++id)
+            {
+                const bool present = m_currentEditMotion && id < int(m_currentEditMotion->marks.size());
+                const bool show = present || prefs->bAlwaysShowKeyBar34 || (id<2 && prefs->bAlwaysShowKeyBar12);
+                if (!show) continue;
+                ImGui::PushID(id);
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn(); ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted(labels[id]);
+                ImGui::TableNextColumn();
+                const int width = (std::max)(1,int(ImGui::GetContentRegionAvail().x));
+                m_TempForPlotHistogram.resize(width);
+                if (present) DrawMark(id);
+                else std::fill(m_TempForPlotHistogram.begin(),m_TempForPlotHistogram.end(),0.f);
+                ImGui::PlotHistogram("##mark",m_TempForPlotHistogram.data(),width,0,nullptr,0.f,1.f,
+                    ImVec2(float(width),ImGui::GetFrameHeight()));
+                ImGui::TableNextColumn();
+                ImGui::BeginDisabled(!present);
+                const float buttonWidth = (std::max)(1.f,(ImGui::GetContentRegionAvail().x-2*ImGui::GetStyle().ItemSpacing.x)/3.f);
+                if (ImGui::Button("Del",ImVec2(buttonWidth,0))) SetMark(id,3);
+                ImGui::SameLine();
+                if (ImGui::Button("Up",ImVec2(buttonWidth,0))) SetMark(id,2);
+                ImGui::SameLine();
+                if (ImGui::Button("Down",ImVec2(buttonWidth,0))) SetMark(id,1);
+                ImGui::EndDisabled();
+                ImGui::PopID();
+            }
+            ImGui::EndTable();
+        }
+    }
+    ImGui::End();
 }
 inline bool interval_comparer(const motion_marks::interval &i1, const motion_marks::interval &i2)
 {
@@ -168,9 +74,10 @@ void UIKeyForm::SetMark(int id, int action)
 	if (!m_currentEditMotion)
 		return;
 
-	if (m_currentEditMotion->marks.size() == 0)
+	if (id < 0 || id >= int(m_currentEditMotion->marks.size()))
 		return;
 
+	if (id < 0 || id >= int(m_currentEditMotion->marks.size())) return;
 	motion_marks &M = m_currentEditMotion->marks[id];
 	float a, b, c;
 	ATools->GetStatTime(a, b, c);
@@ -232,11 +139,13 @@ void UIKeyForm::DrawMark(int id)
 	}
 	if (!m_currentEditMotion)
 		return;
+	if (id < 0 || id >= int(m_currentEditMotion->marks.size())) return;
 	motion_marks &M = m_currentEditMotion->marks[id];
 
 	float a, b, c;
 	ATools->GetStatTime(a, b, c);
 	float motion_length = b - a;
+	if (!(motion_length > 0.f)) return;
 
 	float k_len = m_TempForPlotHistogram.size() / motion_length;
 
@@ -247,7 +156,7 @@ void UIKeyForm::DrawMark(int id)
 	{
 		const motion_marks::interval &iv = *it;
 		Ivector2 posLT, posRB;
-		for (int i = iv.first * k_len; i < iv.second * k_len; i++)
+		for (int i = (std::max)(0,int(iv.first*k_len)); i < (std::min)(int(m_TempForPlotHistogram.size()),int(iv.second*k_len)); i++)
 		{
 			m_TempForPlotHistogram[i] = 1;
 		}

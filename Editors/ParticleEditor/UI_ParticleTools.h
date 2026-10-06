@@ -68,6 +68,7 @@ class CParticleTool : public CToolCustom
     void RealRemoveAction();
 
     void OnControlClick(ButtonValue *sender, bool &bDataModified, bool &bSafe);
+    void OnPreviewTransformChanged(PropValue*) { ApplyParent(true); }
 
 public:
     void RemoveAction(u32 idx, bool bForced = false)
@@ -160,6 +161,11 @@ public:
     }
     virtual void RefreshProperties() { ; }
 
+    bool m_AutoPlay = true;
+    bool HasCurrent() const { return m_LibPED || m_LibPGD; }
+    bool IsPlaying() const;
+    u32 ParticlesCount() const;
+    void RefreshPreview() { CompileEffect(); }
     void PlayCurrent(int idx = -1);
     void StopCurrent(bool bFinishPlaying);
     void SelectEffect(LPCSTR name);

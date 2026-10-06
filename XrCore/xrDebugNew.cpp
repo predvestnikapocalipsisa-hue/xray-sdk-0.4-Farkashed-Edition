@@ -22,7 +22,7 @@ xrEditorOperationScope::~xrEditorOperationScope() { --editor_operation_depth; }
 static void CheckEditorOperation(const char* expression, const char* description,
 	const char* argument0, const char* argument1, const char* file, int line, const char* function)
 {
-	if (!editor_operation_depth || IsDebuggerPresent())
+	if (Core.DebugMode || !editor_operation_depth || IsDebuggerPresent())
 		return;
 	xrEditorOperationError error;
 	_snprintf_s(error.details, sizeof(error.details), _TRUNCATE,
@@ -169,13 +169,25 @@ void xrDebug::gather_info(const char *expression, const char *description, const
 
 void xrDebug::do_exit(const std::string &message)
 {
+    if (Core.DebugMode)
+        Msg("! [SDK DEBUG] Unrecoverable exit: %s", message.c_str());
 	FlushLog();
-	MessageBox(NULL, message.c_str(), "Error", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL);
+    if (!Core.DebugMode)
+	    MessageBox(NULL, message.c_str(), "Error", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL);
 	TerminateProcess(GetCurrentProcess(), 1);
 }
 
 void xrDebug::backend(const char *expression, const char *description, const char *argument0, const char *argument1, const char *file, int line, const char *function, bool &ignore_always)
 {
+    if (Core.DebugMode)
+    {
+        Msg("! [SDK DEBUG] Ignored check: %s | %s | %s | %s | %s:%d | %s",
+            expression ? expression : "", description ? description : "",
+            argument0 ? argument0 : "", argument1 ? argument1 : "",
+            file ? file : "", line, function ? function : "");
+        FlushLog();
+        return;
+    }
 	if (IsDebuggerPresent())
 	{
 		DEBUG_INVOKE;
@@ -349,6 +361,8 @@ void out_of_memory_handler()
 	}
 
 	Debug.fatal(DEBUG_INFO, "Out of memory. Memory request:unkown K");
+    if (Core.DebugMode)
+        ExitProcess(ERROR_NOT_ENOUGH_MEMORY);
 }
 
 extern LPCSTR log_name();

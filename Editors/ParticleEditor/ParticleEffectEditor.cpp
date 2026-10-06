@@ -132,6 +132,8 @@ void PS::CPEDef::OnDrawUI()
                         }
                         A->actionName = pref.c_str();
                         m_EActionList.push_back(A);
+                        PTools->Modified();
+                        PTools->RefreshPreview();
                         ExecCommand(COMMAND_UPDATE_PROPERTIES);
 
                         break;

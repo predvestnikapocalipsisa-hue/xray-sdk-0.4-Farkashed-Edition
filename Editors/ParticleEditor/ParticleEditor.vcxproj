@@ -69,7 +69,9 @@
     <Image Include="resources\pe.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="resources\ParticleEditor.rc" />
+    <ResourceCompile Include="resources\ParticleEditor.rc">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Launcher\assets\gui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

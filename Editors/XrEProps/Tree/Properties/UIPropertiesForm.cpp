@@ -90,13 +90,12 @@ void UIPropertiesForm::Draw()
 		}
 	}
 
-	static ImGuiTableFlags flags = ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg | ImGuiTableFlags_NoBordersInBody;
-	const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
+	static ImGuiTableFlags flags = ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoBordersInBody;
 
-	if (ImGui::BeginTable("3ways", 2, flags))
+	if (ImGui::BeginTable("PropertiesGrid", 2, flags))
 	{
-		ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
-		ImGui::TableSetupColumn("Prop", ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 6.0f);
+		ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide | ImGuiTableColumnFlags_WidthStretch, .55f);
+		ImGui::TableSetupColumn("Prop", ImGuiTableColumnFlags_WidthStretch, .45f);
 		ImGui::TableHeadersRow();
 		m_Root.DrawRoot();
 		ImGui::EndTable();
@@ -273,7 +272,7 @@ void UIPropertiesForm::DrawEditText()
 				R_ASSERT(false);
 		}
 
-		ImGui::SameLine(150);
+		ImGui::SameLine();
 
 		if (ImGui::Button("Load"))
 		{

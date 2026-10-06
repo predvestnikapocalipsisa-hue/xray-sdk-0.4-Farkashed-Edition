@@ -43,6 +43,7 @@ class ECORE_API TUI : public IInputReceiver, public XrUIManager
 {
     bool m_AppClosed;
     bool m_RenderPaused;
+    float m_ViewportScale;
     bool m_ShowRenderError;
     xr_string m_RenderError;
     void ReportRenderError(LPCSTR details);
@@ -287,6 +288,8 @@ public:
     SPBItem *ProgressLast() { return m_ProgressItems.empty() ? 0 : m_ProgressItems.back(); }
 
 public:
+    float GetViewportScale() const { return m_ViewportScale; }
+    void SetViewportScale(float scale) { m_ViewportScale = scale < 1.f ? 1.f : (scale > 2.f ? 2.f : scale); RedrawScene(); }
     ref_rt RT;
     ref_rt ZB;
     _vector2<u32> RTSize;

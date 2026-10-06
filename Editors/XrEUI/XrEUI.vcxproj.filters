@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Исходные файлы">
@@ -30,6 +30,7 @@
     <ClCompile Include="XrUI.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="SDKMessageBox.cpp"><Filter>Исходные файлы</Filter></ClCompile>
     <ClCompile Include="XrUIManager.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
@@ -53,6 +54,9 @@
     <ClInclude Include="imgui_internal.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+<ClInclude Include="imgui_item_flags.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
     <ClInclude Include="imconfig.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
@@ -71,6 +75,10 @@
     <ClInclude Include="XrUI.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+<ClInclude Include="ModernUI.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="SDKMessageBox.h"><Filter>Файлы заголовков</Filter></ClInclude>
     <ClInclude Include="XrUIManager.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>

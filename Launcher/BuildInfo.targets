@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <Target Name="GenerateSdkBuildInfo" BeforeTargets="ResourceCompile">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(ProjectDir)Generate-BuildInfo.ps1&quot; -Root &quot;$(ProjectDir)..&quot; -OutputDirectory &quot;$(IntDir).&quot; -SdkDirectory &quot;$(OutDir).&quot;" />
+  </Target>
+</Project>

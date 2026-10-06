@@ -43,7 +43,7 @@ void UIGroupTool::Draw()
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 	if (ImGui::TreeNode("Current Object"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		{
 			ImGui::SetNextItemWidth(-1);
 			float size = float(ImGui::CalcItemWidth());
@@ -64,13 +64,13 @@ void UIGroupTool::Draw()
 			ImGui::Text("Current:%s", m_Current.c_str() ? m_Current.c_str() : "");
 		}
 		ImGui::Separator();
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
 		ImGui::TreePop();
 	}
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 	if (ImGui::TreeNode("Reference Select"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		{
 			ImGui::Text("Select by Current: ");
 			ImGui::SameLine();
@@ -99,13 +99,13 @@ void UIGroupTool::Draw()
 			ImGui::DragFloat("%", &m_selPercent, 1, 0, 100, "%.1f");
 		}
 		ImGui::Separator();
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
 		ImGui::TreePop();
 	}
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 	if (ImGui::TreeNode("Pivot Alignment"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		{
 			if (ImGui::Button("Center To Group", ImVec2(-1, 0)))
 			{
@@ -117,7 +117,7 @@ void UIGroupTool::Draw()
 			}
 		}
 		ImGui::Separator();
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
 		ImGui::TreePop();
 	}
 }

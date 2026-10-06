@@ -23,7 +23,7 @@ CRT::~CRT()
 
 void CRT::create(LPCSTR Name, u32 w, u32 h, D3DFORMAT f, u32 SampleCount)
 {
-	if (pSurface)
+	if (pSurface || pRT)
 		return;
 
 	R_ASSERT(HW.pDevice && Name && Name[0] && w && h);
@@ -58,6 +58,8 @@ void CRT::create(LPCSTR Name, u32 w, u32 h, D3DFORMAT f, u32 SampleCount)
 		usage = D3DUSAGE_DEPTHSTENCIL;
 	else if (D3DFMT_D24S8 == fmt)
 		usage = D3DUSAGE_DEPTHSTENCIL;
+	else if (D3DFMT_D24X4S4 == fmt)
+		usage = D3DUSAGE_DEPTHSTENCIL;
 	else if (D3DFMT_D15S1 == fmt)
 		usage = D3DUSAGE_DEPTHSTENCIL;
 	else if (D3DFMT_D16 == fmt)
@@ -71,24 +73,26 @@ void CRT::create(LPCSTR Name, u32 w, u32 h, D3DFORMAT f, u32 SampleCount)
 	else
 		usage = D3DUSAGE_RENDERTARGET;
 
+#ifdef _EDITOR
+    // Editor depth buffers are never sampled; use the surface format selected by HW.
+    if (usage == D3DUSAGE_DEPTHSTENCIL)
+    {
+        if (!HW.support(f, D3DRTYPE_SURFACE, usage)) return;
+        _hr = HW.pDevice->CreateDepthStencilSurface(w, h, f, D3DMULTISAMPLE_NONE, 0, TRUE, &pRT, NULL);
+        if (FAILED(_hr)) Msg("! Failed to create editor depth target %ux%u: 0x%08X", w, h, _hr);
+        return;
+    }
+#endif
 	// Validate render-target usage
-	_hr = HW.pD3D->CheckDeviceFormat(
-		HW.DevAdapter,
-		HW.DevT,
-		HW.Caps.fTarget,
-		usage,
-		D3DRTYPE_TEXTURE,
-		f);
-	if (FAILED(_hr))
+	if (!HW.support(f, D3DRTYPE_TEXTURE, usage))
 		return;
 
 	// Try to create texture/surface
 	DEV->Evict();
 	_hr = HW.pDevice->CreateTexture(w, h, 1, usage, f, D3DPOOL_DEFAULT, &pSurface, NULL);
-	HW.stats_manager.increment_stats_rtarget(pSurface);
-
 	if (FAILED(_hr) || (0 == pSurface))
 		return;
+	HW.stats_manager.increment_stats_rtarget(pSurface);
 
 		// OK
 #ifdef DEBUG

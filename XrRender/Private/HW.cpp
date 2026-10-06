@@ -131,6 +131,12 @@ void CHW::DestroyD3D()
 //////////////////////////////////////////////////////////////////////
 D3DFORMAT CHW::selectDepthStencil(D3DFORMAT fTarget)
 {
+    D3DFORMAT adapterFormat = fTarget;
+#ifdef _EDITOR
+    D3DDISPLAYMODE display = {};
+    if (FAILED(pD3D->GetAdapterDisplayMode(DevAdapter, &display))) return D3DFMT_UNKNOWN;
+    adapterFormat = display.Format;
+#endif
 	// R2 hack
 #pragma todo("R2 need to specify depth format")
 	if (psDeviceFlags.test(rsR2))
@@ -146,12 +152,12 @@ D3DFORMAT CHW::selectDepthStencil(D3DFORMAT fTarget)
 	for (int it = 0; it < fDS_Cnt; it++)
 	{
 		if (SUCCEEDED(pD3D->CheckDeviceFormat(
-				DevAdapter, DevT, fTarget,
+				DevAdapter, DevT, adapterFormat,
 				D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, fDS_Try[it])))
 		{
 			if (SUCCEEDED(pD3D->CheckDepthStencilMatch(
 					DevAdapter, DevT,
-					fTarget, fTarget, fDS_Try[it])))
+					adapterFormat, fTarget, fDS_Try[it])))
 			{
 				return fDS_Try[it];
 			}
@@ -284,7 +290,7 @@ void CHW::CreateDevice(HWND m_hWnd, bool move_window)
 	if (bWindowed)
 	{
 		fTarget = mWindowed.Format;
-		R_CHK(pD3D->CheckDeviceType(DevAdapter, DevT, fTarget, fTarget, TRUE));
+		R_CHK(pD3D->CheckDeviceType(DevAdapter, DevT, mWindowed.Format, fTarget, TRUE));
 		fDepth = selectDepthStencil(fTarget);
 	}
 	else
@@ -320,7 +326,7 @@ void CHW::CreateDevice(HWND m_hWnd, bool move_window)
 		fDepth = selectDepthStencil(fTarget);
 	}
 
-	if ((D3DFMT_UNKNOWN == fTarget) || (D3DFMT_UNKNOWN == fTarget))
+	if ((D3DFMT_UNKNOWN == fTarget) || (D3DFMT_UNKNOWN == fDepth))
 	{
 		Msg("Failed to initialize graphics hardware.\n"
 			"Please try to restart the game.\n"
@@ -349,6 +355,9 @@ void CHW::CreateDevice(HWND m_hWnd, bool move_window)
 
 	// Windoze
 	P.SwapEffect = bWindowed ? D3DSWAPEFFECT_COPY : D3DSWAPEFFECT_DISCARD;
+#ifdef _EDITOR
+    P.SwapEffect = D3DSWAPEFFECT_DISCARD; // Match the editor presentation path without retaining old frame contents.
+#endif
 	P.hDeviceWindow = m_hWnd;
 	P.Windowed = bWindowed;
 
@@ -393,6 +402,25 @@ void CHW::CreateDevice(HWND m_hWnd, bool move_window)
 		MessageBox(NULL, "Failed to initialize graphics hardware.\nPlease try to restart the game.", "Error!", MB_OK | MB_ICONERROR);
 		TerminateProcess(GetCurrentProcess(), 0);
 	};
+#ifdef _EDITOR
+    if (FAILED(R) && fTarget == D3DFMT_A8R8G8B8)
+    {
+        Msg("! Alpha back buffer unavailable; retrying the desktop format without backdrop transparency.");
+        fTarget = mWindowed.Format;
+        fDepth = selectDepthStencil(fTarget);
+        P.BackBufferFormat = fTarget;
+        P.AutoDepthStencilFormat = fDepth;
+        R = pD3D->CreateDevice(DevAdapter, DevT, m_hWnd, GPU | D3DCREATE_MULTITHREADED, &P, &pDevice);
+    }
+    if (FAILED(R) || !pDevice)
+    {
+        Msg("! Direct3D device creation failed: 0x%08X", R);
+        FlushLog();
+        MessageBoxA(m_hWnd, "Direct3D device creation failed. See the editor log for the HRESULT.", "SDK graphics error", MB_OK | MB_ICONERROR);
+        TerminateProcess(GetCurrentProcess(), 1);
+        return;
+    }
+#endif
 	R_CHK(R);
 
 	_SHOW_REF("* CREATE: DeviceREF:", HW.pDevice);
@@ -538,7 +566,13 @@ u32 CHW::selectRefresh(u32 dwWidth, u32 dwHeight, D3DFORMAT fmt)
 
 BOOL CHW::support(D3DFORMAT fmt, DWORD type, DWORD usage)
 {
-	HRESULT hr = pD3D->CheckDeviceFormat(DevAdapter, DevT, Caps.fTarget, usage, (D3DRESOURCETYPE)type, fmt);
+    D3DFORMAT adapterFormat = Caps.fTarget;
+#ifdef _EDITOR
+    D3DDISPLAYMODE display = {};
+    if (FAILED(pD3D->GetAdapterDisplayMode(DevAdapter, &display))) return FALSE;
+    adapterFormat = display.Format;
+#endif
+	HRESULT hr = pD3D->CheckDeviceFormat(DevAdapter, DevT, adapterFormat, usage, (D3DRESOURCETYPE)type, fmt);
 	if (FAILED(hr))
 		return FALSE;
 	else

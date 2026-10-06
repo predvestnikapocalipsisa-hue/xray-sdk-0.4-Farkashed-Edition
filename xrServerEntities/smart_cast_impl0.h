@@ -13,7 +13,7 @@
 namespace SmartDynamicCast
 {
 	template <typename T1, typename T2>
-	IC T1 *smart_cast(T2 *p);
+	inline T1 *smart_cast(T2 *p);
 
 	template <typename List, typename T, typename P>
 	struct CTypeHelper
@@ -61,9 +61,12 @@ namespace SmartDynamicCast
 #define add_to_cast_list(B, A) typedef SmartDynamicCast::CTypeHelper<cast_type_list, A, B>::result TypeList_##A##B
 #define save_cast_list(B, A) TypeList_##A##B
 
+// Explicit specializations cannot carry the extern storage-class specifier.
 #define DECLARE_SPECIALIZATION(B, A, C)                  \
 	class A;                                             \
 	class B;                                             \
-	template <>                                          \
-	extern B *SmartDynamicCast::smart_cast<B, A>(A * p); \
+	namespace SmartDynamicCast                           \
+	{                                                    \
+		template <> B *smart_cast<B, A>(A * p);            \
+	}                                                    \
 	add_to_cast_list(B, A);

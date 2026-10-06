@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include <unordered_map>
 #include <string>
+#include "../../XrEUI/ModernUI.h"
 
 // ------------------------------------------------------------------
 //     .
@@ -68,31 +69,13 @@ static void ShowTopBarTooltipIfHovered(const char* name)
 
 UITopBarForm::UITopBarForm()
 {
-
+    // Textures are no longer needed: toolbar icons are embedded vector paths.
 #define ADD_BUTTON_IMAGE_T1(Class, Name)
 #define ADD_BUTTON_IMAGE_T2(Class, Name)
-#define ADD_BUTTON_IMAGE_S(Name)                                      \
-	m_t##Name = EDevice.Resources->_CreateTexture("ed\\bar\\" #Name); \
-	m_time##Name = 0;
-#define ADD_BUTTON_IMAGE_D(Name)                                      \
-	m_t##Name = EDevice.Resources->_CreateTexture("ed\\bar\\" #Name); \
-	m_b##Name = false;
+#define ADD_BUTTON_IMAGE_S(Name)
+#define ADD_BUTTON_IMAGE_D(Name) m_b##Name = false;
 #include "UITopBarForm_ButtonList.h"
-		
-		int selCount = Scene->SelectionCount(true, OBJCLASS_DUMMY);
-		if (selCount > 0)
-		{
-			xr_string text;
-			text.sprintf("Selected: %d", selCount);
-			float textWidth = ImGui::CalcTextSize(text.c_str()).x;
-			float availableWidth = ImGui::GetContentRegionAvail().x;
-			if (availableWidth > textWidth + 10.0f)
-			{
-				ImGui::SameLine(ImGui::GetWindowWidth() - textWidth - 10.0f);
-				ImGui::Text("%s", text.c_str());
-			}
-		}
-	RefreshBar();
+    RefreshBar();
 }
 
 UITopBarForm::~UITopBarForm()
@@ -100,92 +83,81 @@ UITopBarForm::~UITopBarForm()
 
 void UITopBarForm::Draw()
 {
-	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + UI->GetMenuBarHeight()));
-	ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, UIToolBarSize));
-	ImGui::SetNextWindowViewport(viewport->ID);
-
-	ImGuiWindowFlags window_flags = 0 | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings;
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(2, 2));
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
-	ImGui::Begin("TOOLBAR", NULL, window_flags);
-	{
-#define ADD_BUTTON_IMAGE_S(Name)                                                                                                                                                             \
-	m_t##Name->Load();                                                                                                                                                                       \
-	if (ImGui::ImageButton(m_t##Name->surface_get(), ImVec2(20, 20), ImVec2(m_time##Name > EDevice.TimerAsync() ? 0.5 : 0, 0), ImVec2(m_time##Name > EDevice.TimerAsync() ? 1 : 0.5, 1), 0)) \
-	{                                                                                                                                                                                        \
-		m_time##Name = EDevice.TimerAsync() + 130;                                                                                                                                           \
-		Click##Name();                                                                                                                                                                       \
-	}                                                                                                                                                                                        \
-	ShowTopBarTooltipIfHovered(#Name);                                                                                                                                                       \
-	ImGui::SameLine();
-#define ADD_BUTTON_IMAGE_D(Name)                                                                                                         \
-	m_t##Name->Load();                                                                                                                   \
-	if (ImGui::ImageButton(m_t##Name->surface_get(), ImVec2(20, 20), ImVec2(m_b##Name ? 0.5 : 0, 0), ImVec2(m_b##Name ? 1 : 0.5, 1), 0)) \
-	{                                                                                                                                    \
-		m_b##Name = !m_b##Name;                                                                                                          \
-		Click##Name();                                                                                                                   \
-	}                                                                                                                                    \
-	ShowTopBarTooltipIfHovered(#Name);                                                                                                   \
-	ImGui::SameLine();
-#define ADD_BUTTON_IMAGE_P(Name)                                                                                                         \
-	m_t##Name->Load();                                                                                                                   \
-	if (ImGui::ImageButton(m_t##Name->surface_get(), ImVec2(20, 20), ImVec2(m_b##Name ? 0.5 : 0, 0), ImVec2(m_b##Name ? 1 : 0.5, 1), 0)) \
-	{                                                                                                                                    \
-		Click##Name();                                                                                                                   \
-	}                                                                                                                                    \
-	ShowTopBarTooltipIfHovered(#Name);                                                                                                   \
-	ImGui::SameLine();
-#define ADD_BUTTON_IMAGE_T1(Class, Name)                                 \
-	ImGui::PushID("" #Class);                                            \
-	ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor::HSV(0, 0, 0)); \
-	if (ImGui::Button("" #Name, ImVec2(20, 20)))                         \
-	{                                                                    \
-		Click##Class##Name();                                            \
-	}                                                                    \
-	ShowTopBarTooltipIfHovered(#Name);                                   \
-	ImGui::SameLine();                                                   \
-	ImGui::PopStyleColor(1);                                             \
-	ImGui::PopID();
-#define ADD_BUTTON_IMAGE_T2(Class, Name)         \
-	ImGui::PushID("" #Class);                    \
-	if (ImGui::Button("" #Name, ImVec2(20, 20))) \
-	{                                            \
-		Click##Class##Name();                    \
-	}                                            \
-	ShowTopBarTooltipIfHovered(#Name);           \
-	ImGui::SameLine();                           \
-	ImGui::PopID();
-#define ADD_BUTTON_IMAGE_T1_1(Class, Name, T)                            \
-	ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor::HSV(0, 0, 0)); \
-	if (ImGui::Button("" #T, ImVec2(20, 20)))                            \
-	{                                                                    \
-		Click##Class##Name();                                            \
-	}                                                                    \
-	ShowTopBarTooltipIfHovered(#Name);                                   \
-	ImGui::SameLine();                                                   \
-	ImGui::PopStyleColor(1);
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + UI->GetMenuBarHeight()));
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, XrUIManager::GetToolBarHeight()));
+    ImGui::SetNextWindowViewport(viewport->ID);
+    const ImGuiWindowFlags flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+        ImGuiWindowFlags_NoSavedSettings;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8*XrUIManager::GetUIScale(),3*XrUIManager::GetUIScale()));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(3,0));
+    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 6.f);
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyle().Colors[ImGuiCol_WindowBg]);
+    ImGui::Begin("TOOLBAR", nullptr, flags);
+    // Small windows retain every command through horizontal scrolling.
+    if (ImGui::BeginChild("Tool strip", ImVec2(0,0), false,
+        ImGuiWindowFlags_HorizontalScrollbar))
+    {
+        RefreshBar();
+#define TOOL_GROUP(Name) \
+    if (strcmp(#Name, "Select") == 0 || strcmp(#Name, "X") == 0 || \
+        strcmp(#Name, "CsLocal") == 0 || strcmp(#Name, "Zoom") == 0) ModernUI::ToolDivider();
+#define ADD_BUTTON_IMAGE_S(Name) \
+    TOOL_GROUP(Name) \
+    if (ModernUI::ToolButton(#Name)) Click##Name(); \
+    ShowTopBarTooltipIfHovered(#Name); ImGui::SameLine();
+#define ADD_BUTTON_IMAGE_D(Name) \
+    TOOL_GROUP(Name) \
+    if (ModernUI::ToolButton(#Name, m_b##Name)) { m_b##Name = !m_b##Name; Click##Name(); } \
+    ShowTopBarTooltipIfHovered(#Name); ImGui::SameLine();
+#define ADD_BUTTON_IMAGE_P(Name) \
+    TOOL_GROUP(Name) \
+    if (ModernUI::ToolButton(#Name, m_b##Name)) Click##Name(); \
+    ShowTopBarTooltipIfHovered(#Name); ImGui::SameLine();
+#define ADD_BUTTON_IMAGE_T1(Class, Name)
+#define ADD_BUTTON_IMAGE_T2(Class, Name)
+#define ADD_BUTTON_IMAGE_T1_1(Class, Name, T)
 #include "UITopBarForm_ButtonList.h"
-		
-		int selCount = Scene->SelectionCount(true, OBJCLASS_DUMMY);
-		if (selCount > 0)
-		{
-			xr_string text;
-			text.sprintf("Selected: %d", selCount);
-			float textWidth = ImGui::CalcTextSize(text.c_str()).x;
-			float availableWidth = ImGui::GetContentRegionAvail().x;
-			if (availableWidth > textWidth + 10.0f)
-			{
-				ImGui::SameLine(ImGui::GetWindowWidth() - textWidth - 10.0f);
-				ImGui::Text("%s", text.c_str());
-			}
-		}
-	}
-	ImGui::End();
-	ImGui::PopStyleVar(5);
+#undef ADD_BUTTON_IMAGE_T1_1
+#undef TOOL_GROUP
+        ModernUI::ToolDivider();
+        if (ImGui::Button("View", ImVec2(60,28))) ImGui::OpenPopup("View presets");
+        if (ImGui::BeginPopup("View presets"))
+        {
+            if (ImGui::MenuItem("Front")) ClickViewF();
+            if (ImGui::MenuItem("Back")) ClickViewB1();
+            if (ImGui::MenuItem("Left")) ClickViewL();
+            if (ImGui::MenuItem("Right")) ClickViewR();
+            if (ImGui::MenuItem("Top")) ClickViewT();
+            if (ImGui::MenuItem("Bottom")) ClickViewB2();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Reset view")) ClickViewX();
+            ImGui::EndPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Camera", ImVec2(72,28))) ImGui::OpenPopup("Camera modes");
+        if (ImGui::BeginPopup("Camera modes"))
+        {
+            if (ImGui::MenuItem("Plane move")) ClickCameraP();
+            if (ImGui::MenuItem("Orbit")) ClickCameraA();
+            if (ImGui::MenuItem("Free fly")) ClickCameraF();
+            ImGui::EndPopup();
+        }
+        const int selected = Scene->SelectionCount(true, OBJCLASS_DUMMY);
+        if (selected > 0)
+        {
+            ImGui::SameLine(0,12);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextDisabled("%d selected", selected);
+        }
+    }
+    ImGui::EndChild();
+    ImGui::End();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(5);
 }
 void UITopBarForm::RefreshBar()
 {

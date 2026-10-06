@@ -38,6 +38,7 @@
     <ClCompile Include="spectrum.cpp" />
     <ClCompile Include="XrUI.cpp" />
     <ClCompile Include="XrUIManager.cpp" />
+    <ClCompile Include="SDKMessageBox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="discord_register.h" />
@@ -47,6 +48,7 @@
     <ClInclude Include="imgui_impl_dx9.h" />
     <ClInclude Include="imgui_impl_win32.h" />
     <ClInclude Include="imgui_internal.h" />
+    <ClInclude Include="imgui_item_flags.h" />
     <ClInclude Include="imgui_user.h" />
     <ClInclude Include="imstb_rectpack.h" />
     <ClInclude Include="imstb_textedit.h" />
@@ -54,7 +56,9 @@
     <ClInclude Include="spectrum.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="XrUI.h" />
+    <ClInclude Include="ModernUI.h" />
     <ClInclude Include="XrUIManager.h" />
+    <ClInclude Include="SDKMessageBox.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="imgui.natvis" />
@@ -183,7 +187,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)External\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

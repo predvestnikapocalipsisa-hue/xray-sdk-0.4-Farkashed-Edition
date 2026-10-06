@@ -35,9 +35,9 @@ CCommandVar CParticleTool::CommandEditPreviewProps(CCommandVar p1, CCommandVar p
 
 CCommandVar CParticleTool::CommandSaveXR(CCommandVar p1, CCommandVar p2)
 {
-    Save(true);
+    const bool saved = Save(true);
     ExecCommand(COMMAND_UPDATE_CAPTION);
-    return TRUE;
+    return saved ? TRUE : FALSE;
 }
 
 CCommandVar CParticleTool::CommandLoadXR(CCommandVar p1, CCommandVar p2)
@@ -85,9 +85,9 @@ CCommandVar CParticleTool::CommandLoadXR(CCommandVar p1, CCommandVar p2)
 
 CCommandVar CParticleTool::CommandSave(CCommandVar p1, CCommandVar p2)
 {
-    Save(false);
+    const bool saved = Save(false);
     ExecCommand(COMMAND_UPDATE_CAPTION);
-    return TRUE;
+    return saved ? TRUE : FALSE;
 }
 CCommandVar CParticleTool::CommandSaveBackup(CCommandVar p1, CCommandVar p2)
 {

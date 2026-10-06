@@ -32,7 +32,7 @@ void UIDOTool::Draw()
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 	if (ImGui::TreeNode("Commands"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		{
 			if (ImGui::Button("First Initialize", ImVec2(-1, 0)))
 			{
@@ -86,14 +86,14 @@ void UIDOTool::Draw()
 			}
 		}
 
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
 		ImGui::TreePop();
 	}
 
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 	if (ImGui::TreeNode("Brush Painting (3D Viewport)"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		{
 			bool is_painting = (LTools->GetAction() == etaAdd);
 			if (is_painting)
@@ -120,14 +120,14 @@ void UIDOTool::Draw()
 			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Tip: Drag LMB in viewport to paint.");
 			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Hold Shift + Drag to erase.");
 		}
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
 		ImGui::TreePop();
 	}
 
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 	if (ImGui::TreeNode("Texture Transform"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		{
 			bool changed = false;
 			if (ImGui::DragFloat("Offset X (m)", &DM->m_Base.m_Offset.x, 0.5f, -10000.f, 10000.f, "%.2f")) changed = true;
@@ -154,14 +154,14 @@ void UIDOTool::Draw()
 				}
 			}
 		}
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
 		ImGui::TreePop();
 	}
 
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 	if (ImGui::TreeNode("Vegetation Map Creation"))
 	{
-		ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		{
 			ImGui::InputText("Map Name", m_NewMapName, sizeof(m_NewMapName));
 			const char* resolutions[] = { "256x256", "512x512", "1024x1024", "2048x2048" };
@@ -197,7 +197,7 @@ void UIDOTool::Draw()
 					Scene->UndoSave();
 			}
 		}
-		ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
 		ImGui::TreePop();
 	}
 }

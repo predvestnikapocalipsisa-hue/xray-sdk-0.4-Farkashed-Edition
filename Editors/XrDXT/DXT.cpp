@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include "../XrEUI/SDKMessageBox.h"
 #include "dds/ddsTypes.h"
 #include "dds.h"
 #include "nvtt.h"
@@ -67,22 +68,22 @@ void dds_error::error(Error e)
 	switch (e)
 	{
 	case Error_Unknown:
-		MessageBox(0, "Unknown error", "DXT compress error", MB_ICONERROR | MB_OK);
+		SDKDialogs::Notify("Unknown error", "DXT compress error", MB_ICONERROR | MB_OK);
 		break;
 	case Error_InvalidInput:
-		MessageBox(0, "Invalid input", "DXT compress error", MB_ICONERROR | MB_OK);
+		SDKDialogs::Notify("Invalid input", "DXT compress error", MB_ICONERROR | MB_OK);
 		break;
 	case Error_UnsupportedFeature:
-		MessageBox(0, "Unsupported feature", "DXT compress error", MB_ICONERROR | MB_OK);
+		SDKDialogs::Notify("Unsupported feature", "DXT compress error", MB_ICONERROR | MB_OK);
 		break;
 	case Error_CudaError:
-		MessageBox(0, "CUDA error", "DXT compress error", MB_ICONERROR | MB_OK);
+		SDKDialogs::Notify("CUDA error", "DXT compress error", MB_ICONERROR | MB_OK);
 		break;
 	case Error_FileOpen:
-		MessageBox(0, "File open error", "DXT compress error", MB_ICONERROR | MB_OK);
+		SDKDialogs::Notify("File open error", "DXT compress error", MB_ICONERROR | MB_OK);
 		break;
 	case Error_FileWrite:
-		MessageBox(0, "File write error", "DXT compress error", MB_ICONERROR | MB_OK);
+		SDKDialogs::Notify("File write error", "DXT compress error", MB_ICONERROR | MB_OK);
 		break;
 	}
 }
@@ -329,7 +330,7 @@ int DXTCompressImage(LPCSTR out_name, u8 *raw_data, u32 w, u32 h, u32 pitch, STe
 int DXTCompressImage	(LPCSTR out_name, u8* raw_data, u32 w, u32 h, u32 pitch, STextureParams* fmt, u32 depth)
 {
 	// TSMP: todo
-	MessageBoxA(0, "TSMP: DXTCompressImage not implemented!", "Error", 0);
+	SDKDialogs::Show(nullptr, "TSMP: DXTCompressImage not implemented!", "Error", MB_OK | MB_ICONERROR);
 	return false;
 	/*CTimer T; T.Start();
 

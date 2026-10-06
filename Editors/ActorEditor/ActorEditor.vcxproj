@@ -269,7 +269,9 @@
     <ClInclude Include="UI_ActorTools.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="resources\ActorEditor.rc" />
+    <ResourceCompile Include="resources\ActorEditor.rc">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\Launcher\assets\gui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="ae.ico" />

@@ -81,6 +81,9 @@ void xrCore::InitCore(const char* AppName, LogCallback cb)
 
 	xr_strcpy(Params, sizeof(Params), GetCommandLine());
 	_strlwr_s(Params, sizeof(Params));
+    const char* debugOption = strstr(Params, " -sdk_debug");
+    DebugMode = debugOption && (debugOption[sizeof(" -sdk_debug") - 1] == '\0' ||
+        debugOption[sizeof(" -sdk_debug") - 1] == ' ');
 
 	string_path fn, dr, di;
 
@@ -133,6 +136,8 @@ void xrCore::InitCore(const char* AppName, LogCallback cb)
 		flags |= ELocatorAPI::flDumpFileActivity;
 
 	FS.InitFS(flags);
+    if (DebugMode)
+        Msg("! [SDK DEBUG] Log-only checks enabled; editor rendering uses available resources and debug shader fallbacks.");
 	PrintBuildId();
 	EFS._initialize();
 

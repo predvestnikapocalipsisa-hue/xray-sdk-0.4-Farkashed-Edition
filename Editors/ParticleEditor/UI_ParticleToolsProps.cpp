@@ -19,10 +19,12 @@ void CParticleTool::OnDrawUI()
                 if (result == "Effect")
                 {
                     AppendPE(0, m_CreatingParticlePath.c_str());
+                    Modified();
                 }
                 else
                 {
                     AppendPG(0, m_CreatingParticlePath.c_str());
+                    Modified();
                 }
             }
             m_CreatingParticle = FALSE;
@@ -75,54 +77,44 @@ void CParticleTool::OnParticleItemRemove(LPCSTR name, EItemType type)
 void CParticleTool::OnControlClick(ButtonValue *sender, bool &bDataModified, bool &bSafe)
 {
     m_Transform.identity();
+    ApplyParent(true);
+    UI->RedrawScene();
     bDataModified = false;
 }
 
-void CParticleTool::OnParticleItemFocused(ListItem *items)
+void CParticleTool::OnParticleItemFocused(ListItem *item)
 {
     PropItemVec props;
-    m_EditMode = emEffect;
-
-    ButtonValue *B;
-    B = PHelper().CreateButton(props, "Transform\\Edit", "Reset", ButtonValue::flFirstOnly);
-    B->OnBtnClickEvent = ButtonValue::TOnBtnClick(this, &CParticleTool::OnControlClick);
-    PHelper().CreateFlag32(props, "Transform\\Type", &m_Flags, flSetXFORM, "Update", "Set");
-
-    // reset to default
-    ResetCurrent();
-
-    if (items)
+    if (!item || !item->m_Object)
     {
-
-        ListItem *item = items;
-        if (item)
-        {
-            m_EditMode = EEditMode(item->Type());
-            switch (m_EditMode)
-            {
-            case emEffect:
-            {
-                PS::CPEDef *def = ((PS::CPEDef *)item->m_Object);
-                SetCurrentPE(def);
-                def->FillProp(EFFECT_PREFIX, props, item);
-            }
-            break;
-            case emGroup:
-            {
-                PS::CPGDef *def = ((PS::CPGDef *)item->m_Object);
-                SetCurrentPG(def);
-                def->FillProp(GROUP_PREFIX, props, item);
-            }
-            break;
-            default:
-                THROW;
-            }
-        }
+        ResetCurrent();
+        m_ItemProps->AssignItems(props);
+        UI->RedrawScene();
+        return;
     }
+
+    const EEditMode mode = EEditMode(item->Type());
+    const bool same = mode == m_EditMode &&
+        ((mode == emEffect && item->m_Object == m_LibPED) ||
+         (mode == emGroup && item->m_Object == m_LibPGD));
+    // Rebuilding properties for the same definition must not stop its preview.
+    if (!same)
+    {
+        if (mode == emEffect) SetCurrentPE(static_cast<PS::CPEDef*>(item->m_Object));
+        else if (mode == emGroup) SetCurrentPG(static_cast<PS::CPGDef*>(item->m_Object));
+        else { ResetCurrent(); return; }
+    }
+
+    ButtonValue* reset = PHelper().CreateButton(props, "Transform\\Edit", "Reset", ButtonValue::flFirstOnly);
+    reset->OnBtnClickEvent = ButtonValue::TOnBtnClick(this, &CParticleTool::OnControlClick);
+    PropValue* transform = PHelper().CreateFlag32(props, "Transform\\Type", &m_Flags, flSetXFORM, "Update", "Set");
+    transform->OnChangeEvent.bind(this, &CParticleTool::OnPreviewTransformChanged);
+    if (mode == emEffect) m_LibPED->FillProp(EFFECT_PREFIX, props, item);
+    else m_LibPGD->FillProp(GROUP_PREFIX, props, item);
     m_ItemProps->AssignItems(props);
+    if (!same && m_AutoPlay) PlayCurrent();
     UI->RedrawScene();
 }
-
 //------------------------------------------------------------------------------
 extern xr_string _item_to_select_after_edit;
 
@@ -149,7 +141,7 @@ void CParticleTool::RealUpdateProperties()
             I->SetIcon(2);
         }
     }
-    m_PList->AssignItems(items, false, true);
+    m_PList->AssignItems(items, nullptr, true, true);
     if (_item_to_select_after_edit.size())
     {
         m_PList->SelectItem(_item_to_select_after_edit.c_str());
@@ -157,9 +149,9 @@ void CParticleTool::RealUpdateProperties()
     }
     else
     {
-        if (m_EditPG && m_EditPG->GetDefinition())
-            m_PList->SelectItem(m_EditPG->Name().c_str());
-        if (m_EditPE && m_EditPE->GetDefinition())
-            m_PList->SelectItem(m_EditPE->Name().c_str());
+        if (m_EditMode == emGroup && m_LibPGD)
+            m_PList->SelectItem(m_LibPGD->m_Name.c_str());
+        else if (m_EditMode == emEffect && m_LibPED)
+            m_PList->SelectItem(m_LibPED->m_Name.c_str());
     }
 }

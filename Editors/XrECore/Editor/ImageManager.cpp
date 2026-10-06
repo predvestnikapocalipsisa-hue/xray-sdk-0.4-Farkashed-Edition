@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "ImageManager.h"
+#include "../XrEUI/SDKMessageBox.h"
 #include "xrImage_Resampler.h"
 #include "..\Engine\Image.h"
 #include "ui_main.h"
@@ -38,7 +39,7 @@ static void ReportGameTextureError(LPCSTR fmt, ...)
     buf[sizeof(buf) - 1] = 0;
     va_end(mark);
 
-    int res = MessageBox(GetActiveWindow(), buf, "Error",
+    int res = SDKDialogs::Show(GetActiveWindow(), buf, "Error",
         MB_ABORTRETRYIGNORE | MB_ICONERROR | MB_DEFBUTTON2);
 
     if (res == IDIGNORE)

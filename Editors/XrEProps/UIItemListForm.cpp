@@ -81,6 +81,7 @@ void UIItemListForm::SelectItem(const char *name)
 	if (name == nullptr)
 		return;
 	Node *N = SelectObject(&m_GeneralNode, name);
+    if (!N || !N->Object) return;
 	if (m_Flags.test(fMultiSelect))
 	{
 		ClearSelectedItems();

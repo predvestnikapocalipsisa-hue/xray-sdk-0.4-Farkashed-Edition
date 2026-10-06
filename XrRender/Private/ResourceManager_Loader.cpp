@@ -3,6 +3,10 @@
 
 #include "ResourceManager.h"
 #include "blenders\blender.h"
+#ifdef _EDITOR
+#include "Blender_Editor_Wire.h"
+#include "Blender_Editor_Selection.h"
+#endif
 
 void CResourceManager::OnDeviceDestroy(BOOL)
 {
@@ -53,6 +57,20 @@ void CResourceManager::OnDeviceCreate(IReader *F)
 {
 	if (!RDEVICE.b_is_Ready)
 		return;
+
+#ifdef _EDITOR
+    if (!F && Core.DebugMode)
+    {
+        IBlender* wire = xr_new<CBlender_Editor_Wire>();
+        wire->getDescription().Setup("editor\\wire");
+        m_blenders.insert(mk_pair(xr_strdup("editor\\wire"), wire));
+        IBlender* selection = xr_new<CBlender_Editor_Selection>();
+        selection->getDescription().Setup("editor\\selection");
+        m_blenders.insert(mk_pair(xr_strdup("editor\\selection"), selection));
+        Msg("! [SDK DEBUG] shaders.xr unavailable; using built-in untextured editor shaders.");
+        return;
+    }
+#endif
 
 	R_ASSERT2(F, "Shader library is required");
 
