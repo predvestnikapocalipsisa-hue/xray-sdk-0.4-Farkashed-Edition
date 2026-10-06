@@ -1,5 +1,5 @@
 <div align="center">
-<img width="2000" height="1027" alt="Logo" src="https://github.com/user-attachments/assets/aa4c382a-9602-4793-851f-f3881d5c5fc3" />
+    <img width="720" alt="Logo" src="https://github.com/user-attachments/assets/aa4c382a-9602-4793-851f-f3881d5c5fc3" />
 </div>
 
 ### X-Ray SDK 0.4 Farkashed Edition
