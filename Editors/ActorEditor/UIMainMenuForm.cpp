@@ -343,10 +343,6 @@ void UIMainMenuForm::Draw()
                             Colors::Disable();
                     }
                 }
-                if (ImGui::MenuItem("SDK Version", ""))
-                {
-                    MessageBoxA(NULL, "Current SDK version: 4.7", "Information", MB_OK | MB_ICONINFORMATION);
-                }
             }
             ImGui::EndMenu();
         }

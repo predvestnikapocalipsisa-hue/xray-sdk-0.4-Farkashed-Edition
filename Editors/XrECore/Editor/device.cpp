@@ -77,10 +77,8 @@ void CEditorRenderDevice::Initialize()
 	// game materials
     string_path materials;
     FS.update_path(materials, _game_data_, "gamemtl.xr");
-    if (!Core.DebugMode || FS.exist(materials))
-        GMLib.Load();
-    else
-        Msg("! [SDK DEBUG] Material assets are unavailable; using editor defaults.");
+    if (!Core.DebugMode || FS.exist(materials)) GMLib.Load();
+    else Msg("! [SDK DEBUG] Material assets are unavailable; using editor defaults.");
 
 	// compiler shader
 	string_path fn;
@@ -249,15 +247,11 @@ void CEditorRenderDevice::_Create(IReader* F)
 	_SetupStates();
 
 	RCache.OnDeviceCreate();
-    if (!Core.DebugMode)
-    {
-        Resources->OnDeviceCreate(F);
-        m_WireShader.create("editor\\wire");
-        m_SelectionShader.create("editor\\selection");
-    }
-    else
-        Msg("! [SDK DEBUG] Skipping shader library and 3D rendering resources.");
-    ::Render->OnDeviceCreate();
+    Resources->OnDeviceCreate(F);
+	::Render->OnDeviceCreate();
+
+    m_WireShader.create("editor\\wire");
+    m_SelectionShader.create("editor\\selection");
 
 	// signal another objects
 	UI->OnDeviceCreate();

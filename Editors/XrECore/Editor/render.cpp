@@ -34,15 +34,12 @@ void CRender::Initialize()
 	if (!Core.DebugMode)
         PSLibrary.OnCreate();
     else
-    if (!Core.DebugMode)
     {
         string_path particles;
         FS.update_path(particles, _game_data_, "particles.xr");
         if (FS.exist(particles)) PSLibrary.Load(particles);
         else Msg("! [SDK DEBUG] Particle assets are unavailable; continuing without particle presets.");
     }
-    else
-        Msg("! [SDK DEBUG] Skipping particle library initialization.");
 }
 void CRender::ShutDown()
 {
