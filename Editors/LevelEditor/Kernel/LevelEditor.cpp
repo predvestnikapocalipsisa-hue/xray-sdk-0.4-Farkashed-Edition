@@ -88,7 +88,6 @@ namespace
             FS.file_delete(path);
             FS.update_path(path, _maps_, (sorted[i].first + ".~level").c_str());
             FS.file_delete(path);
-            Msg("# [Recovery] Removed old backup: %s", sorted[i].first.c_str());
         }
     }
 
