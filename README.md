@@ -1,19 +1,11 @@
-
+<div align="center">
 <img width="2000" height="1027" alt="Logo" src="https://github.com/user-attachments/assets/aa4c382a-9602-4793-851f-f3881d5c5fc3" />
-
+</div>
 
 ### X-Ray SDK 0.4 Farkashed Edition
 ("Farkashed" не несёт в себе никакого смысла, это просто шуточное название)
 
 Модифицированная версия X-Ray SDK 0.4, которая расширяет возможности, делает инструментарий более удобным и исправляет баги. Проект базируется на TSMP SDK (который в свою очередь основан на X-Ray SDK 0.8 by Red Panda).
-
-<img width="2557" height="1406" alt="LevelEditor_1zw5z5dyAD" src="https://github.com/user-attachments/assets/6097b041-f792-49e0-9937-b5db8301184e" />
-
-<img width="2557" height="1406" alt="LevelEditor_tkbmwR3HCx" src="https://github.com/user-attachments/assets/de13464b-b557-45b5-9557-3c0d3749244b" />
-
-<img width="2557" height="1406" alt="LevelEditor_TUlTlJD2ib" src="https://github.com/user-attachments/assets/0b902155-4de4-4ab3-8948-c0cfbdaae5e8" />
-
-<img width="2557" height="1406" alt="LevelEditor_RR5P7aK3q8" src="https://github.com/user-attachments/assets/60671696-eda5-4772-b29a-269b8e86397c" />
 
 ### Решения возможных проблем есть на вики
 
