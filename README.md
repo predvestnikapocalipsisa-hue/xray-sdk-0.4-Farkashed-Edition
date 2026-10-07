@@ -28,6 +28,20 @@
     Из репозитория вырезано всё, кроме самих редакторов и необходимых компонентов.
 </p>
 
+<p>
+<b>Скриншоты редакторов:</b>
+
+<img width="2560" height="1401" alt="Launcher_y1cLEUouPy" src="https://github.com/user-attachments/assets/6ddf7c86-80b7-43b1-b4d5-9918244d8a31" />
+
+<img width="2560" height="1401" alt="Launcher_VGEnaegayn" src="https://github.com/user-attachments/assets/d3aa9e1f-fae1-49ab-b7ad-51ced5eb9b29" />
+
+<img width="2560" height="1401" alt="Launcher_JPBVcKnGl8" src="https://github.com/user-attachments/assets/db50294f-ff6c-4e95-81d3-bf43994b0390" />
+
+<img width="2560" height="1401" alt="Launcher_nnMQSj1Uo6" src="https://github.com/user-attachments/assets/0a2fa9bb-8d1d-4942-a571-146bb2d0ae8e" />
+
+
+</p>
+
 
 
 <b>Сборка</b>
