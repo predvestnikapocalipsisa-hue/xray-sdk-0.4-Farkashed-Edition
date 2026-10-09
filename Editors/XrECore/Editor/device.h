@@ -36,7 +36,9 @@ class ECORE_API CEditorRenderDevice : public CRenderDeviceBase
 	void _SetupStates();
 	void _Create(IReader *F);
 	void _Destroy(BOOL bKeepTextures);
-	void Reset();
+	bool Reset();
+	bool m_ResetPending = false;
+	HRESULT m_LastResetResult = D3D_OK;
 
 public:
 	ref_shader m_WireShader;
@@ -116,6 +118,7 @@ public:
 
 	void RenderNearer(float f_Near);
 	void ResetNearer();
+	bool EnsureReady();
 	BOOL Begin();
 	void End();
 

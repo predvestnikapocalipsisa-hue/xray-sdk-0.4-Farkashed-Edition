@@ -45,7 +45,7 @@ CHW::~CHW()
 	;
 }
 
-void CHW::Reset(HWND hwnd)
+HRESULT CHW::Reset(HWND hwnd)
 {
 #ifdef DEBUG
 	_RELEASE(dwDebugSB);
@@ -74,6 +74,14 @@ void CHW::Reset(HWND hwnd)
 		DevPP.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 #endif
 
+#ifdef _EDITOR
+	// Reset may fail temporarily and modifies its parameters even on failure.
+	// Keep the requested dimensions and return to the editor's message pump.
+	D3DPRESENT_PARAMETERS parameters = DevPP;
+	const HRESULT result = pDevice->Reset(&parameters);
+	if (FAILED(result))
+		return result;
+#else
 	while (TRUE)
 	{
 		HRESULT _hr = HW.pDevice->Reset(&DevPP);
@@ -81,6 +89,7 @@ void CHW::Reset(HWND hwnd)
 		if (SUCCEEDED(_hr))
 			break;
 	}
+#endif
 	R_CHK(pDevice->GetRenderTarget(0, &pBaseRT));
 	R_CHK(pDevice->GetDepthStencilSurface(&pBaseZB));
 #ifdef DEBUG
@@ -89,6 +98,7 @@ void CHW::Reset(HWND hwnd)
 #ifndef _EDITOR
 	updateWindowProps(hwnd);
 #endif
+	return D3D_OK;
 }
 
 // xr_token*				vid_mode_token = NULL;

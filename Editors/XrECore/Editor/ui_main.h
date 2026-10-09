@@ -91,7 +91,7 @@ protected:
 protected:
     long m_StartTime;
 
-    void PrepareRedraw();
+    bool PrepareRedraw();
     void Redraw();
 
 protected:
