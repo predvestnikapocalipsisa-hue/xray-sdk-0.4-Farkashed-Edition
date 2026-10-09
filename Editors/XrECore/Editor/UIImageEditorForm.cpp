@@ -172,9 +172,10 @@ ETextureThumbnail* UIImageEditorForm::FindUsedTHM(const shared_str& name)
             ImageLib.CreateTextureThumbnail(thm, name.c_str(), _import_, !bLoad);
         }
     }
-    else
+    else if (!thm->Load())
     {
-        thm->Load();
+        // Textures without a THM need defaults inferred from their names too.
+        ImageLib.CreateTextureThumbnail(thm, name.c_str());
     }
     return thm;
 }

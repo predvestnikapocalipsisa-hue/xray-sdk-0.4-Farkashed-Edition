@@ -7,6 +7,43 @@ UIPropertiesItem::UIPropertiesItem(shared_str Name, UIPropertiesForm* properties
 
 void UIPropertiesItem::Draw()
 {
+	if (PItem && PItem->Type() == PROP_BUTTON && Owner)
+	{
+		const xr_string name = Name.c_str();
+		const xr_string suffix = " Copy/Paste";
+		if (name.size() > suffix.size() && name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0)
+		{
+			const xr_string pairedName = name.substr(0, name.size() - suffix.size());
+			for (UITreeItem* sibling : Owner->Items)
+			{
+				UIPropertiesItem* propertySibling = static_cast<UIPropertiesItem*>(sibling);
+				if (propertySibling != this && propertySibling->PItem &&
+					xr_strcmp(*propertySibling->Name, pairedName.c_str()) == 0 &&
+					propertySibling->PItem->Type() == PROP_VECTOR)
+					return;
+			}
+		}
+	}
+
+	UIPropertiesItem* transformButtons = nullptr;
+	const bool isTransformValue = PItem &&
+		(xr_strcmp(*Name, "Position") == 0 || xr_strcmp(*Name, "Rotation") == 0 || xr_strcmp(*Name, "Scale") == 0);
+	if (isTransformValue && Owner)
+	{
+		for (UITreeItem* sibling : Owner->Items)
+		{
+			UIPropertiesItem* propertySibling = static_cast<UIPropertiesItem*>(sibling);
+			string_path buttonName;
+			xr_sprintf(buttonName, "%s Copy/Paste", Name.c_str());
+			if (propertySibling->PItem && propertySibling->PItem->Type() == PROP_BUTTON &&
+				xr_strcmp(*propertySibling->Name, buttonName) == 0)
+			{
+				transformButtons = propertySibling;
+				break;
+			}
+		}
+	}
+
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
 
@@ -26,11 +63,24 @@ void UIPropertiesItem::Draw()
 		ImGuiTreeNodeFlags FloderFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
 		bool open = ImGui::TreeNodeEx(DX2U(Name.c_str()), FloderFlags);
 		ImGui::TableNextColumn();
-		DrawItem();
+		if (transformButtons)
+		{
+			const float buttonWidth = 44.f;
+			const float spacing = ImGui::GetStyle().ItemSpacing.x;
+			DrawItem(ImGui::GetContentRegionAvail().x - buttonWidth - spacing);
+			ImGui::SameLine(0, spacing);
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.f, 1.f));
+			ImGui::PushID(transformButtons->Name.c_str());
+			transformButtons->DrawItem(buttonWidth);
+			ImGui::PopID();
+			ImGui::PopStyleVar();
+		}
+		else
+			DrawItem();
 
 		if (open)
 		{
-			for (UITreeItem* Item : Items)			
+			for (UITreeItem* Item : Items)
 				static_cast<UIPropertiesItem*>(Item)->Draw();
 			
 			ImGui::TreePop();
@@ -44,7 +94,20 @@ void UIPropertiesItem::Draw()
 		ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(row.x + fontSize * .5f, row.y + fontSize * .5f),
 			fontSize * .085f, ImGui::GetColorU32(ImGuiCol_TextDisabled), 12);
 		ImGui::TableNextColumn();
-		DrawItem();
+		if (transformButtons)
+		{
+			const float buttonWidth = 44.f;
+			const float spacing = ImGui::GetStyle().ItemSpacing.x;
+			DrawItem(ImGui::GetContentRegionAvail().x - buttonWidth - spacing);
+			ImGui::SameLine(0, spacing);
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.f, 1.f));
+			ImGui::PushID(transformButtons->Name.c_str());
+			transformButtons->DrawItem(buttonWidth);
+			ImGui::PopID();
+			ImGui::PopStyleVar();
+		}
+		else
+			DrawItem();
 	}
 }
 
@@ -56,7 +119,7 @@ void UIPropertiesItem::DrawRoot()
 		static_cast<UIPropertiesItem*>(Item)->Draw();	
 }
 
-void UIPropertiesItem::DrawItem()
+void UIPropertiesItem::DrawItem(float width)
 {
 	if (!PItem)
 		return;
@@ -96,7 +159,7 @@ void UIPropertiesItem::DrawItem()
 
 			if (!V->value.empty())
 			{
-				const float available = ImGui::GetContentRegionAvail().x;
+				const float available = width > 0.f ? width : ImGui::GetContentRegionAvail().x;
 				float minimum = ImGui::GetFrameHeight();
 				for (const shared_str& label : V->value)
 				{
@@ -172,7 +235,7 @@ void UIPropertiesItem::DrawItem()
 			}
 			else
 			{
-				ImGui::PushItemWidth(-1);
+				ImGui::PushItemWidth(width);
 				DrawProp();
 				ImGui::PopItemWidth();
 			}

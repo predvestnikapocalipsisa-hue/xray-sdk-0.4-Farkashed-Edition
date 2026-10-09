@@ -1019,6 +1019,7 @@ void CLevelMain::RegisterCommands()
 
     REGISTER_CMD_CE(COMMAND_SHOW_OBJECTLIST, "Scene\\Show Object List", LTools, CLevelTool::CommandShowObjectList, false);
     REGISTER_CMD_CE(COMMAND_MOVE_TO_CURSOR, "Scene\\Move To Cursor", LTools, CLevelTool::CommandMoveToCursor, false);
+    GetEditorCommands()[COMMAND_MOVE_TO_CURSOR]->sub_commands.front()->shortcut = xr_shortcut(VK_LBUTTON, FALSE, TRUE, FALSE);
     // common
     REGISTER_CMD_S(COMMAND_LIBRARY_EDITOR, CommandLibraryEditor);
     REGISTER_CMD_S(COMMAND_LANIM_EDITOR, CommandLAnimEditor);

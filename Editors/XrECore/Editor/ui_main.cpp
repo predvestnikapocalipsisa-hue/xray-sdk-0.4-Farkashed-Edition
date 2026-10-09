@@ -124,6 +124,14 @@ void TUI::MousePress(TShiftState Shift, int X, int Y)
     bMouseInUse = true;
 
     m_ShiftState = Shift;
+    m_CurrentCp.set(X, Y);
+
+    if ((Shift & ssCtrl) && (Shift & ssLeft))
+    {
+        ExecCommand(COMMAND_MOVE_TO_CURSOR);
+        RedrawScene();
+        return;
+    }
 
     // camera activate
     if (!EDevice.m_Camera.MoveStart(m_ShiftState))

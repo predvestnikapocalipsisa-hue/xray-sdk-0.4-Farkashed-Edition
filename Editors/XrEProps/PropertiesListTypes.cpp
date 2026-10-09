@@ -36,6 +36,15 @@ xr_string ShortcutValue::GetDrawText(TOnDrawTextEvent)
 	{
 		switch (value->key)
 		{
+		case VK_LBUTTON:
+			txt.append("Left Mouse Button");
+			break;
+		case VK_RBUTTON:
+			txt.append("Right Mouse Button");
+			break;
+		case VK_MBUTTON:
+			txt.append("Middle Mouse Button");
+			break;
 		case VK_ADD:
 			txt.append("Numpad+");
 			break;

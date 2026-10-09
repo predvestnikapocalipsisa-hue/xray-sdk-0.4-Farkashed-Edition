@@ -2,6 +2,7 @@
 
 class CFrustum;
 class CWayPoint;
+bool IsPointMode();
 
 struct SWPLink
 {
@@ -67,6 +68,18 @@ public:
 
     EWayType GetType() { return m_Type; }
 
+    virtual BOOL Selected() const override
+    {
+        if (IsPointMode())
+        {
+            for (WPVec::const_iterator it = m_WayPoints.begin(); it != m_WayPoints.end(); ++it)
+                if ((*it) && (*it)->m_bSelected)
+                    return TRUE;
+            return FALSE;
+        }
+        return inherited::Selected();
+    }
+
     virtual void Select(int flag);
     virtual bool RaySelect(int flag, const Fvector& start, const Fvector& dir, bool bRayTest = false); // flag 1,0,-1 (-1 invert)
     virtual bool FrustumSelect(int flag, const CFrustum& frustum);
@@ -107,7 +120,15 @@ public:
 
     virtual bool OnSelectionRemove();
 
-    virtual const Fvector& GetPosition() const { return m_WayPoints.front()->m_vPosition; }
+    virtual const Fvector& GetPosition() const
+    {
+        if (m_WayPoints.empty())
+        {
+            static Fvector zero;
+            return zero;
+        }
+        return m_WayPoints.front()->m_vPosition;
+    }
     virtual void SetPosition(const Fvector& pos)
     {
         MoveTo(pos, Fvector().set(0, 1, 0));

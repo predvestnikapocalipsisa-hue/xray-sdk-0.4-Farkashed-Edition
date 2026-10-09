@@ -9,7 +9,7 @@ public:
 	UIPropertiesForm* PropertiesFrom;
 	void Draw();
 	void DrawRoot();
-	void DrawItem();
+	void DrawItem(float width = -1.f);
 	void DrawProp();
 
 protected:

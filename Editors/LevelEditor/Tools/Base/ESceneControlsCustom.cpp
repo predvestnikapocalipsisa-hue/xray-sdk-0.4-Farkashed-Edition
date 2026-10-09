@@ -206,54 +206,21 @@ bool TUI_CustomControl::MovingStart(TShiftState Shift)
     if (Scene->SelectionCount(true, cls) == 0)
         return false;
 
-    if (Shift & ssCtrl)
+    if (etAxisY == Tools->GetAxis())
     {
-        ObjectList lst;
-        if (Scene->GetQueryObjects(lst, LTools->CurrentClassID(), 1, 1, 0))
-        {
-            if (lst.size() == 1)
-            {
-                Fvector p, n;
-                UI->IR_GetMousePosReal(EDevice.m_hWnd, UI->m_CurrentCp);
-                EDevice.m_Camera.MouseRayFromPoint(UI->m_CurrentRStart, UI->m_CurrentRDir, UI->m_CurrentCp);
-                if (LUI->PickGround(p, UI->m_CurrentRStart, UI->m_CurrentRDir, 1, &n))
-                {
-                    for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
-                        (*_F)->MoveTo(p, n);
-                    Scene->UndoSave();
-                }
-            }
-            else
-            {
-                Fvector p, n;
-                Fvector D = { 0, -1, 0 };
-                for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
-                {
-                    if (LUI->PickGround(p, (*_F)->GetPosition(), D, 1, &n))
-                        (*_F)->MoveTo(p, n);
-                }
-            }
-        }
-        return false;
+        m_MovingXVector.set(0, 0, 0);
+        m_MovingYVector.set(0, 1, 0);
     }
     else
     {
-        if (etAxisY == Tools->GetAxis())
-        {
-            m_MovingXVector.set(0, 0, 0);
-            m_MovingYVector.set(0, 1, 0);
-        }
-        else
-        {
-            m_MovingXVector.set(EDevice.m_Camera.GetRight());
-            m_MovingXVector.y = 0;
-            m_MovingYVector.set(EDevice.m_Camera.GetDirection());
-            m_MovingYVector.y = 0;
-            m_MovingXVector.normalize_safe();
-            m_MovingYVector.normalize_safe();
-        }
-        m_MovingReminder.set(0, 0, 0);
+        m_MovingXVector.set(EDevice.m_Camera.GetRight());
+        m_MovingXVector.y = 0;
+        m_MovingYVector.set(EDevice.m_Camera.GetDirection());
+        m_MovingYVector.y = 0;
+        m_MovingXVector.normalize_safe();
+        m_MovingYVector.normalize_safe();
     }
+    m_MovingReminder.set(0, 0, 0);
 
     // начало трансформации — подавляем Modified() во время движения
     s_transformInProgress = true;

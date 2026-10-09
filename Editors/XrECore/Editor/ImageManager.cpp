@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include <algorithm>
+#include <cctype>
 #pragma hdrstop
 
 #include "ImageManager.h"
@@ -242,15 +244,40 @@ void CImageManager::CreateTextureThumbnail(ETextureThumbnail* THM, const xr_stri
 // (пере)создании THM в SynchronizeTextures.
 void CImageManager::ApplyNamingConventionType(ETextureThumbnail* THM, LPCSTR base_name)
 {
-    if (strstr(base_name, "_bump"))
-    {
-        THM->m_TexParams.type = STextureParams::ttBumpMap;
+    xr_string texture_name = EFS.ChangeFileExt(base_name, "");
+    const size_t variant = texture_name.find('#');
+    if (variant != xr_string::npos)
+        texture_name.resize(variant);
+    std::transform(texture_name.begin(), texture_name.end(), texture_name.begin(), [](unsigned char c) { return static_cast<char>(tolower(c)); });
+
+    STextureParams::ETType detectedType = STextureParams::ttForceU32;
+    if (texture_name.size() >= 5 && texture_name.compare(texture_name.size() - 5, 5, "_bump") == 0)
+        detectedType = STextureParams::ttBumpMap;
+    else if ((texture_name.size() >= 4 && texture_name.compare(texture_name.size() - 4, 4, "_det") == 0) ||
+             (texture_name.size() >= 5 && texture_name.compare(texture_name.size() - 5, 5, "_mask") == 0))
+        detectedType = STextureParams::ttImage;
+
+    if (detectedType == STextureParams::ttForceU32)
+        return;
+
+    const bool hasTerrainSettings = THM->m_TexParams.flags.test(
+        STextureParams::flDiffuseDetail | STextureParams::flBumpDetail | STextureParams::flImplicitLighted);
+    if (THM->m_TexParams.type == detectedType && !hasTerrainSettings)
+        return;
+
+    // Named texture roles must not inherit terrain-only settings from template_terrain.thm.
+    const u32 width = THM->m_TexParams.width;
+    const u32 height = THM->m_TexParams.height;
+    const bool hasAlpha = THM->m_TexParams.HasAlpha();
+    THM->m_TexParams.Clear();
+    THM->m_TexParams.width = width;
+    THM->m_TexParams.height = height;
+    THM->m_TexParams.flags.set(STextureParams::flHasAlpha, hasAlpha);
+    THM->m_TexParams.fmt = hasAlpha ? STextureParams::tfDXT3 : STextureParams::tfDXT1;
+    THM->m_TexParams.type = detectedType;
+
+    if (detectedType == STextureParams::ttBumpMap)
         THM->m_TexParams.flags.set(STextureParams::flGenerateMipMaps, FALSE);
-    }
-    else if (strstr(base_name, "_det") || strstr(base_name, "_mask"))
-    {
-        THM->m_TexParams.type = STextureParams::ttImage;
-    }
 }
 
 //------------------------------------------------------------------------------

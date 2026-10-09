@@ -151,7 +151,7 @@ public:
 
     IC BOOL Motionable() const { return m_CO_Flags.is(flMotion); }
     IC BOOL Visible() const { return m_RT_Flags.is(flRT_Visible); }
-    IC BOOL Selected() const { return m_RT_Flags.is(flRT_Selected); }
+    virtual BOOL Selected() const { return m_RT_Flags.is(flRT_Selected); }
     IC BOOL Valid() const { return m_RT_Flags.is(flRT_Valid); }
     IC BOOL IsDeleted() const { return m_RT_Flags.is(flRT_NeedSelfDelete); }
 

@@ -391,7 +391,6 @@ void CLevelTool::ShowObjectList()
 
 void CLevelTool::MoveToCursor()
 {
-    UI->m_CurrentCp = UI->GetRenderMousePosition();
     EDevice.m_Camera.MouseRayFromPoint(UI->m_CurrentRStart, UI->m_CurrentRDir, UI->m_CurrentCp);
 
     Fvector p, n;

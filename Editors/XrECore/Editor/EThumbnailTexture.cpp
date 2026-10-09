@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include <algorithm>
+#include <cctype>
 #pragma hdrstop
 
 #include "EThumbnail.h"
@@ -90,6 +92,19 @@ void ETextureThumbnail::CreateFromData(u32* p, u32 w, u32 h)
 }
 //------------------------------------------------------------------------------
 
+static bool IsTerrainSatelliteName(LPCSTR name)
+{
+    xr_string texture_name = EFS.ChangeFileExt(name, "");
+    const size_t variant = texture_name.find('#');
+    if (variant != xr_string::npos)
+        texture_name.resize(variant);
+    std::transform(texture_name.begin(), texture_name.end(), texture_name.begin(), [](unsigned char c) { return static_cast<char>(tolower(c)); });
+
+    return (texture_name.size() >= 4 && texture_name.compare(texture_name.size() - 4, 4, "_det") == 0) ||
+        (texture_name.size() >= 5 && texture_name.compare(texture_name.size() - 5, 5, "_mask") == 0) ||
+        (texture_name.size() >= 5 && texture_name.compare(texture_name.size() - 5, 5, "_bump") == 0);
+}
+
 bool Stbi_Load(LPCSTR full_name, U32Vec& data, u32& w, u32& h, u32& a);
 
 bool ETextureThumbnail::Load(LPCSTR src_name, LPCSTR path)
@@ -114,7 +129,7 @@ bool ETextureThumbnail::Load(LPCSTR src_name, LPCSTR path)
         // .thm не заводился "мыльным" - это намеренное поведение именно для
         // самой террейн-текстуры, а не для её сателлитов).
         bool bTerrainFolder = strstr(tex_name, "terrain\\") || strstr(tex_name, "terrain/");
-        bool bTerrainSatellite = strstr(tex_name, "_det") || strstr(tex_name, "_mask");
+        bool bTerrainSatellite = IsTerrainSatelliteName(tex_name);
 
         if (bTerrainFolder && !bTerrainSatellite)
         {
