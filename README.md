@@ -49,5 +49,7 @@
 Для сборки проекта в Visual Studio вам потребуется установленная рабочая нагрузка "Разработка классических приложений на C++", а также обязательно отмеченные в меню дополнительных компонентов "Средства сборки C++ для VS 2026 (v145)" и актуальный Windows SDK.
 ### [Установка](https://sites.google.com/view/stsocmoding/%D1%82%D1%83%D1%82%D0%BE%D1%80%D0%B8%D0%B0%D0%BB%D1%8B/%D1%81%D0%B4%D0%BA%D0%BB%D0%BE%D0%B3%D0%B8%D0%BA%D0%B0%D0%BD%D0%BF%D1%81/%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-sdk-farkashed-edition?authuser=0)
 
-### Credits: Zarya, TSMP, Red Panda (BearIvan), Lunar.
+### Autors: Zarya, Lunar
+
+### Credits: TSMP, Red Panda (BearIvan).
 </div>
