@@ -18,7 +18,7 @@ UIObjectList::~UIObjectList()
 
 void UIObjectList::Draw()
 {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 400));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(340, 300));
 
     if (!ImGui::Begin("Object List", &bOpen))
     {
@@ -27,23 +27,47 @@ void UIObjectList::Draw()
         return;
     }
 
- 
     m_VisibleRefs.clear();
+
+    static float rightPanelWidth = 190.0f;
+    const ImVec2 available = ImGui::GetContentRegionAvail();
+    const float splitterWidth = 6.0f;
+    const float maxRightPanelWidth = (std::max)(140.0f, available.x - 186.0f - splitterWidth);
+    rightPanelWidth = (std::max)(140.0f, (std::min)(rightPanelWidth, maxRightPanelWidth));
+    const float leftPanelWidth = available.x - rightPanelWidth - splitterWidth;
+    const float leftListHeight = (std::max)(1.0f, available.y - ImGui::GetFrameHeight() - 4.0f);
 
     {
         ImGui::BeginGroup();
-        if (ImGui::BeginChild("Left", ImVec2(-130, -ImGui::GetFrameHeight() - 4), true))
+        if (ImGui::BeginChild("Left", ImVec2(leftPanelWidth, leftListHeight), true))
         {
             DrawObjects();
         }
         ImGui::EndChild();
 
-        ImGui::SetNextItemWidth(-130);
+        ImGui::SetNextItemWidth(leftPanelWidth);
         ImGui::InputText("##value", m_Filter, sizeof(m_Filter));
         ImGui::EndGroup();
     }
-    ImGui::SameLine();
-    if (ImGui::BeginChild("Right", ImVec2(130, 0)))
+    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::InvisibleButton("##ObjectListSplitter", ImVec2(splitterWidth, available.y));
+    const bool splitterHovered = ImGui::IsItemHovered();
+    const bool splitterActive = ImGui::IsItemActive();
+    if (splitterHovered || splitterActive)
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+    const ImVec2 splitterMin = ImGui::GetItemRectMin();
+    const ImVec2 splitterMax = ImGui::GetItemRectMax();
+    ImGui::GetWindowDrawList()->AddRectFilled(splitterMin, splitterMax,
+        ImGui::GetColorU32(splitterActive ? ImGuiCol_ButtonActive :
+            splitterHovered ? ImGuiCol_ButtonHovered : ImGuiCol_Separator));
+    if (splitterActive)
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        rightPanelWidth = (std::max)(140.0f,
+            (std::min)(maxRightPanelWidth, rightPanelWidth - io.MouseDelta.x));
+    }
+    ImGui::SameLine(0.0f, 0.0f);
+    if (ImGui::BeginChild("Right", ImVec2(rightPanelWidth, 0)))
     {
         if (ImGui::RadioButton("All", m_Mode == M_All)) m_Mode = M_All;
         if (ImGui::RadioButton("Visible Only", m_Mode == M_Visible)) m_Mode = M_Visible;

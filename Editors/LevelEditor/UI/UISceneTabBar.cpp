@@ -6,6 +6,7 @@
 xr_vector<SceneTab> UISceneTabBar::s_tabs;
 int                 UISceneTabBar::s_activeIdx  = -1;
 float               UISceneTabBar::s_tabBarHeight = 0.f;
+unsigned            UISceneTabBar::s_nextTabId = 1;
 
 xr_string UISceneTabBar::NameFromPath(const char* path)
 {
@@ -25,32 +26,68 @@ xr_string UISceneTabBar::NameFromPath(const char* path)
     return s.empty() ? xr_string("Untitled") : s;
 }
 
+namespace
+{
+    xr_string NormalizeScenePath(const char* path)
+    {
+        xr_string normalized = path ? path : "";
+        for (char& ch : normalized)
+        {
+            if (ch == '/') ch = '\\';
+            ch = (char)tolower((unsigned char)ch);
+        }
+        return normalized;
+    }
+
+    void SetTabScene(SceneTab& tab, const char* filePath, const char* displayName)
+    {
+        tab.filePath = filePath ? filePath : "";
+        tab.displayName = displayName && displayName[0] ? displayName : UISceneTabBar::NameFromPath(filePath).c_str();
+        tab.isModified = false;
+        tab.wantClose = false;
+    }
+}
+
 void UISceneTabBar::OnSceneLoaded(const char* filePath, const char* displayName)
 {
-
-    if (filePath && filePath[0])
-    {
-        for (int i = 0; i < (int)s_tabs.size(); i++)
-        {
-            if (s_tabs[i].filePath == filePath)
+    const xr_string key = NormalizeScenePath(filePath);
+    if (!key.empty())
+        for (int i = 0; i < (int)s_tabs.size(); ++i)
+            if (NormalizeScenePath(s_tabs[i].filePath.c_str()) == key)
             {
+                SetTabScene(s_tabs[i], filePath, displayName);
                 s_activeIdx = i;
                 return;
             }
-        }
-    }
-
-
     SceneTab tab;
-    tab.filePath    = filePath ? filePath : "";
-    tab.displayName = displayName ? displayName : NameFromPath(filePath).c_str();
-    tab.isModified  = false;
-    tab.wantClose   = false;
-
+    tab.id = s_nextTabId++;
+    SetTabScene(tab, filePath, displayName);
     s_tabs.push_back(tab);
     s_activeIdx = (int)s_tabs.size() - 1;
 }
 
+void UISceneTabBar::ReplaceActiveScene(const char* filePath, const char* displayName)
+{
+    const xr_string key = NormalizeScenePath(filePath);
+    if (!key.empty())
+        for (int i = 0; i < (int)s_tabs.size(); ++i)
+            if (i != s_activeIdx && NormalizeScenePath(s_tabs[i].filePath.c_str()) == key)
+            {
+                s_activeIdx = i;
+                return;
+            }
+    if (s_activeIdx < 0 || s_activeIdx >= (int)s_tabs.size())
+    {
+        OnSceneLoaded(filePath, displayName);
+        return;
+    }
+    SetTabScene(s_tabs[s_activeIdx], filePath, displayName);
+}
+
+void UISceneTabBar::OpenInNewTab(const char* filePath, const char* displayName)
+{
+    OnSceneLoaded(filePath, displayName);
+}
 void UISceneTabBar::OnSceneSaved(const char* filePath)
 {
     if (s_activeIdx < 0 || s_activeIdx >= (int)s_tabs.size())
@@ -82,16 +119,17 @@ void UISceneTabBar::SwitchToTab(int idx)
     {
 
         if (!Scene->IfModified())
-            return;   
+            return;
+        OnSceneSaved(LTools->m_LastFileName.c_str());
 
-        if (!s_tabs[s_activeIdx].filePath.empty())
-            ExecCommand(COMMAND_SAVE);
+
     }
 
     const xr_string& path = s_tabs[idx].filePath;
     if (!path.empty())
     {
-        ExecCommand(COMMAND_LOAD, path);
+        if (!ExecCommand(COMMAND_LOAD, path))
+            return;
     }
     else
     {
@@ -152,6 +190,8 @@ bool UISceneTabBar::Draw()
     }
 
     bool switched = false;
+    if (s_activeIdx >= 0 && s_activeIdx < (int)s_tabs.size())
+        s_tabs[s_activeIdx].isModified = Scene->IsUnsaved();
 
     const ImVec4 accent = ImGui::GetStyle().Colors[ImGuiCol_TabActive];
     const ImVec4 accentHov = ImGui::GetStyle().Colors[ImGuiCol_TabHovered];
@@ -170,8 +210,10 @@ bool UISceneTabBar::Draw()
     {
         if (Scene->IfModified())
         {
+            OnSceneSaved(LTools->m_LastFileName.c_str());
             ExecCommand(COMMAND_CLEAR);
             SceneTab newTab;
+            newTab.id = s_nextTabId++;
             newTab.displayName = "Untitled";
             s_tabs.push_back(newTab);
             s_activeIdx = (int)s_tabs.size() - 1;
@@ -198,9 +240,9 @@ bool UISceneTabBar::Draw()
             const xr_string utf8FilePath = XrUIManager::ConvertCP1251ToUTF8(tab.filePath.c_str());
             char label[512];
             if (tab.isModified)
-                _snprintf(label, sizeof(label), "\xE2\x97\x8F %s##stab%d", utf8DisplayName.c_str(), i);
+                _snprintf(label, sizeof(label), "\xE2\x97\x8F %s##stab%u", utf8DisplayName.c_str(), tab.id);
             else
-                _snprintf(label, sizeof(label), "%s##stab%d", utf8DisplayName.c_str(), i);
+                _snprintf(label, sizeof(label), "%s##stab%u", utf8DisplayName.c_str(), tab.id);
 
             ImGuiTabItemFlags itemFlags = ImGuiTabItemFlags_None;
             if (i == s_activeIdx)
@@ -218,7 +260,7 @@ bool UISceneTabBar::Draw()
             if (ImGui::IsItemActivated() && i != s_activeIdx)
             {
                 SwitchToTab(i);
-                switched = true;
+                switched = (s_activeIdx == i);
             }
 
             if (!tabOpen)
@@ -232,6 +274,7 @@ bool UISceneTabBar::Draw()
     {
         if (s_tabs[i].wantClose)
         {
+            s_tabs[i].wantClose = false;
             CloseTab(i);
             break;
         }

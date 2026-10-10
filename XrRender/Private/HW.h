@@ -29,7 +29,7 @@ public:
 
 	void DestroyDevice();
 
-	void Reset(HWND hw);
+	HRESULT Reset(HWND hw);
 
 	void selectResolution(u32 &dwWidth, u32 &dwHeight, BOOL bWindowed);
 	D3DFORMAT selectDepthStencil(D3DFORMAT);

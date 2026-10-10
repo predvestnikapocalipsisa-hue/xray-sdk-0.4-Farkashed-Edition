@@ -141,6 +141,13 @@ void CToolCustom::SetSettings(u32 mask, BOOL val)
 
 bool CToolCustom::MouseStart(TShiftState Shift)
 {
+    if (m_Action == etaMove || m_Action == etaRotate || m_Action == etaScale)
+    {
+        ETAxis picked = PickGizmo(UI->m_CurrentRStart, UI->m_CurrentRDir);
+        if (picked != etAxisUndefined)
+            SetAxis(picked);
+    }
+
     switch (m_Action)
     {
     case etaSelect:
@@ -183,15 +190,6 @@ bool CToolCustom::MouseStart(TShiftState Shift)
     case etaScale:
         m_ScaleAmount.set(0, 0, 0);
         break;
-    }
-
-    if (m_Action == etaMove || m_Action == etaRotate || m_Action == etaScale)
-    {
-        ETAxis picked = PickGizmo(UI->m_CurrentRStart, UI->m_CurrentRDir);
-        if (picked != etAxisUndefined)
-        {
-            SetAxis(picked);
-        }
     }
 
     return m_bHiddenMode;
@@ -572,7 +570,8 @@ ETAxis CToolCustom::PickGizmo(const Fvector &start, const Fvector &dir)
     Fvector endY = Fvector().add(center, axisY);
     Fvector endZ = Fvector().add(center, axisZ);
 
-    float pickRadius = scale * 0.15f;
+    // Match the visible shaft thickness so axis picking is forgiving.
+    float pickRadius = scale * 0.24f;
     float bestDist = 1e9f;
     ETAxis bestAxis = etAxisUndefined;
 
@@ -589,49 +588,22 @@ ETAxis CToolCustom::PickGizmo(const Fvector &start, const Fvector &dir)
 
     if (m_Action == etaMove || m_Action == etaScale)
     {
-        float quadSize = scale * 0.4f;
+        // Keep the XZ plane tile between the two shafts, close to their root.
+        const float planeHandleSize = scale * 0.20f;
+        const float planeHandleOffset = scale * 0.28f;
 
         Fvector hitZX;
         if (RayPlaneIntersection(start, dir, center, Fvector().set(0, 1, 0), hitZX))
         {
             Fvector local = Fvector().sub(hitZX, center);
-            if (local.x >= 0.0f && local.x <= quadSize && local.z >= 0.0f && local.z <= quadSize)
+            if (abs(local.x - planeHandleOffset) <= planeHandleSize * 0.5f &&
+                abs(local.z - planeHandleOffset) <= planeHandleSize * 0.5f)
             {
-                float d = local.magnitude();
+                float d = Fvector().sub(local, Fvector().set(planeHandleOffset, 0, planeHandleOffset)).magnitude();
                 if (d < bestDist)
                 {
                     bestDist = d;
                     bestAxis = etAxisZX;
-                }
-            }
-        }
-
-        Fvector hitXY;
-        if (RayPlaneIntersection(start, dir, center, Fvector().set(0, 0, 1), hitXY))
-        {
-            Fvector local = Fvector().sub(hitXY, center);
-            if (local.x >= 0.0f && local.x <= quadSize && local.y >= 0.0f && local.y <= quadSize)
-            {
-                float d = local.magnitude();
-                if (d < bestDist)
-                {
-                    bestDist = d;
-                    bestAxis = etAxisXY;
-                }
-            }
-        }
-
-        Fvector hitYZ;
-        if (RayPlaneIntersection(start, dir, center, Fvector().set(1, 0, 0), hitYZ))
-        {
-            Fvector local = Fvector().sub(hitYZ, center);
-            if (local.y >= 0.0f && local.y <= quadSize && local.z >= 0.0f && local.z <= quadSize)
-            {
-                float d = local.magnitude();
-                if (d < bestDist)
-                {
-                    bestDist = d;
-                    bestAxis = etAxisYZ;
                 }
             }
         }
@@ -727,9 +699,7 @@ void CToolCustom::RenderGizmo()
     u32 clrX = (active == etAxisX) ? 0xFFFFFF00 : 0xFFFF3333;
     u32 clrY = (active == etAxisY) ? 0xFFFFFF00 : 0xFF33FF33;
     u32 clrZ = (active == etAxisZ) ? 0xFFFFFF00 : 0xFF3388FF;
-    u32 clrZX = (active == etAxisZX) ? 0xFFFFFF00 : 0x6000FFFF;
-    u32 clrXY = (active == etAxisXY) ? 0xFFFFFF00 : 0x60FFFF00;
-    u32 clrYZ = (active == etAxisYZ) ? 0xFFFFFF00 : 0x60FF00FF;
+    u32 clrZX = (active == etAxisZX) ? 0xFFFFFF00 : 0xB000FFFF;
     u32 clrCam = (active == etAxisCAM) ? 0xFFFFFF00 : 0x80FFFFFF;
 
     if (m_Action == etaMove)
@@ -738,22 +708,38 @@ void CToolCustom::RenderGizmo()
         Fvector endY = Fvector().add(center, Fvector().set(0, scale, 0));
         Fvector endZ = Fvector().add(center, Fvector().set(0, 0, scale));
 
-        DU_impl.DrawLine(center, endX, clrX);
-        DU_impl.DrawLine(center, endY, clrY);
-        DU_impl.DrawLine(center, endZ, clrZ);
+        Fvector cameraRight = EDevice.m_Camera.GetRight();
+        Fvector cameraUp = EDevice.m_Camera.GetNormal();
+        const float shaftWidth = scale * 0.008f;
+        auto drawWideAxis = [&](const Fvector &end, u32 color)
+        {
+            DU_impl.DrawLine(center, end, color);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Fvector offset;
+                offset.mul(cameraRight, shaftWidth * side);
+                DU_impl.DrawLine(Fvector().add(center, offset), Fvector().add(end, offset), color);
+                offset.mul(cameraUp, shaftWidth * side);
+                DU_impl.DrawLine(Fvector().add(center, offset), Fvector().add(end, offset), color);
+            }
+        };
+        drawWideAxis(endX, clrX);
+        drawWideAxis(endY, clrY);
+        drawWideAxis(endZ, clrZ);
 
         float coneH = scale * 0.2f;
-        float coneR = scale * 0.05f;
+        float coneR = scale * 0.07f;
         DU_impl.DrawCone(Fidentity, endX, Fvector().set(1, 0, 0), coneH, coneR, clrX, clrX, TRUE, TRUE);
         DU_impl.DrawCone(Fidentity, endY, Fvector().set(0, 1, 0), coneH, coneR, clrY, clrY, TRUE, TRUE);
         DU_impl.DrawCone(Fidentity, endZ, Fvector().set(0, 0, 1), coneH, coneR, clrZ, clrZ, TRUE, TRUE);
 
-        float qSize = scale * 0.45f;
-        Fvector pZX_o = Fvector().add(center, Fvector().set(-qSize * 0.5f, 0, -qSize * 0.5f));
-        DU_impl.DrawRectangle(pZX_o, Fvector().set(qSize, 0, 0), Fvector().set(0, 0, qSize), clrZX, clrZX, TRUE, TRUE);
-
-        DU_impl.DrawRectangle(center, Fvector().set(qSize * 0.8f, 0, 0), Fvector().set(0, qSize * 0.8f, 0), clrXY, clrXY, TRUE, TRUE);
-        DU_impl.DrawRectangle(center, Fvector().set(0, qSize * 0.8f, 0), Fvector().set(0, 0, qSize * 0.8f), clrYZ, clrYZ, TRUE, TRUE);
+        const float planeHandleSize = scale * 0.20f;
+        const float planeHandleOffset = scale * 0.28f;
+        Fvector handleOrigin = Fvector().add(center,
+            Fvector().set(planeHandleOffset - planeHandleSize * 0.5f, 0,
+                planeHandleOffset - planeHandleSize * 0.5f));
+        DU_impl.DrawRectangle(handleOrigin, Fvector().set(planeHandleSize, 0, 0),
+            Fvector().set(0, 0, planeHandleSize), clrZX, clrZX, TRUE, TRUE);
 
         //DU_impl.DrawPivot(center, scale * 10.0f);
 
@@ -801,9 +787,24 @@ void CToolCustom::RenderGizmo()
         Fvector endY = Fvector().add(center, Fvector().set(0, scale, 0));
         Fvector endZ = Fvector().add(center, Fvector().set(0, 0, scale));
 
-        DU_impl.DrawLine(center, endX, clrX);
-        DU_impl.DrawLine(center, endY, clrY);
-        DU_impl.DrawLine(center, endZ, clrZ);
+        Fvector cameraRight = EDevice.m_Camera.GetRight();
+        Fvector cameraUp = EDevice.m_Camera.GetNormal();
+        const float shaftWidth = scale * 0.008f;
+        auto drawWideAxis = [&](const Fvector &end, u32 color)
+        {
+            DU_impl.DrawLine(center, end, color);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Fvector offset;
+                offset.mul(cameraRight, shaftWidth * side);
+                DU_impl.DrawLine(Fvector().add(center, offset), Fvector().add(end, offset), color);
+                offset.mul(cameraUp, shaftWidth * side);
+                DU_impl.DrawLine(Fvector().add(center, offset), Fvector().add(end, offset), color);
+            }
+        };
+        drawWideAxis(endX, clrX);
+        drawWideAxis(endY, clrY);
+        drawWideAxis(endZ, clrZ);
 
         float boxSz = scale * 0.08f;
         Fvector bSize = Fvector().set(boxSz, boxSz, boxSz);
@@ -811,12 +812,13 @@ void CToolCustom::RenderGizmo()
         DU_impl.DrawBox(endY, bSize, TRUE, TRUE, clrY, clrY);
         DU_impl.DrawBox(endZ, bSize, TRUE, TRUE, clrZ, clrZ);
 
-        float qSize = scale * 0.45f;
-        Fvector pZX_o = Fvector().add(center, Fvector().set(-qSize * 0.5f, 0, -qSize * 0.5f));
-        DU_impl.DrawRectangle(pZX_o, Fvector().set(qSize, 0, 0), Fvector().set(0, 0, qSize), clrZX, clrZX, TRUE, TRUE);
-
-        DU_impl.DrawRectangle(center, Fvector().set(qSize * 0.8f, 0, 0), Fvector().set(0, qSize * 0.8f, 0), clrXY, clrXY, TRUE, TRUE);
-        DU_impl.DrawRectangle(center, Fvector().set(0, qSize * 0.8f, 0), Fvector().set(0, 0, qSize * 0.8f), clrYZ, clrYZ, TRUE, TRUE);
+        const float planeHandleSize = scale * 0.20f;
+        const float planeHandleOffset = scale * 0.28f;
+        Fvector handleOrigin = Fvector().add(center,
+            Fvector().set(planeHandleOffset - planeHandleSize * 0.5f, 0,
+                planeHandleOffset - planeHandleSize * 0.5f));
+        DU_impl.DrawRectangle(handleOrigin, Fvector().set(planeHandleSize, 0, 0),
+            Fvector().set(0, 0, planeHandleSize), clrZX, clrZX, TRUE, TRUE);
 
         Fvector uSize = Fvector().set(boxSz * 1.5f, boxSz * 1.5f, boxSz * 1.5f);
         DU_impl.DrawBox(center, uSize, TRUE, TRUE, clrCam, clrCam);

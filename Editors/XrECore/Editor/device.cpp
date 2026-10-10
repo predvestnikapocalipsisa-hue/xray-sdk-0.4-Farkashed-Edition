@@ -299,18 +299,30 @@ void CEditorRenderDevice::Resize(int w, int h, bool maximized)
 	UI->RedrawScene();
 }
 
-void CEditorRenderDevice::Reset()
+bool CEditorRenderDevice::Reset()
 {
 	if (m_hWnd && IsIconic(m_hWnd))
-		return;
+		return false;
 
 	u32 tm_start = TimerAsync();
-	Resources->reset_begin();
-	UI->ResetBegin();
-	Memory.mem_compact();
+	if (!m_ResetPending)
+	{
+		m_ResetPending = true;
+		Resources->reset_begin();
+		UI->ResetBegin();
+		Memory.mem_compact();
+	}
 	HW.DevPP.BackBufferWidth = dwWidth;
 	HW.DevPP.BackBufferHeight = dwHeight;
-	HW.Reset(m_hWnd);
+	const HRESULT result = HW.Reset(m_hWnd);
+	if (FAILED(result))
+	{
+		if (result != m_LastResetResult)
+			Msg("! D3D: editor Reset deferred, HRESULT=0x%08x, size=%ux%u", u32(result), dwWidth, dwHeight);
+		m_LastResetResult = result;
+		Sleep(33);
+		return false;
+	}
 	dwWidth = HW.DevPP.BackBufferWidth;
 	dwHeight = HW.DevPP.BackBufferHeight;
 	//		fWidth_2			= float(dwWidth/2);
@@ -318,20 +330,18 @@ void CEditorRenderDevice::Reset()
 	Resources->reset_end();
 	UI->ResetEnd();
 	_SetupStates();
+	m_ResetPending = false;
+	m_LastResetResult = D3D_OK;
 	u32 tm_end = TimerAsync();
 	Msg("*** RESET [%d ms]", tm_end - tm_start);
+	return true;
 }
 
-BOOL CEditorRenderDevice::Begin()
+bool CEditorRenderDevice::EnsureReady()
 {
 	VERIFY(b_is_Ready);
 	if (m_hWnd && IsIconic(m_hWnd))
-		return FALSE;
-
-	mFullTransform_saved = mFullTransform;
-	mProject_saved = mProject;
-	mView = mView_saved;
-	vCameraPosition_saved = vCameraPosition;
+		return false;
 	HW.Validate();
 	HRESULT _hr = HW.pDevice->TestCooperativeLevel();
 	if (FAILED(_hr))
@@ -346,7 +356,7 @@ BOOL CEditorRenderDevice::Begin()
 		// Check if the device is ready to be reset
 		if (D3DERR_DEVICENOTRESET == _hr)
 		{
-			Reset();
+			return Reset();
 		}
 		else
 		{
@@ -354,6 +364,17 @@ BOOL CEditorRenderDevice::Begin()
 			return FALSE;
 		}
 	}
+	return !m_ResetPending || Reset();
+}
+
+BOOL CEditorRenderDevice::Begin()
+{
+	if (!EnsureReady())
+		return FALSE;
+	mFullTransform_saved = mFullTransform;
+	mProject_saved = mProject;
+	mView = mView_saved;
+	vCameraPosition_saved = vCameraPosition;
 
 	VERIFY(FALSE == g_bRendering);
 	HW.pDevice->BeginScene(); //CHK_DX(HW.pDevice->BeginScene());
@@ -567,7 +588,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE:
 
-		if (UI && HW.pDevice)
+		if (UI && HW.pDevice && wParam != SIZE_MINIMIZED && LOWORD(lParam) && HIWORD(lParam))
 		{
 			UI->Resize(LOWORD(lParam), HIWORD(lParam), wParam == SIZE_MAXIMIZED);
 		}

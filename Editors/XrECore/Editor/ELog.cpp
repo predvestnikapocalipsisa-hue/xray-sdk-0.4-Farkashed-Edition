@@ -78,7 +78,7 @@ void ELogCallback(LPCSTR txt)
 
 //----------------------------------------------------
 CLog ELog;
-LPCSTR g_DlgMsgBtnCaptions[3] = { 0, 0, 0 }; // Yes, No, Cancel — see ELog.h
+LPCSTR g_DlgMsgBtnCaptions[5] = { 0, 0, 0, 0, 0 }; // Yes, No, Cancel, Yes to All, No to All — see ELog.h
 //----------------------------------------------------
 static HHOOK s_DlgMsgHook = NULL;
 
@@ -160,11 +160,18 @@ inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 	{
 		Flags |= MB_YESNOCANCEL;
 	}
+	else if (btn == (mbYes | mbNo | mbYesToAll | mbNoToAll))
+	{
+		Flags |= MB_YESNOCANCEL;
+#ifdef _EDITOR
+		Flags |= SDKDialogs::FourChoice;
+#endif
+	}
 	else
 	{
 		R_ASSERT(0);
 	}
-	bool need_caption_hook = g_DlgMsgBtnCaptions[0] || g_DlgMsgBtnCaptions[1] || g_DlgMsgBtnCaptions[2];
+		bool need_caption_hook = g_DlgMsgBtnCaptions[0] || g_DlgMsgBtnCaptions[1] || g_DlgMsgBtnCaptions[2];
 	if (need_caption_hook)
 		s_DlgMsgHook = SetWindowsHookEx(WH_CBT, DlgMsgCBTProc, NULL, GetCurrentThreadId());
 
@@ -183,8 +190,9 @@ inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 	{
 		UnhookWindowsHookEx(s_DlgMsgHook);
 		s_DlgMsgHook = NULL;
-		g_DlgMsgBtnCaptions[0] = g_DlgMsgBtnCaptions[1] = g_DlgMsgBtnCaptions[2] = 0;
 	}
+	for (int i = 0; i < 5; ++i)
+		g_DlgMsgBtnCaptions[i] = 0;
 	switch (msgboxID)
 	{
 	case IDCANCEL:
@@ -199,6 +207,12 @@ inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 	case IDOK:
 		return mrOK;
 		break;
+	#ifdef _EDITOR
+	case SDKDialogs::YesToAll:
+		return mrYesToAll;
+	case SDKDialogs::NoToAll:
+		return mrNoToAll;
+#endif
 	}
 	if (btn & mbCancel)
 		return mrCancel;
@@ -235,6 +249,12 @@ int CLog::DlgMsg(TMsgDlgType mt, int btn, LPCSTR _Format, ...)
 			break;
 		case mrCancel:
 			strcat(buf, " - Cancel.");
+			break;
+		case mrYesToAll:
+			strcat(buf, " - Yes to all.");
+			break;
+		case mrNoToAll:
+			strcat(buf, " - No to all.");
 			break;
 		default:
 			strcat(buf, " - Something.");
@@ -314,6 +334,12 @@ int CLog::DlgMsg(TMsgDlgType mt, LPCSTR _Format, ...)
 			break;
 		case mrCancel:
 			strcat(buf, " - Cancel.");
+			break;
+		case mrYesToAll:
+			strcat(buf, " - Yes to all.");
+			break;
+		case mrNoToAll:
+			strcat(buf, " - No to all.");
 			break;
 		default:
 			strcat(buf, " - Something.");

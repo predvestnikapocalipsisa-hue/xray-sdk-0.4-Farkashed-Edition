@@ -45,7 +45,7 @@ CHW::~CHW()
 	;
 }
 
-void CHW::Reset(HWND hwnd)
+HRESULT CHW::Reset(HWND hwnd)
 {
 #ifdef DEBUG
 	_RELEASE(dwDebugSB);
@@ -74,29 +74,36 @@ void CHW::Reset(HWND hwnd)
 		DevPP.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 #endif
 
+#ifdef _EDITOR
+	// Reset may fail temporarily and can modify its parameters on failure.
+	// Keep the requested dimensions for the next retry from the editor loop.
+	D3DPRESENT_PARAMETERS parameters = DevPP;
+	const HRESULT result = pDevice->Reset(&parameters);
+	if (FAILED(result))
+		return result;
+	DevPP = parameters;
+#else
 	u32 retryCount = 0;
 	while (TRUE)
 	{
-		HRESULT _hr = HW.pDevice->Reset(&DevPP);
+		HRESULT _hr = pDevice->Reset(&DevPP);
 		if (SUCCEEDED(_hr))
 			break;
-
 		R_CHK(_hr);
 		Sleep(10);
-
 		MSG msg;
 		while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}
-
 		if (++retryCount > 100)
 		{
 			Msg("! [HW::Reset] Failed to reset Direct3D device after retries (0x%08X)", _hr);
-			break;
+			return _hr;
 		}
 	}
+#endif
 	R_CHK(pDevice->GetRenderTarget(0, &pBaseRT));
 	R_CHK(pDevice->GetDepthStencilSurface(&pBaseZB));
 #ifdef DEBUG
@@ -105,6 +112,7 @@ void CHW::Reset(HWND hwnd)
 #ifndef _EDITOR
 	updateWindowProps(hwnd);
 #endif
+	return D3D_OK;
 }
 
 // xr_token*				vid_mode_token = NULL;

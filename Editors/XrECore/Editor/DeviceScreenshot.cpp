@@ -10,6 +10,8 @@ bool CEditorRenderDevice::MakeScreenshot(U32Vec &pixels, u32 width, u32 height)
 {
     if (!b_is_Ready)
         return false;
+    if (!UI->PrepareRedraw())
+        return false;
 
     // free managed resource
     Resources->Evict();
@@ -29,8 +31,20 @@ bool CEditorRenderDevice::MakeScreenshot(U32Vec &pixels, u32 width, u32 height)
     CHK_DX(HW.pDevice->SetRenderTarget(0, pRT));
     CHK_DX(HW.pDevice->SetDepthStencilSurface(pZB));
 
-    UI->PrepareRedraw();
-    EDevice.Begin();
+    if (!EDevice.Begin())
+    {
+        if (HW.pDevice->TestCooperativeLevel() == D3D_OK)
+        {
+            HW.pDevice->SetDepthStencilSurface(poldZB);
+            HW.pDevice->SetRenderTarget(0, poldRT);
+            HW.pDevice->SetViewport(&oldViewport);
+        }
+        _RELEASE(pZB);
+        _RELEASE(poldZB);
+        _RELEASE(pRT);
+        _RELEASE(poldRT);
+        return false;
+    }
     Tools->Render();
     EDevice.End();
 

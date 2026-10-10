@@ -59,6 +59,9 @@ CCustomPreferences::CCustomPreferences()
     scene_undo_level = 125;
     scene_recent_count = 10;
     scene_clear_color = DEFAULT_CLEARCOLOR;
+    scene_autosave_enabled = TRUE;
+    scene_autosave_interval = 10;
+    scene_autosave_backup_count = 3;
     // objects
     object_flags.zero();
 }
@@ -177,6 +180,9 @@ void CCustomPreferences::FillProp(PropItemVec &props)
 
     PHelper().CreateU32(props, "Scene\\Common\\Recent Count", &scene_recent_count, 0, 25);
     PHelper().CreateU32(props, "Scene\\Common\\Undo Level", &scene_undo_level, 0, 125);
+    PHelper().CreateBOOL(props, "Scene\\Auto Save\\Enabled", &scene_autosave_enabled);
+    PHelper().CreateU32(props, "Scene\\Auto Save\\Interval (minutes)", &scene_autosave_interval, 1, 240);
+    PHelper().CreateU32(props, "Scene\\Auto Save\\Backup Count", &scene_autosave_backup_count, 1, 20);
     PHelper().CreateFloat(props, "Scene\\Grid\\Cell Size", &grid_cell_size, 0.1f, 10.f);
     PHelper().CreateU32(props, "Scene\\Grid\\Cell Count", &grid_cell_count, 10, 1000);
     PHelper().CreateFloat(props, "Scene\\Render Distance", &EDevice.RadiusRender, 10.f, 100000.f);
@@ -283,6 +289,11 @@ void CCustomPreferences::Load(CInifile *I)
     scene_undo_level = R_U32_SAFE("editor_prefs", "scene_undo_level", scene_undo_level);
     scene_recent_count = R_U32_SAFE("editor_prefs", "scene_recent_count", scene_recent_count);
     scene_clear_color = R_U32_SAFE("editor_prefs", "scene_clear_color", scene_clear_color);
+    scene_autosave_enabled = R_BOOL_SAFE("editor_prefs", "scene_autosave_enabled", scene_autosave_enabled);
+    scene_autosave_interval = R_U32_SAFE("editor_prefs", "scene_autosave_interval", scene_autosave_interval);
+    scene_autosave_interval = _max(1u, _min(scene_autosave_interval, 240u));
+    scene_autosave_backup_count = R_U32_SAFE("editor_prefs", "scene_autosave_backup_count", scene_autosave_backup_count);
+    scene_autosave_backup_count = _max(1u, _min(scene_autosave_backup_count, 20u));
 
     object_flags.flags = R_U32_SAFE("editor_prefs", "object_flags", object_flags.flags);
     EDevice.RadiusRender = R_FLOAT_SAFE("render", "render_radius", EDevice.RadiusRender);
@@ -353,6 +364,9 @@ void CCustomPreferences::Save(CInifile *I)
     I->w_u32("editor_prefs", "scene_undo_level", scene_undo_level);
     I->w_u32("editor_prefs", "scene_recent_count", scene_recent_count);
     I->w_u32("editor_prefs", "scene_clear_color", scene_clear_color);
+    I->w_bool("editor_prefs", "scene_autosave_enabled", scene_autosave_enabled);
+    I->w_u32("editor_prefs", "scene_autosave_interval", scene_autosave_interval);
+    I->w_u32("editor_prefs", "scene_autosave_backup_count", scene_autosave_backup_count);
 
     I->w_u32("editor_prefs", "object_flags", object_flags.flags);
     for (AStringIt it = scene_recent_list.begin(); it != scene_recent_list.end(); it++)

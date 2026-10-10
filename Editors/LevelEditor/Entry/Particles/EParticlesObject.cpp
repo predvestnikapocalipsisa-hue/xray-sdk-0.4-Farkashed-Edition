@@ -9,6 +9,46 @@
 
 #define PSOBJECT_SIZE 0.5f
 
+namespace
+{
+    bool s_skip_missing_particle_prompts = false;
+    bool s_keep_missing_particle_objects = false;
+
+    bool KeepMissingParticleObject(LPCSTR reference)
+    {
+        if (s_skip_missing_particle_prompts)
+            return false;
+        if (s_keep_missing_particle_objects)
+            return true;
+
+        g_DlgMsgBtnCaptions[0] = "Keep object";
+        g_DlgMsgBtnCaptions[1] = "Skip object";
+        g_DlgMsgBtnCaptions[2] = "Skip all"; // Three-button fallback when the SDK dialog renderer is unavailable.
+        g_DlgMsgBtnCaptions[3] = "Keep all";
+        g_DlgMsgBtnCaptions[4] = "Skip all";
+        const int response = ELog.DlgMsg(mtConfirmation,
+            mbYes | mbNo | mbYesToAll | mbNoToAll,
+            "Particle '%s' is missing from the library.", reference);
+        if (response == mrYesToAll)
+        {
+            s_keep_missing_particle_objects = true;
+            return true;
+        }
+        if (response == mrNoToAll || response == mrCancel)
+        {
+            s_skip_missing_particle_prompts = true;
+            return false;
+        }
+        return response == mrYes;
+    }
+}
+
+void EParticlesObject::ResetMissingParticlePrompts()
+{
+    s_skip_missing_particle_prompts = false;
+    s_keep_missing_particle_objects = false;
+}
+
 EParticlesObject::EParticlesObject(LPVOID data, LPCSTR name) : CCustomObject(data, name)
 {
     Construct(data);
@@ -153,10 +193,13 @@ bool EParticlesObject::LoadLTX(CInifile &ini, LPCSTR sect_name)
         m_GameType.LoadLTX(ini, sect_name, false);
 
     m_RefName = ini.r_string(sect_name, "ref_name");
-    if (!Compile(*m_RefName))
+    const xr_string reference = *m_RefName;
+    if (!Compile(reference.c_str()))
     {
-        ELog.DlgMsg(mtError, "EParticlesObject: '%s' not found in library", *m_RefName);
-        return false;
+        const bool keepObject = KeepMissingParticleObject(reference.c_str());
+        if (keepObject)
+            m_RefName = reference.c_str();
+        return keepObject;
     }
     return true;
 }
@@ -187,6 +230,7 @@ bool EParticlesObject::LoadStream(IReader &F)
     R_ASSERT(F.find_chunk(CPSOBJECT_CHUNK_REFERENCE));
 
     F.r_stringZ(m_RefName);
+    const xr_string reference = *m_RefName;
 
     if (version >= 0x0013)
     {
@@ -194,10 +238,12 @@ bool EParticlesObject::LoadStream(IReader &F)
         m_GameType.LoadStream(F);
     }
 
-    if (!Compile(*m_RefName))
+    if (!Compile(reference.c_str()))
     {
-        ELog.DlgMsg(mtError, "EParticlesObject: '%s' not found in library", *m_RefName);
-        return false;
+        const bool keepObject = KeepMissingParticleObject(reference.c_str());
+        if (keepObject)
+            m_RefName = reference.c_str();
+        return keepObject;
     }
 
     return true;

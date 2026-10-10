@@ -32,6 +32,7 @@ namespace
         UINT flags;
         const char* const* captions;
         bool utf8 = false;
+        bool fourChoice = false;
     };
     struct Notification { std::string text, title; UINT flags; };
     std::mutex notificationsMutex;
@@ -206,7 +207,9 @@ namespace
             if (d3d) d3d->Release();
             if (window) DestroyWindow(window);
             UnregisterClassW(cls.lpszClassName, cls.hInstance);
-            if (!request.utf8) return MessageBoxA(request.owner, request.text, request.title, request.flags);
+            if (!request.utf8)
+                return MessageBoxA(request.owner, request.text, request.title,
+                    request.fourChoice ? (request.flags & ~SDKDialogs::FourChoice) : request.flags);
             const auto wide = [](const char* value)
             {
                 const int count = MultiByteToWideChar(CP_UTF8, 0, value, -1, nullptr, 0);
@@ -214,7 +217,8 @@ namespace
                 MultiByteToWideChar(CP_UTF8, 0, value, -1, result.data(), count);
                 return std::wstring(result.data());
             };
-            return MessageBoxW(request.owner, wide(request.text).c_str(), wide(request.title).c_str(), request.flags);
+            return MessageBoxW(request.owner, wide(request.text).c_str(), wide(request.title).c_str(),
+                request.fourChoice ? (request.flags & ~SDKDialogs::FourChoice) : request.flags);
         }
         dialog.context = ImGui::CreateContext();
         ImGui::SetCurrentContext(dialog.context);
@@ -246,7 +250,9 @@ namespace
         const std::string text = request.utf8 ? request.text : UTF8(request.text);
         const std::string title = request.utf8 ? request.title : UTF8(request.title);
         std::vector<int> buttons;
-        switch (request.flags & MB_TYPEMASK)
+        if (request.fourChoice)
+            buttons = { IDYES, IDNO, SDKDialogs::YesToAll, SDKDialogs::NoToAll };
+        else switch (request.flags & MB_TYPEMASK)
         {
         case MB_OKCANCEL: buttons = { IDOK, IDCANCEL }; break;
         case MB_YESNO: buttons = { IDYES, IDNO }; break;
@@ -339,14 +345,19 @@ namespace
                 const int id = buttons[i];
                 const char* caption = id == IDYES ? "Yes" : id == IDNO ? "No" :
                     id == IDCANCEL ? "Cancel" : id == IDABORT ? "Abort" :
-                    id == IDRETRY ? "Retry" : id == IDIGNORE ? "Ignore" : "OK";
-                const int custom = id == IDYES ? 0 : id == IDNO ? 1 : id == IDCANCEL ? 2 : -1;
+                    id == IDRETRY ? "Retry" : id == IDIGNORE ? "Ignore" :
+                    id == SDKDialogs::YesToAll ? "Yes to all" : id == SDKDialogs::NoToAll ? "No to all" : "OK";
+                const int custom = id == IDYES ? 0 : id == IDNO ? 1 : id == IDCANCEL ? 2 :
+                    id == SDKDialogs::YesToAll ? 3 : id == SDKDialogs::NoToAll ? 4 : -1;
                 if (custom >= 0 && request.captions && request.captions[custom])
                     caption = request.captions[custom];
                 if (i) ImGui::SameLine();
                 ImGui::PushID(id);
                 if (first && i == defaultButton) ImGui::SetKeyboardFocusHere();
-                if (ImGui::Button(UTF8(caption).c_str(), ImVec2(0, buttonHeight))) dialog.Close(id);
+                const bool clicked = ImGui::Button(UTF8(caption).c_str(), ImVec2(0, buttonHeight));
+                const bool focusedEnter = ImGui::IsItemFocused() &&
+                    (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter));
+                if (clicked || focusedEnter) dialog.Close(id);
                 ImGui::PopID();
             }
             if (ImGui::IsKeyPressed(ImGuiKey_Escape)) dialog.Close(dialog.closeResult);
@@ -398,7 +409,8 @@ bool SDKDialogs::HandleMessage(UINT message, LPARAM parameter, LRESULT& result)
 int SDKDialogs::Show(HWND owner, const char* text, const char* title, UINT flags,
     const char* const* captions)
 {
-    Request request{ owner ? owner : editorOwner, text, title, flags, captions };
+    Request request{ owner ? owner : editorOwner, text, title, flags & ~SDKDialogs::FourChoice, captions, false,
+        (flags & SDKDialogs::FourChoice) != 0 };
     if (editorOwner && GetWindowThreadProcessId(editorOwner, nullptr) != GetCurrentThreadId())
         return static_cast<int>(SendMessageW(editorOwner, dialogMessage, 0, reinterpret_cast<LPARAM>(&request)));
     return ShowDialog(request);
@@ -406,7 +418,7 @@ int SDKDialogs::Show(HWND owner, const char* text, const char* title, UINT flags
 int SDKDialogs::ShowWide(HWND owner, const wchar_t* text, const wchar_t* title, UINT flags)
 {
     const std::string message = UTF8(text), caption = UTF8(title);
-    Request request{ owner ? owner : editorOwner, message.c_str(), caption.c_str(), flags, nullptr, true };
+    Request request{ owner ? owner : editorOwner, message.c_str(), caption.c_str(), flags, nullptr, true, false };
     if (editorOwner && GetWindowThreadProcessId(editorOwner, nullptr) != GetCurrentThreadId())
         return static_cast<int>(SendMessageW(editorOwner, dialogMessage, 0, reinterpret_cast<LPARAM>(&request)));
     return ShowDialog(request);

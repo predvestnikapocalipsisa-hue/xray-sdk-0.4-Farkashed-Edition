@@ -166,9 +166,16 @@ void ImGui_ImplDX9_RenderDrawData(ImDrawData *draw_data)
     CUSTOMVERTEX *vtx_dst;
     ImDrawIdx *idx_dst;
     if (g_pVB->Lock(0, (UINT)(draw_data->TotalVtxCount * sizeof(CUSTOMVERTEX)), (void **)&vtx_dst, D3DLOCK_DISCARD) < 0)
+    {
+        d3d9_state_block->Release();
         return;
+    }
     if (g_pIB->Lock(0, (UINT)(draw_data->TotalIdxCount * sizeof(ImDrawIdx)), (void **)&idx_dst, D3DLOCK_DISCARD) < 0)
+    {
+        g_pVB->Unlock();
+        d3d9_state_block->Release();
         return;
+    }
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
         const ImDrawList *cmd_list = draw_data->CmdLists[n];
@@ -283,7 +290,11 @@ static bool ImGui_ImplDX9_CreateFontsTexture()
         return false;
     D3DLOCKED_RECT tex_locked_rect;
     if (g_FontTexture->LockRect(0, &tex_locked_rect, NULL, 0) != D3D_OK)
+    {
+        g_FontTexture->Release();
+        g_FontTexture = NULL;
         return false;
+    }
     for (int y = 0; y < height; y++)
         memcpy((unsigned char *)tex_locked_rect.pBits + tex_locked_rect.Pitch * y, pixels + (width * bytes_per_pixel) * y, (width * bytes_per_pixel));
     g_FontTexture->UnlockRect(0);

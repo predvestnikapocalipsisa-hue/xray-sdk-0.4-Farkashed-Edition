@@ -17,11 +17,12 @@ struct SceneTab
     xr_string   filePath;       // full map path (empty = unsaved new)
     bool        isModified;     // show "●" indicator
     bool        wantClose;      // close requested this frame
+    unsigned    id;             // stable ImGui identity across reorder/erase
 
-    SceneTab() : isModified(false), wantClose(false) {}
+    SceneTab() : isModified(false), wantClose(false), id(0) {}
     SceneTab(const char* path, const char* name)
         : filePath(path ? path : ""), displayName(name ? name : "Untitled"),
-          isModified(false), wantClose(false) {}
+          isModified(false), wantClose(false), id(0) {}
 };
 
 class UISceneTabBar
@@ -36,6 +37,12 @@ public:
     // Notify the tab bar that a scene was just opened/created.
     // Call AFTER the engine has actually loaded the scene.
     static void OnSceneLoaded(const char* filePath, const char* displayName);
+
+    // Replace the currently active tab after a successful File > Open.
+    static void ReplaceActiveScene(const char* filePath, const char* displayName);
+
+    // Add/activate a scene without replacing the current tab.
+    static void OpenInNewTab(const char* filePath, const char* displayName);
 
     // Notify that the current scene was saved (clears modified flag).
     static void OnSceneSaved(const char* filePath);
@@ -58,12 +65,14 @@ public:
     // True when there is more than one tab open.
     static bool HasMultipleTabs() { return s_tabs.size() > 1; }
 
+    // Derive a display name from a file path.
+    static xr_string NameFromPath(const char* path);
+
 private:
     static float s_tabBarHeight;  // cached last frame height
+    static unsigned s_nextTabId;
 
     // Switch to tab 'idx': save current → load new.
     static void SwitchToTab(int idx);
 
-    // Derive a display name from a file path.
-    static xr_string NameFromPath(const char* path);
 };

@@ -197,12 +197,6 @@ CCommandVar CommandLoad(CCommandVar p1, CCommandVar p2)
             xr_string temp_fn = p1;
             xr_strlwr(temp_fn);
 
-            if (!Scene->IfModified())
-                return FALSE;
-
-            UI->SetStatus("Level loading...");
-            ExecCommand(COMMAND_CLEAR);
-
             IReader *R = FS.r_open(temp_fn.c_str());
             if (!R)
                 return false;
@@ -210,6 +204,12 @@ CCommandVar CommandLoad(CCommandVar p1, CCommandVar p2)
             R->r(&ch, sizeof(ch));
             bool is_ltx = (ch == '[');
             FS.r_close(R);
+
+            if (!Scene->IfModified())
+                return FALSE;
+
+            UI->SetStatus("Level loading...");
+            ExecCommand(COMMAND_CLEAR);
             bool res;
             LTools->m_LastFileName = temp_fn.c_str();
 
@@ -244,6 +244,7 @@ CCommandVar CommandLoad(CCommandVar p1, CCommandVar p2)
             // update props
             ExecCommand(COMMAND_UPDATE_PROPERTIES);
             UI->RedrawScene();
+            return res;
         }
     }
     else

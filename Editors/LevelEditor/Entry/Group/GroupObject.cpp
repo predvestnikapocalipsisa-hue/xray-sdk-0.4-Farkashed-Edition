@@ -61,7 +61,7 @@ void CGroupObject::OnFrame()
         it->pObject->OnFrame();
 }
 
-bool CGroupObject::LL_AppendObject(CCustomObject *object)
+bool CGroupObject::LL_AppendObject(CCustomObject *object, bool& noToAll)
 {
     if (!object->CanAttach())
     {
@@ -70,8 +70,18 @@ bool CGroupObject::LL_AppendObject(CCustomObject *object)
     }
     if (object->GetOwner())
     {
-        if (mrNo == ELog.DlgMsg(mtConfirmation, mbYes | mbNo, "Object '%s' already in group '%s'. Change group?", object->GetName(), object->GetOwner()->GetName()))
+        if (noToAll)
             return false;
+
+        g_DlgMsgBtnCaptions[2] = "No to all";
+        const int response = ELog.DlgMsg(mtConfirmation, mbYes | mbNo | mbCancel,
+            "Object '%s' already in group '%s'. Change group?", object->GetName(), object->GetOwner()->GetName());
+        if (response != mrYes)
+        {
+            if (response == mrCancel)
+                noToAll = true;
+            return false;
+        }
 
         object->OnDetach();
     }
@@ -508,14 +518,29 @@ bool CGroupObject::CanUngroup(bool bMsg)
 void CGroupObject::GroupObjects(ObjectList &lst)
 {
     R_ASSERT(lst.size());
+    bool noToAll = false;
+    bool skipAlreadyGrouped = false;
     for (ObjectIt it = lst.begin(); it != lst.end(); ++it)
     {
         if ((*it)->m_CO_Flags.test(flObjectInGroup))
         {
-            ELog.DlgMsg(mtInformation, "object[%s] already in group", (*it)->GetName());
-            continue;
+            if (skipAlreadyGrouped)
+                continue;
+
+            g_DlgMsgBtnCaptions[0] = "Skip";
+            g_DlgMsgBtnCaptions[1] = "Move";
+            g_DlgMsgBtnCaptions[2] = "No to all";
+            const int response = ELog.DlgMsg(mtConfirmation, mbYes | mbNo | mbCancel,
+                "Object '%s' is already in a group. Skip it?", (*it)->GetName());
+            if (response == mrCancel)
+            {
+                skipAlreadyGrouped = true;
+                continue;
+            }
+            if (response == mrYes)
+                continue;
         }
-        LL_AppendObject(*it);
+        LL_AppendObject(*it, noToAll);
     }
     if (m_ObjectsInGroup.size())
         UpdatePivot(0, false);

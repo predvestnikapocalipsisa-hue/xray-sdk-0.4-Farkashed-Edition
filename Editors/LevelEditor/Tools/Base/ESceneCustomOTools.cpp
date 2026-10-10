@@ -143,7 +143,8 @@ void ESceneCustomOTool::SelectObjects(bool flag)
     for (ObjectIt _F = m_Objects.begin(); _F != m_Objects.end(); _F++)
         if ((*_F)->Visible())
         {
-            (*_F)->Select(flag);
+            if (!flag || (*_F)->Editable())
+                (*_F)->Select(flag);
         }
     UI->RedrawScene();
 }
@@ -179,7 +180,7 @@ void ESceneCustomOTool::RemoveSelection()
 void ESceneCustomOTool::InvertSelection()
 {
     for (ObjectIt _F = m_Objects.begin(); _F != m_Objects.end(); _F++)
-        if ((*_F)->Visible())
+        if ((*_F)->Visible() && (*_F)->Editable())
         {
             (*_F)->Select(-1);
         }
@@ -221,7 +222,7 @@ BOOL ESceneCustomOTool::RayPick(CCustomObject *&object, float &distance, const F
 {
     object = 0;
     for (ObjectIt _F = m_Objects.begin(); _F != m_Objects.end(); _F++)
-        if ((*_F)->Visible() && (*_F)->RayPick(distance, start, direction, pinf))
+        if ((*_F)->Visible() && (*_F)->Editable() && (*_F)->RayPick(distance, start, direction, pinf))
             object = *_F;
     return !!object;
 }
@@ -229,7 +230,7 @@ BOOL ESceneCustomOTool::RayPick(CCustomObject *&object, float &distance, const F
 BOOL ESceneCustomOTool::FrustumPick(ObjectList &lst, const CFrustum &frustum)
 {
     for (ObjectIt _F = m_Objects.begin(); _F != m_Objects.end(); _F++)
-        if ((*_F)->Visible() && (*_F)->FrustumPick(frustum))
+        if ((*_F)->Visible() && (*_F)->Editable() && (*_F)->FrustumPick(frustum))
             lst.push_back(*_F);
     return !lst.empty();
 }

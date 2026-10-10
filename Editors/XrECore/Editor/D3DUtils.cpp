@@ -1475,7 +1475,9 @@ void CDrawUtilities::DrawAxis(const Fmatrix& T)
 
     Ivector2 pt;
     pt.x = _wh;
-    pt.y = iFloor(UI->GetRenderHeight() - _wh);
+    // MouseRayFromPoint consumes viewport coordinates, while render height is
+    // multiplied by the supersampling quality setting.
+    pt.y = iFloor(UI->GetRenderHeight() / EDevice.m_ScreenQuality - _wh);
 
     Fvector origin, dir;
     EDevice.m_Camera.MouseRayFromPoint(origin, dir, pt);
@@ -1483,6 +1485,11 @@ void CDrawUtilities::DrawAxis(const Fmatrix& T)
 
     RCache.set_xform_world(Fidentity);
     DU_DRAW_SH(EDevice.m_WireShader);
+
+    // The viewport orientation helper is an overlay; depth testing can make
+    // its very short axis segments disappear against scene geometry.
+    EDevice.SetRS(D3DRS_ZENABLE, FALSE);
+    EDevice.SetRS(D3DRS_ZWRITEENABLE, FALSE);
 
     // Фиксированные мировые направления (без влияния mView)
     Fvector endX = Fvector().mad(origin, Fvector().set(1.0f, 0.0f, 0.0f), _sz);
@@ -1498,6 +1505,8 @@ void CDrawUtilities::DrawAxis(const Fmatrix& T)
 
     DrawLine(origin, endZ, 0xFF3060FF);
     OutText(endZ, "z", 0xFF6090FF, 0xFF000000);
+    EDevice.SetRS(D3DRS_ZWRITEENABLE, TRUE);
+    EDevice.SetRS(D3DRS_ZENABLE, TRUE);
 }
 
 void CDrawUtilities::DrawObjectAxis(const Fmatrix &T, float sz, BOOL sel)

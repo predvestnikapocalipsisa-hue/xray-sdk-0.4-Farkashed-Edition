@@ -13,6 +13,9 @@
 // Windows button/result constants are retained for existing synchronous callers.
 namespace SDKDialogs
 {
+    constexpr UINT FourChoice = 0x80000000u;
+    constexpr int YesToAll = 0x7F01;
+    constexpr int NoToAll = 0x7F02;
     SDK_DIALOG_API int Show(HWND owner, const char* text, const char* title, UINT flags,
         const char* const* captions = nullptr);
     SDK_DIALOG_API int ShowWide(HWND owner, const wchar_t* text, const wchar_t* title, UINT flags);

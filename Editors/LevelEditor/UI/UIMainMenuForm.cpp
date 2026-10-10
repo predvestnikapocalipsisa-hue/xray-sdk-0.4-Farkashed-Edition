@@ -30,35 +30,42 @@ void UIMainMenuForm::Draw()
             if (ImGui::MenuItem("Clear", ""))
             {
                 ExecCommand(COMMAND_CLEAR);
-                UISceneTabBar::OnSceneLoaded("", "Untitled");
+                UISceneTabBar::ReplaceActiveScene("", "Untitled");
             }
 
             ImGui::Separator();
 
             if (ImGui::MenuItem("Open...", "", false))
             {
-                xr_string prev = LTools->m_LastFileName.c_str();
-                ExecCommand(COMMAND_LOAD);
-                xr_string next = LTools->m_LastFileName.c_str();
-                if (next != prev && !next.empty())
-                    UISceneTabBar::OnSceneLoaded(next.c_str(), nullptr);
+                xr_string path;
+                if (EFS.GetOpenName(EDevice.m_hWnd, _maps_, path) && ExecCommand(COMMAND_LOAD, path))
+                    UISceneTabBar::ReplaceActiveScene(path.c_str(), nullptr);
             }
 
             if (ImGui::MenuItem("Open in New Tab...", "", false))
             {
-                if (Scene->IfModified())
+                xr_string path;
+                if (EFS.GetOpenName(EDevice.m_hWnd, _maps_, path) && ExecCommand(COMMAND_LOAD, path))
                 {
-                    xr_string prev = LTools->m_LastFileName.c_str();
-                    if (!prev.empty())
-                        ExecCommand(COMMAND_SAVE, prev);
-
-                    xr_string temp;
-                    if (EFS.GetOpenName(EDevice.m_hWnd, _maps_, temp))
+                    UISceneTabBar::OpenInNewTab(path.c_str(), nullptr);
+                }
+            }
+            if (ImGui::BeginMenu("Open Recent", ""))
+            {
+                for (const auto& recentPath : EPrefs->scene_recent_list)
+                {
+                    if (ImGui::MenuItem(recentPath.c_str(), ""))
                     {
-                        ExecCommand(COMMAND_LOAD, temp);
-                        UISceneTabBar::OnSceneLoaded(temp.c_str(), nullptr);
+                        // Loading updates the recent list and may invalidate its elements.
+                        const xr_string path = recentPath;
+                        if (ExecCommand(COMMAND_LOAD, path))
+                        {
+                            UISceneTabBar::OnSceneModified(false);
+                            UISceneTabBar::OpenInNewTab(path.c_str(), nullptr);
+                        }
                     }
                 }
+                ImGui::EndMenu();
             }
 
             if (ImGui::MenuItem("Save", ""))
@@ -84,19 +91,6 @@ void UIMainMenuForm::Draw()
                 ExecCommand(COMMAND_SAVE_SELECTION);
             }
             ImGui::Separator();
-            if (ImGui::BeginMenu("Open Recent", ""))
-            {
-                for (auto& str : EPrefs->scene_recent_list)
-                {
-                    if (ImGui::MenuItem(str.c_str(), ""))
-                    {
-                        xr_string prev = LTools->m_LastFileName.c_str();
-                        ExecCommand(COMMAND_LOAD, str);
-                        UISceneTabBar::OnSceneLoaded(str.c_str(), nullptr);
-                    }
-                }
-                ImGui::EndMenu();
-            }
             ImGui::Separator();
             if (ImGui::MenuItem("Quit", ""))
             {

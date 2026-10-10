@@ -14,7 +14,7 @@ class CGroupObject : public CCustomObject
 	typedef xr_list<SGroupObjectItem> ObjectsInGroup;
 	ObjectsInGroup m_ObjectsInGroup;
 
-	bool LL_AppendObject(CCustomObject *object);
+	bool LL_AppendObject(CCustomObject *object, bool& noToAll);
 	bool AppendObjectLoadCB(CCustomObject *object);
 	shared_str m_ReferenceName_;
 	void ReferenceChange(PropValue *sender);

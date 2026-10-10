@@ -38,6 +38,7 @@ public:
 
 	void Play();
 	void Stop();
+	static void ResetMissingParticlePrompts();
 
 	virtual void OnUpdateTransform();
 

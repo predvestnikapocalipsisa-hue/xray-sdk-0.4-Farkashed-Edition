@@ -249,6 +249,7 @@ void TUI::IR_OnMouseMove(int x, int y)
 void TUI::OnAppActivate()
 {
     m_bAppActive = true;
+    EDevice.b_is_Active = TRUE;
     if (!m_bReady)
         return;
     if (pInput)
@@ -263,6 +264,7 @@ void TUI::OnAppActivate()
 void TUI::OnAppDeactivate()
 {
     m_bAppActive = false;
+    EDevice.b_is_Active = FALSE;
     if (!m_bReady)
         return;
     if (pInput)
@@ -349,11 +351,14 @@ void TUI::CheckWindowPos(HWND *form)
 #ifndef _EDITOR
 #include "environment.h"
 #endif
-void TUI::PrepareRedraw()
+bool TUI::PrepareRedraw()
 {
     VERIFY(m_bReady);
     if (m_Flags.is(flResize))
         RealResize();
+    // Do not set states or allocate render targets while Reset is pending.
+    if (!EDevice.EnsureReady())
+        return false;
     // set render state
     EDevice.SetRS(D3DRS_TEXTUREFACTOR, 0xffffffff);
     // fog
@@ -408,11 +413,13 @@ void TUI::PrepareRedraw()
     EDevice.SetRS(D3DRS_SHADEMODE, EDevice.dwShadeMode);
 
     RCache.set_xform_world(Fidentity);
+    return true;
 }
 extern ENGINE_API BOOL g_bRendering;
 void TUI::Redraw()
 {
-    PrepareRedraw();
+    if (!PrepareRedraw())
+        return;
     try
     {
 
@@ -583,7 +590,6 @@ void TUI::OnFrame()
 bool TUI::Idle()
 {
     VERIFY(m_bReady);
-    // EDevice.b_is_Active  = Application->Active;
     // input
     MSG msg;
     do
@@ -601,14 +607,37 @@ bool TUI::Idle()
         }
 
     } while (msg.message);
+
+    // Reconcile focus after all window messages: detached ImGui viewports can
+    // receive focus on restore without activating the main editor window.
+    const HWND foreground = ::GetForegroundWindow();
+    const HWND foregroundRoot = foreground ? ::GetAncestor(foreground, GA_ROOT) : NULL;
+    const bool appActive = !::IsIconic(EDevice.m_hWnd) && foregroundRoot &&
+        (foregroundRoot == EDevice.m_hWnd ||
+            (ImGui::GetCurrentContext() && ImGui::FindViewportByPlatformHandle(foregroundRoot)));
+    if (appActive != m_bAppActive)
+    {
+        if (appActive)
+            OnAppActivate();
+        else
+            OnAppDeactivate();
+    }
+
     if (m_Flags.is(flResetUI))
         RealResetUI();
 
     pInput->OnFrame();
     Sleep(1);
 
-    OnFrame();
-    if (m_bAppActive && !m_Flags.is(flNeedQuit) && !m_AppClosed)
+    // Tools may also use renderer resources; keep them paused until a pending
+    // reset succeeds, while continuing to dispatch window messages above.
+    // Apply restored dimensions even if the previous reset has not succeeded.
+    if (m_bAppActive && m_Flags.is(flResize))
+        RealResize();
+    const bool frameReady = m_bAppActive ? EDevice.EnsureReady() : !EDevice.m_ResetPending;
+    if (frameReady)
+        OnFrame();
+    if (frameReady && m_bAppActive && !m_Flags.is(flNeedQuit) && !m_AppClosed)
         RealRedrawScene();
 
     // test quit

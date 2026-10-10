@@ -103,43 +103,59 @@ void FillGroupItems(ChooseItemVec &items, void *param)
 }
 void ESceneGroupTool::OnDrawUI()
 {
-    if ((*m_ChooseIt)->Selected())
+    while (m_ChooseIt != m_Objects.end())
     {
-        if (UIChooseForm::IsActive())
+        CGroupObject* group = dynamic_cast<CGroupObject*>(*m_ChooseIt);
+        if (!group || !group->Selected() || group->ObjectInGroupCount() == 0)
         {
-            bool ok;
-            xr_string name;
-            if (UIChooseForm::GetResult(ok, name))
-            {
-                m_ChooseCnt++;
-                if (ok)
-                {
-                    ((CGroupObject *)(*m_ChooseIt))->UpdatePivot(name.c_str(), false);
-                }
-                m_ChooseIt++;
-            }
-            UIChooseForm::Update();
+            ++m_ChooseIt;
+            continue;
         }
-        else
+
+        if (!UIChooseForm::IsActive())
         {
             UIChooseForm::SelectItem(smCustom, 1, "", FillGroupItems, *m_ChooseIt);
+            return;
         }
+
+        bool ok = false;
+        xr_string name;
+        if (!UIChooseForm::GetResult(ok, name))
+        {
+            UIChooseForm::Update();
+            return;
+        }
+
+        if (ok)
+        {
+            group->UpdatePivot(name.c_str(), false);
+            ++m_ChooseCnt;
+        }
+        ++m_ChooseIt;
     }
-    else
-    {
-        m_ChooseIt++;
-    }
-    if (m_ChooseIt == m_Objects.end())
-    {
-        if (0 == m_ChooseCnt)
-            ELog.Msg(mtError, "Nothing selected.");
-        else
-            Scene->UndoSave();
-        EDevice.seqDrawUI.Remove(this);
-    }
+
+    if (m_ChooseCnt > 0)
+        Scene->UndoSave();
+    EDevice.seqDrawUI.Remove(this);
 }
+//----------------------------------------------------
+
 void ESceneGroupTool::AlignToObject()
 {
+    int alignableGroups = 0;
+    for (ObjectIt it = m_Objects.begin(); it != m_Objects.end(); ++it)
+    {
+        CGroupObject* group = dynamic_cast<CGroupObject*>(*it);
+        if (group && group->Selected() && group->ObjectInGroupCount() > 0)
+            ++alignableGroups;
+    }
+
+    if (alignableGroups == 0)
+    {
+        ELog.DlgMsg(mtInformation, "Select at least one non-empty group before aligning.");
+        return;
+    }
+
     m_ChooseIt = m_Objects.begin();
     m_ChooseCnt = 0;
     EDevice.seqDrawUI.Add(this);
