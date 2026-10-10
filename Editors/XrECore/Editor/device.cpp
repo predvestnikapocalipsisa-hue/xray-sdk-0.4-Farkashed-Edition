@@ -301,6 +301,9 @@ void CEditorRenderDevice::Resize(int w, int h, bool maximized)
 
 void CEditorRenderDevice::Reset()
 {
+	if (m_hWnd && IsIconic(m_hWnd))
+		return;
+
 	u32 tm_start = TimerAsync();
 	Resources->reset_begin();
 	UI->ResetBegin();
@@ -322,6 +325,9 @@ void CEditorRenderDevice::Reset()
 BOOL CEditorRenderDevice::Begin()
 {
 	VERIFY(b_is_Ready);
+	if (m_hWnd && IsIconic(m_hWnd))
+		return FALSE;
+
 	mFullTransform_saved = mFullTransform;
 	mProject_saved = mProject;
 	mView = mView_saved;
@@ -516,8 +522,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_ACTIVATE:
 	{
 		u16 fActive = LOWORD(wParam);
-		BOOL fMinimized = (BOOL)HIWORD(wParam);
-		BOOL bActive = ((fActive != WA_INACTIVE) && (!fMinimized)) ? TRUE : FALSE;
+		// During restore Windows may report the activated window as minimized in
+		// HIWORD(wParam). Activation itself is determined by the low word; render
+		// paths separately skip frames while the HWND is actually iconic.
+		BOOL bActive = (fActive != WA_INACTIVE) ? TRUE : FALSE;
 		if (bActive != EDevice.b_is_Active)
 		{
 			EDevice.b_is_Active = bActive;

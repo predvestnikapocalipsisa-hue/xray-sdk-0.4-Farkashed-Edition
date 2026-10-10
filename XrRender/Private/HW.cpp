@@ -74,12 +74,28 @@ void CHW::Reset(HWND hwnd)
 		DevPP.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 #endif
 
+	u32 retryCount = 0;
 	while (TRUE)
 	{
 		HRESULT _hr = HW.pDevice->Reset(&DevPP);
-		R_CHK(_hr);
 		if (SUCCEEDED(_hr))
 			break;
+
+		R_CHK(_hr);
+		Sleep(10);
+
+		MSG msg;
+		while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
+
+		if (++retryCount > 100)
+		{
+			Msg("! [HW::Reset] Failed to reset Direct3D device after retries (0x%08X)", _hr);
+			break;
+		}
 	}
 	R_CHK(pDevice->GetRenderTarget(0, &pBaseRT));
 	R_CHK(pDevice->GetDepthStencilSurface(&pBaseZB));

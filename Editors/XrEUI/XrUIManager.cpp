@@ -801,7 +801,7 @@ bool XrUIManager::IsBackgroundBlurAvailable() { return false; }
 bool XrUIManager::HandleWindowFrame(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& result)
 {
     if (hwnd == editorWindow && SDKDialogs::HandleMessage(message, lParam, result)) return true;
-    if (!customFrame || hwnd != editorWindow) return false;
+    if (!customFrame || hwnd != editorWindow || IsIconic(hwnd)) return false;
     if (message == WM_GETMINMAXINFO)
     {
         result = DefWindowProcW(hwnd, message, wParam, lParam);
