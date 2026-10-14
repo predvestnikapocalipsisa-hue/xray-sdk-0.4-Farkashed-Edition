@@ -4,6 +4,7 @@
 #include "UIContentBrowser.h" 
 #include "converter_menu.h"
 #include "UIWorkspace.h"
+#include "../Recovery/UILevelRecovery.h"
 
 UIMainMenuForm::UIMainMenuForm()
 {
@@ -17,6 +18,7 @@ UIMainMenuForm::UIMainMenuForm()
 
 UIMainMenuForm::~UIMainMenuForm()
 {
+    UILevelRecovery::Shutdown();
     xr_delete(m_ContentBrowser);
 }
 
@@ -100,6 +102,9 @@ void UIMainMenuForm::Draw()
         }
         if (ImGui::BeginMenu("Scene"))
         {
+            if (ImGui::MenuItem("Recover compiled level..."))
+                UILevelRecovery::Open();
+            ImGui::Separator();
             if (ImGui::MenuItem("Validate", ""))
             {
                 ExecCommand(COMMAND_VALIDATE_SCENE);
@@ -507,4 +512,5 @@ void UIMainMenuForm::Draw()
 
     if (m_ContentBrowser)
         m_ContentBrowser->Draw();
+    UILevelRecovery::Draw();
 }

@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <set>
 
 ESceneObjectTool::ESceneObjectTool() : ESceneCustomOTool(OBJCLASS_SCENEOBJECT)
 {
@@ -35,6 +36,31 @@ void ESceneObjectTool::RemoveControls()
 bool ESceneObjectTool::Validate(bool full_test)
 {
     bool bRes = inherited::Validate(full_test);
+    // Also runs for Make Game's abbreviated validation. An unmapped recovery
+    // surface must not silently become a default solid collider.
+    std::set<CEditableObject*> recoveryChecked;
+    bool unresolvedRecovery=false;
+    for (auto* item : m_Objects)
+    {
+        auto* object = static_cast<CSceneObject*>(item)->GetReference();
+        if (!object || !recoveryChecked.insert(object).second) continue;
+        const bool recoveredPreview = object->GetClassScript().find("xray_recovery_materials_unresolved") != xr_string::npos;
+        for (auto* surface : object->Surfaces())
+        {
+            if (surface->m_ShaderXRLCName == "__recovery_unmapped__" || surface->m_GameMtlName == "__recovery_unmapped__" ||
+                (recoveredPreview && surface->m_ShaderName == "editor\\wire"))
+            {
+                ELog.Msg(mtError, "Recovered object '%s': map its render shader, compiler shader and physical material before Build or Make Game.", object->GetName());
+                bRes = false;
+                unresolvedRecovery=true;
+                break;
+            }
+        }
+    }
+    // Large recovery previews can contain thousands of candidates. Their known
+    // unresolved materials already prohibit compilation; skip the quadratic
+    // duplicate-placement scan until the material mapping is complete.
+    if (unresolvedRecovery) return false;
     // verify position & refs duplicate
     CSceneObject *A, *B;
     for (ObjectIt a_it = m_Objects.begin(); a_it != m_Objects.end(); a_it++)

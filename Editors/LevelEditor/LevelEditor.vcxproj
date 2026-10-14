@@ -27,6 +27,22 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Recovery\LevelRecovery.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ClCompile Include="Recovery\NativeTreeRecovery.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ClCompile Include="Recovery\StaticRecovery.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ClInclude Include="Recovery\NativeRecoveryIO.h" />
+    <ClCompile Include="Recovery\UILevelRecovery.cpp" />
+    <ClInclude Include="Recovery\LevelRecovery.h" />
+    <ClInclude Include="Recovery\UILevelRecovery.h" />
     <ClCompile Include="..\..\XrEngine\ObjectAnimator.cpp" />
     <ClCompile Include="..\..\XrRender\Private\DetailManager.cpp" />
     <ClCompile Include="..\..\XrRender\Private\DetailManager_CACHE.cpp" />

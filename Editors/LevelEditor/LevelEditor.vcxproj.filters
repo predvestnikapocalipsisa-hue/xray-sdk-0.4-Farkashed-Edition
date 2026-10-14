@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Recovery"><UniqueIdentifier>{2012F9D9-BEA4-4EE2-BAF3-404E15BB4C26}</UniqueIdentifier></Filter>
     <Filter Include="UI">
       <UniqueIdentifier>{8de59519-90ea-45b4-aa15-357dbcb5c246}</UniqueIdentifier>
     </Filter>
@@ -823,5 +824,14 @@
     <ResourceCompile Include="Resources\LevelEditor.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Recovery\LevelRecovery.cpp"><Filter>Recovery</Filter></ClCompile>
+    <ClCompile Include="Recovery\NativeTreeRecovery.cpp"><Filter>Recovery</Filter></ClCompile>
+    <ClCompile Include="Recovery\StaticRecovery.cpp"><Filter>Recovery</Filter></ClCompile>
+    <ClInclude Include="Recovery\NativeRecoveryIO.h"><Filter>Recovery</Filter></ClInclude>
+    <ClCompile Include="Recovery\UILevelRecovery.cpp"><Filter>Recovery</Filter></ClCompile>
+    <ClInclude Include="Recovery\LevelRecovery.h"><Filter>Recovery</Filter></ClInclude>
+    <ClInclude Include="Recovery\UILevelRecovery.h"><Filter>Recovery</Filter></ClInclude>
   </ItemGroup>
 </Project>
