@@ -1,5 +1,21 @@
 #include "stdafx.h"
 
+namespace
+{
+    struct SceneLoadProgress
+    {
+        SPBItem* item;
+        SceneLoadProgress(bool undo, size_t stages, LPCSTR path)
+            : item(undo ? nullptr : UI->ProgressStart(float(stages + 2), "Loading location..."))
+        {
+            if (item) item->Info(path);
+        }
+        ~SceneLoadProgress() { if (item) UI->ProgressEnd(item); }
+        void Step() { if (item) item->Inc(); }
+        void Finish() { if (item) item->Update(item->max); }
+    };
+}
+
 #define CURRENT_FILE_VERSION 0x00000005
 #define CURRENT_LEVELOP_VERSION 0x0000000C
 
@@ -862,6 +878,8 @@ bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
     if (!map_name || (0 == map_name[0]))
         return false;
 
+    SceneLoadProgress loading(bUndo, m_SceneTools.size(), map_name);
+
     xr_string full_name;
     full_name = map_name;
 
@@ -896,6 +914,8 @@ bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
         m_OwnerName = ini.r_string("level_tag", "owner");
         m_CreateTime = ini.r_u32("level_tag", "create_time");
 
+        loading.Step();
+
         SceneToolsMapPairIt _I = m_SceneTools.begin();
         SceneToolsMapPairIt _E = m_SceneTools.end();
         for (; _I != _E; ++_I)
@@ -910,6 +930,7 @@ bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
                     }
                 }
             }
+            loading.Step();
         }
 
         if (ini.section_exist("snap_objects"))
@@ -937,6 +958,7 @@ bool EScene::LoadLTX(LPCSTR map_name, bool bUndo)
         if (!bUndo)
             m_RTFlags.set(flRT_Unsaved | flRT_Modified, FALSE);
 
+        loading.Finish();
         return true;
     }
     else
@@ -1056,6 +1078,8 @@ bool EScene::Load(LPCSTR map_name, bool bUndo)
     if (!map_name || (0 == map_name[0]))
         return false;
 
+    SceneLoadProgress loading(bUndo, m_SceneTools.size(), map_name);
+
     xr_string full_name = map_name;
 
     ELog.Msg(mtInformation, "EScene: loading '%s'", map_name);
@@ -1068,6 +1092,8 @@ bool EScene::Load(LPCSTR map_name, bool bUndo)
         VERIFY(F);
 
         bool bRes = LoadStream(*F, bUndo);
+
+        loading.Step();
 
         if (!bUndo)
         {
@@ -1084,12 +1110,14 @@ bool EScene::Load(LPCSTR map_name, bool bUndo)
                     }
                     if (chunk) chunk->close();
                 }
+                loading.Step();
             }
         }
 
         FS.r_close(F);
 
         Msg("EScene: %d objects loaded, %3.2f sec", ObjCount(), T.GetElapsed_sec());
+        loading.Finish();
         return bRes;
     }
     else

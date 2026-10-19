@@ -1,0 +1,516 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\DXBCChecksum.c">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\ffx_dx11.cpp">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\md5.c">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\ffx_shader_blobs.cpp">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\shared\ffx_assert.cpp">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_fsr1_shaderblobs.cpp">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_fsr2_shaderblobs.cpp">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_fsr3upscaler_shaderblobs.cpp">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_frameinterpolation_shaderblobs.cpp">
+      <Filter>private_source</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_opticalflow_shaderblobs.cpp">
+      <Filter>private_source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\md5.h">
+      <Filter>private_source</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\ffx_shader_blobs.h">
+      <Filter>private_source</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_fsr1_shaderblobs.h">
+      <Filter>private_source</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_fsr2_shaderblobs.h">
+      <Filter>private_source</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_fsr3upscaler_shaderblobs.h">
+      <Filter>private_source</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_frameinterpolation_shaderblobs.h">
+      <Filter>private_source</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\shared\blob_accessors\ffx_opticalflow_shaderblobs.h">
+      <Filter>private_source</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\host\backends\dx11\ffx_dx11.h">
+      <Filter>public_source</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_accumulate_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_autogen_reactive_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_debug_view_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_luma_instability_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_luma_pyramid_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_prepare_inputs_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_prepare_reactivity_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_rcas_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_shading_change_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\shaders\fsr3upscaler\ffx_fsr3upscaler_shading_change_pyramid_pass.hlsl">
+      <Filter>private_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\blur\ffx_blur.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\blur\ffx_blur_blur.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\blur\ffx_blur_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\blur\ffx_blur_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\blur\ffx_blur_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_apply.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_defines.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_edge_sensitive_blur.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_importance_map.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_prepare.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_ssao_generation.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_upscale.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\cacao\ffx_cacao_utils.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_reflections.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_reflections_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_reflections_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_reflections_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_shadows.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_shadows_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\classifier\ffx_classifier_shadows_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_reflections_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_reflections_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_reflections_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_reflections_config.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_reflections_prefilter.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_reflections_reproject.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_reflections_resolve_temporal.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_shadows_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_shadows_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_shadows_filter.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_shadows_prepare.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_shadows_tileclassification.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\denoiser\ffx_denoiser_shadows_util.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_compute_game_vector_field_inpainting_pyramid.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_compute_inpainting_pyramid.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_debug_view.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_disocclusion_mask.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_game_motion_vector_field.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_inpainting.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_optical_flow_vector_field.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_reconstruct_dilated_velocity_and_previous_depth.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_reconstruct_previous_depth.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\frameinterpolation\ffx_frameinterpolation_setup.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr1\ffx_fsr1.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr1\ffx_fsr1_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr1\ffx_fsr1_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr1\ffx_fsr1_easu.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr1\ffx_fsr1_rcas.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr1\ffx_fsr1_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_accumulate.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_compute_luminance_pyramid.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_depth_clip.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_lock.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_postprocess_lock_status.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_rcas.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_reconstruct_dilated_velocity_and_previous_depth.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_reproject.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_sample.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_tcr_autogen.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr2\ffx_fsr2_upsample.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_accumulate.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_debug_view.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_luma_instability.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_luma_pyramid.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_prepare_inputs.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_prepare_reactivity.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_rcas.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_reproject.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_sample.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_shading_change.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_shading_change_pyramid.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\fsr3upscaler\ffx_fsr3upscaler_upsample.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lens\ffx_lens.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lens\ffx_lens_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lens\ffx_lens_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lens\ffx_lens_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lpm\ffx_lpm.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lpm\ffx_lpm_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lpm\ffx_lpm_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lpm\ffx_lpm_filter.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\lpm\ffx_lpm_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_compute_luminance_pyramid.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_compute_optical_flow_v5.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_compute_scd_divergence.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_filter_optical_flow_v5.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_generate_scd_histogram.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_prepare_luma.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\opticalflow\ffx_opticalflow_scale_optical_flow_advanced_v5.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_reduce.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_scan.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_scan_add.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_scatter.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_setup_indirect_args.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\parallelsort\ffx_parallelsort_sum.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\spd\ffx_spd.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\spd\ffx_spd_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\spd\ffx_spd_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\spd\ffx_spd_downsample.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\spd\ffx_spd_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_callbacks_glsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_callbacks_hlsl.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_classify_tiles.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_common.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_depth_downsample.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_intersect.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_prepare_blue_noise_texture.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_prepare_indirect_args.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Repos\FidelityFX-SDK\sdk\include\FidelityFX\gpu\sssr\ffx_sssr_resources.h">
+      <Filter>public_shaders</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="F:\Repos\FidelityFX-SDK\sdk\src\backends\dx11\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="private_shaders">
+      <UniqueIdentifier>{95AC93B0-BFBF-392C-8E8F-DC4C886C8861}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="private_source">
+      <UniqueIdentifier>{A5BF53AE-B21B-3599-824D-0EE169069665}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public_shaders">
+      <UniqueIdentifier>{8A9A464F-EA75-3018-A0D4-6874B805BFE8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public_source">
+      <UniqueIdentifier>{3170F10E-320B-3EBE-B44F-3C6583777168}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

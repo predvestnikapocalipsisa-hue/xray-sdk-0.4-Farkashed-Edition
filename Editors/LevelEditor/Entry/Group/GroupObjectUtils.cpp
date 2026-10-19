@@ -249,6 +249,10 @@ void CGroupObject::Render(int priority, bool strictB2F)
     inherited::Render(priority, strictB2F);
     for (ObjectsInGroup::iterator it = m_ObjectsInGroup.begin(); it != m_ObjectsInGroup.end(); ++it)
     {
+        const ObjClassID cls = it->pObject->FClassID;
+        if (LUI->IsInGame() && (!it->pObject->Visible() ||
+            (cls != OBJCLASS_GROUP && cls != OBJCLASS_SCENEOBJECT &&
+             cls != OBJCLASS_PS && cls != OBJCLASS_GLOW))) continue;
         if (it->pObject->IsRender())
         {
             switch (it->pObject->FClassID)
@@ -266,7 +270,7 @@ void CGroupObject::Render(int priority, bool strictB2F)
     if ((1 == priority) && (false == strictB2F))
     {
         Fbox bb;
-        if (Selected() && GetBox(bb))
+        if (Selected() && GetBox(bb) && !LUI->IsInGame())
         {
             EDevice.SetShader(EDevice.m_WireShader);
             RCache.set_xform_world(Fidentity);

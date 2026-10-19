@@ -1,0 +1,27 @@
+#include "common.h"
+
+Texture2D s_vollight1;
+Texture2D s_vollight2;
+
+float4 main(p_screen I) : SV_Target
+{
+    // Initialize accumulator
+    float4 color = 0.0f;
+    
+    // 4x4 box filter (16 taps)
+    for (int j = -2; j < 2; j++)
+    {
+        for (int _i = -2; _i < 2; _i++)
+        {
+            // Sample using texture coordinates with offset
+            float2 offset = I.hpos.xy + int2(_i, j);
+            color += s_vollight1[offset];
+            color += s_vollight2[offset];
+        }
+    }
+    
+    // Normalize by number of samples (16 taps)
+    color *= 0.0625;
+
+    return color;
+}

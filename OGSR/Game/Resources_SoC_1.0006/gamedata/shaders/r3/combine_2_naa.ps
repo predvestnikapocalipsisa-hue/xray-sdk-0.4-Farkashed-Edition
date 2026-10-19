@@ -1,0 +1,84 @@
+#include "common.h"
+
+uniform float4 m_hud_params;
+
+uniform float4 fakescope;
+uniform float4 m_flare_params;
+
+// Check Screen Space Shaders modules
+#include "check_screenspace.h"
+
+#ifdef SSFX_BEEFS_NVG
+#include "night_vision.h"
+#endif
+
+#ifdef SSFX_DEBAND
+#include "screenspace_debanding.h"
+#endif
+
+#ifdef SSFX_INDIRECT_LIGHT
+#include "screenspace_il.h"
+#endif
+
+#include "img_corrections.h"
+#include "effects_flare.h"
+
+#include "mblur.h"
+
+Texture2D s_flares;
+#ifdef SSFX_BLOOM
+Texture2D s_ssfx_bloom;
+#endif
+
+float4 main(p_screen I) : SV_Target
+{
+    float2 center = I.tc0;
+
+    float3 _P = gbuffer_load_position(center, I.hpos);
+
+    float depth = _P.z;
+
+    float3 img = s_image.Load(int3(center.xy * screen_res.xy, 0), 0);
+
+#ifdef USE_MBLUR
+    img = mblur(center, _P, img.rgb);
+#endif
+
+    // Indirect light - SCREEN SPACE SHADERS - UPDATE 14
+#ifdef SSFX_INDIRECT_LIGHT
+    ssfx_il(center, I.hpos, _P, gbuffer_load_normal(center), img, 0);
+#endif
+
+// Sky Debanding Implementation  - SCREEN SPACE SHADERS - UPDATE 12.5
+#ifdef SSFX_DEBAND
+    if (depth <= SKY_EPS)
+        img = ssfx_debanding(img, center);
+#endif
+
+#ifdef SSFX_BLOOM
+    float4 bloom = s_ssfx_bloom.Sample(smp_rtlinear, center);
+#else
+    float4 bloom = s_bloom.Sample(smp_rtlinear, center);
+#endif
+
+        if (
+#ifdef SSFX_BEEFS_NVG // NVG CHANGE TO PREVENT WEIRD COLORS, ONLY APPLY BLOOM WHEN WE'RE NOT IN NVG MASK
+            pnv_param_1.z == 0.f &&
+#endif
+            (m_hud_params.x < 1.0 || fakescope.y <= 0))
+        {
+            img = blend_soft(img, bloom.xyz * bloom.w);
+            if (m_actor_position.w > 0.f)
+            {
+                img += generate_flare(center, m_flare_params.y);
+
+                float4 flares = s_flares.Sample(smp_rtlinear, center);
+                img += flares.xyz * flares.a;
+            }
+        }
+
+    // Vanilla color grading ( Exposure, saturation and gamma )
+    img = img_corrections(img);
+
+    return float4(img, 1.0);
+}

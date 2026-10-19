@@ -1,0 +1,823 @@
+#include "stdafx.h"
+
+#include "../../xr_3da/fmesh.h"
+#include "../../xr_3da/irenderable.h"
+#include "../../xr_3da/CustomHUD.h"
+
+#include "fhierrarhyvisual.h"
+#include "SkeletonCustom.h"
+#include "flod.h"
+#include "particlegroup.h"
+#include "FTreeVisual.h"
+#include "../xr_3da/x_ray.h"
+
+using namespace R_dsgraph;
+
+//u32 mapNormalItems::instance_cnt = 0;
+//u32 mapMatrixItems::instance_cnt = 0;
+
+// Static geometry optimization
+#define O_S_L1_S_LOW 10.f // geometry 3d volume size
+#define O_S_L1_D_LOW 150.f // distance, after which it is not rendered
+#define O_S_L2_S_LOW 100.f
+#define O_S_L2_D_LOW 200.f
+#define O_S_L3_S_LOW 500.f
+#define O_S_L3_D_LOW 250.f
+#define O_S_L4_S_LOW 2500.f
+#define O_S_L4_D_LOW 350.f
+#define O_S_L5_S_LOW 7000.f
+#define O_S_L5_D_LOW 400.f
+
+#define O_S_L1_S_MED 25.f
+#define O_S_L1_D_MED 50.f
+#define O_S_L2_S_MED 200.f
+#define O_S_L2_D_MED 150.f
+#define O_S_L3_S_MED 1000.f
+#define O_S_L3_D_MED 200.f
+#define O_S_L4_S_MED 2500.f
+#define O_S_L4_D_MED 300.f
+#define O_S_L5_S_MED 7000.f
+#define O_S_L5_D_MED 400.f
+
+#define O_S_L1_S_HII 50.f
+#define O_S_L1_D_HII 50.f
+#define O_S_L2_S_HII 400.f
+#define O_S_L2_D_HII 150.f
+#define O_S_L3_S_HII 1500.f
+#define O_S_L3_D_HII 200.f
+#define O_S_L4_S_HII 5000.f
+#define O_S_L4_D_HII 300.f
+#define O_S_L5_S_HII 20000.f
+#define O_S_L5_D_HII 350.f
+
+#define O_S_L1_S_ULT 50.f
+#define O_S_L1_D_ULT 35.f
+#define O_S_L2_S_ULT 500.f
+#define O_S_L2_D_ULT 125.f
+#define O_S_L3_S_ULT 1750.f
+#define O_S_L3_D_ULT 175.f
+#define O_S_L4_S_ULT 5250.f
+#define O_S_L4_D_ULT 250.f
+#define O_S_L5_S_ULT 25000.f
+#define O_S_L5_D_ULT 300.f
+
+
+constexpr Fvector4 o_optimize_static_l1_dist{O_S_L1_D_LOW, O_S_L1_D_MED, O_S_L1_D_HII, O_S_L1_D_ULT};
+constexpr Fvector4 o_optimize_static_l1_size{O_S_L1_S_LOW, O_S_L1_S_MED, O_S_L1_S_HII, O_S_L1_S_ULT};
+constexpr Fvector4 o_optimize_static_l2_dist{O_S_L2_D_LOW, O_S_L2_D_MED, O_S_L2_D_HII, O_S_L2_D_ULT};
+constexpr Fvector4 o_optimize_static_l2_size{O_S_L2_S_LOW, O_S_L2_S_MED, O_S_L2_S_HII, O_S_L2_S_ULT};
+constexpr Fvector4 o_optimize_static_l3_dist{O_S_L3_D_LOW, O_S_L3_D_MED, O_S_L3_D_HII, O_S_L3_D_ULT};
+constexpr Fvector4 o_optimize_static_l3_size{O_S_L3_S_LOW, O_S_L3_S_MED, O_S_L3_S_HII, O_S_L3_S_ULT};
+constexpr Fvector4 o_optimize_static_l4_dist{O_S_L4_D_LOW, O_S_L4_D_MED, O_S_L4_D_HII, O_S_L4_D_ULT};
+constexpr Fvector4 o_optimize_static_l4_size{O_S_L4_S_LOW, O_S_L4_S_MED, O_S_L4_S_HII, O_S_L4_S_ULT};
+constexpr Fvector4 o_optimize_static_l5_dist{O_S_L5_D_LOW, O_S_L5_D_MED, O_S_L5_D_HII, O_S_L5_D_ULT};
+constexpr Fvector4 o_optimize_static_l5_size{O_S_L5_S_LOW, O_S_L5_S_MED, O_S_L5_S_HII, O_S_L5_S_ULT};
+
+#define BASE_FOV 67.f
+
+extern float ps_r__LOD_k;
+
+float r_ssaDISCARD;
+float r_ssaLOD_A, r_ssaLOD_B;
+float r_ssaGLOD_start, r_ssaGLOD_end;
+float r_ssaHZBvsTEX;
+
+// Aproximate, adjusted by fov, distance from camera to position (For right work when looking though binoculars and scopes)
+namespace
+{
+IC float GetDistFromCamera(const Fvector& from_position)
+{
+    const float distance = Device.vCameraPosition.distance_to(from_position);
+    const float fov_K = BASE_FOV / Device.fFOV;
+    const float adjusted_distane = distance / fov_K;
+
+    return adjusted_distane;
+}
+
+IC bool IsValuableToRender(dxRender_Visual* pVisual, const bool sm, const bool ignore_optimize = false)
+{
+    if (ignore_optimize)
+        return true;
+
+    if (opt_static_geom >= 1)
+    {
+        const float sphere_volume = pVisual->getVisData().sphere.volume();
+
+        const float adjusted_distance = GetDistFromCamera(pVisual->getVisData().sphere.P);
+
+        if (sm && opt_shadow_geom) // Highest cut off for shadow map
+        {
+            if (sphere_volume < 50000.f && adjusted_distance > ps_ssfx_shadow_cascades.z)
+                // don't need geometry behind the farest sun shadow cascade
+                return false;
+
+            if ((sphere_volume < o_optimize_static_l1_size.z) && (adjusted_distance > o_optimize_static_l1_dist.z))
+                return false;
+            else if ((sphere_volume < o_optimize_static_l2_size.z) && (adjusted_distance > o_optimize_static_l2_dist.z))
+                return false;
+            else if ((sphere_volume < o_optimize_static_l3_size.z) && (adjusted_distance > o_optimize_static_l3_dist.z))
+                return false;
+            else if ((sphere_volume < o_optimize_static_l4_size.z) && (adjusted_distance > o_optimize_static_l4_dist.z))
+                return false;
+            else if ((sphere_volume < o_optimize_static_l5_size.z) && (adjusted_distance > o_optimize_static_l5_dist.z))
+                return false;
+
+            return true;
+        }
+
+        {
+            if (pVisual->Type == MT_LOD || pVisual->Type == MT_TREE_PM || pVisual->Type == MT_TREE_ST)
+                return true;
+
+            if (opt_static_geom == 2)
+            {
+                if ((sphere_volume < o_optimize_static_l1_size.y) && (adjusted_distance > o_optimize_static_l1_dist.y))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l2_size.y) && (adjusted_distance > o_optimize_static_l2_dist.y))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l3_size.y) && (adjusted_distance > o_optimize_static_l3_dist.y))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l4_size.y) && (adjusted_distance > o_optimize_static_l4_dist.y))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l5_size.y) && (adjusted_distance > o_optimize_static_l5_dist.y))
+                    return false;
+            }
+            else if (opt_static_geom == 3)
+            {
+                if ((sphere_volume < o_optimize_static_l1_size.z) && (adjusted_distance > o_optimize_static_l1_dist.z))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l2_size.z) && (adjusted_distance > o_optimize_static_l2_dist.z))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l3_size.z) && (adjusted_distance > o_optimize_static_l3_dist.z))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l4_size.z) && (adjusted_distance > o_optimize_static_l4_dist.z))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l5_size.z) && (adjusted_distance > o_optimize_static_l5_dist.z))
+                    return false;
+            }
+            else if (opt_static_geom == 4)
+            {
+                if ((sphere_volume < o_optimize_static_l1_size.w) && (adjusted_distance > o_optimize_static_l1_dist.w))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l2_size.w) && (adjusted_distance > o_optimize_static_l2_dist.w))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l3_size.w) && (adjusted_distance > o_optimize_static_l3_dist.w))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l4_size.w) && (adjusted_distance > o_optimize_static_l4_dist.w))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l5_size.w) && (adjusted_distance > o_optimize_static_l5_dist.w))
+                    return false;
+            }
+            else
+            {
+                if ((sphere_volume < o_optimize_static_l1_size.x) && (adjusted_distance > o_optimize_static_l1_dist.x))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l2_size.x) && (adjusted_distance > o_optimize_static_l2_dist.x))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l3_size.x) && (adjusted_distance > o_optimize_static_l3_dist.x))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l4_size.x) && (adjusted_distance > o_optimize_static_l4_dist.x))
+                    return false;
+                else if ((sphere_volume < o_optimize_static_l5_size.x) && (adjusted_distance > o_optimize_static_l5_dist.x))
+                    return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+ICF float CalcSSA(float& dist_sqr, const Fvector& C, const float R)
+{
+    dist_sqr = Device.vCameraPosition.distance_to_sqr(C) + EPS;
+    return R / dist_sqr;
+}
+ICF float CalcHudSSA(float& dist_sqr, const Fvector& C, dxRender_Visual* V)
+{
+    const float R = V->getVisData().sphere.R /* + 0*/;
+    dist_sqr = Fvector{}.distance_to_sqr(C) + EPS;
+    return R / dist_sqr;
+}
+} // namespace
+
+void R_dsgraph_structure::r_dsgraph_insert_dynamic(IRenderable* root, dxRender_Visual* pVisual, Fmatrix& xform, Fvector& center)
+{
+    if (pVisual->getVisData().marker[context_id] == marker)
+        return;
+    pVisual->getVisData().marker[context_id] = marker;
+
+    //ZoneScoped;
+
+    float dist_sqr;
+    float SSA;
+    if (root && root->renderable_HUD())
+        SSA = CalcHudSSA(dist_sqr, center, pVisual);
+    else
+        SSA = CalcSSA(dist_sqr, center, pVisual->getVisData().sphere.R /*+ 0*/);
+
+    if (SSA <= r_ssaDISCARD)
+        return;
+
+    // Distortive geometry should be marked and R2 special-cases it
+    // a) Allow to optimize RT order
+    // b) Should be rendered to special distort buffer in another pass
+    VERIFY(pVisual->shader._get());
+    ShaderElement* sh_d = &*pVisual->shader->E[4];
+    if (RImplementation.o.distortion && sh_d && sh_d->flags.bDistort && pmask[sh_d->flags.iPriority / 2])
+    {
+        mapMatrixItems& matrixItems = mapDistort[sh_d->passes[0]._get()];
+        matrixItems.items->emplace_back(_MatrixItem{.ssa = SSA, .pObject = root, .pVisual = pVisual, .Matrix = xform});
+    }
+
+    // Select shader
+    ShaderElement* sh = RImplementation.rimp_select_sh_dynamic(pVisual, dist_sqr, root ? root->renderable_HUD() : false, phase);
+    if (nullptr == sh)
+        return;
+    if (!pmask[sh->flags.iPriority / 2])
+        return;
+
+    // HUD rendering
+    if (root && root->renderable_HUD())
+    {
+        extern bool Is3dssZoomed;
+        if (sh->flags.iScopeLense)
+        {
+            if (Is3dssZoomed)
+            {
+                mapHUD.insert_anyway(EPS, _MatrixItemS({SSA, root, pVisual, xform, &*pVisual->shader->E[0]}));
+                mapScopeHUD.insert_anyway(dist_sqr, _MatrixItemS({SSA, root, pVisual, xform, &*pVisual->shader->E[1]}));
+                // Simp: этот костыль пусть работает только в OGSR GA, там прицелы с ним приемлемо выглядят.
+                if (IS_OGSR_GA && ps_r_pp_aa_mode == DLSS || ps_r_pp_aa_mode == FSR3 || ps_r_pp_aa_mode == TAA || ps_r2_ls_flags.test(R2FLAG_DBG_TAA_JITTER_ENABLE))
+                {
+                    mapScopeHUDSorted.insert_anyway(dist_sqr, _MatrixItemS({SSA, root, pVisual, xform, &*pVisual->shader->E[0]}));
+                    mapScopeHUDSorted.insert_anyway(dist_sqr, _MatrixItemS({SSA, root, pVisual, xform, &*pVisual->shader->E[1]}));
+                    mapScopeHUDSorted2.insert_anyway(dist_sqr, _MatrixItemS({SSA, root, pVisual, xform, &*pVisual->shader->E[0]}));
+                    mapScopeHUDSorted2.insert_anyway(dist_sqr, _MatrixItemS({SSA, root, pVisual, xform, &*pVisual->shader->E[1]}));
+                }
+                mapScopeHUDSorted.insert_anyway(dist_sqr, _MatrixItemS({SSA, root, pVisual, xform, &*pVisual->shader->E[2]}));
+                mapScopeHUDSorted2.insert_anyway(dist_sqr, _MatrixItemS({SSA, root, pVisual, xform, &*pVisual->shader->E[4]}));
+            }
+            else
+            {
+                mapHUD.insert_anyway(dist_sqr, _MatrixItemS({.ssa= SSA, .pObject= root, .pVisual= pVisual, .Matrix= xform, .se= &*pVisual->shader->E[3]}));
+            }
+            return;
+        }
+
+        if (sh->flags.bStrictB2F && !Is3dssZoomed)
+        {
+            mapHUDSorted.insert_anyway(dist_sqr, _MatrixItemS({.ssa= SSA, .pObject= root, .pVisual= pVisual, .Matrix= xform, .se= sh}));
+            return;
+        }
+
+        mapHUD.insert_anyway(dist_sqr, _MatrixItemS({.ssa= SSA, .pObject= root, .pVisual= pVisual, .Matrix= xform, .se= sh}));
+
+        if (sh->flags.bEmissive && sh_d && !Is3dssZoomed)
+        {
+            mapHUDEmissive.insert_anyway(dist_sqr, _MatrixItemS({.ssa= SSA, .pObject= root, .pVisual= pVisual, .Matrix= xform, .se= sh_d}));
+        }
+        return;
+    }
+
+    // Shadows registering
+
+    if (root && root->renderable_Invisible())
+        return;
+
+    // strict-sorting selection
+    if (sh->flags.bStrictB2F)
+    {
+        mapSorted.insert_anyway(dist_sqr, _MatrixItemS({SSA, root, pVisual, xform, sh}));
+        return;
+    }
+
+    // Emissive geometry should be marked and R2 special-cases it
+    // a) Allow to skeep already lit pixels
+    // b) Allow to make them 100% lit and really bright
+    // c) Should not cast shadows
+    // d) Should be rendered to accumulation buffer in the second pass
+    if (sh->flags.bEmissive && sh_d)
+    {
+        mapEmissive.insert_anyway(dist_sqr, _MatrixItemS({.ssa= SSA, .pObject= root, .pVisual= pVisual, .Matrix= xform, .se= sh_d}));
+    }
+    if (sh->flags.bWmark && pmask_wmark)
+    {
+        mapWmark.insert_anyway(dist_sqr, _MatrixItemS({.ssa= SSA, .pObject= root, .pVisual= pVisual, .Matrix= xform, .se= sh}));
+        return;
+    }
+
+    ASSERT_FMT(sh->passes.size() <= SHADER_PASSES_MAX, "max pass should be <= 2! shader [%s]", pVisual->shader->dbg_shader_name.c_str());
+
+    mapMatrixCount++;
+
+    for (u32 iPass = 0; iPass < sh->passes.size(); ++iPass)
+    {
+        mapMatrix_T& map = mapMatrixPasses[sh->flags.iPriority / 2][iPass];
+        SPass* pass = sh->passes[iPass]._get();
+        mapMatrixItems& matrixItems = map[pass];
+
+        matrixItems.items->emplace_back(_MatrixItem{.ssa= SSA, .pObject= root, .pVisual= pVisual, .Matrix= xform});
+    }
+}
+
+void R_dsgraph_structure::r_dsgraph_insert_static(dxRender_Visual* pVisual)
+{
+    if (pVisual->getVisData().marker[context_id] == marker)
+        return;
+    pVisual->getVisData().marker[context_id] = marker;
+
+    //ZoneScoped;
+
+    float dist_sqr;
+    const float SSA = CalcSSA(dist_sqr, pVisual->getVisData().sphere.P, pVisual->getVisData().sphere.R /*+ 0*/);
+    if (SSA <= r_ssaDISCARD)
+        return;
+
+    // Distortive geometry should be marked and R2 special-cases it
+    // a) Allow to optimize RT order
+    // b) Should be rendered to special distort buffer in another pass
+    VERIFY(pVisual->shader._get());
+    const Shader* vis_sh = pVisual->shader._get();
+    ShaderElement* sh_d = vis_sh ? vis_sh->E[4]._get() : nullptr; // 4=L_special
+    if (RImplementation.o.distortion && sh_d && sh_d->flags.bDistort && pmask[sh_d->flags.iPriority / 2])
+    {
+        mapMatrixItems& matrixItems = mapDistort[sh_d->passes[0]._get()];
+        matrixItems.items->emplace_back(_MatrixItem{.ssa = SSA, .pObject = nullptr, .pVisual = pVisual, .Matrix = Fidentity});
+    }
+
+    // Select shader
+    ShaderElement* sh = RImplementation.rimp_select_sh_static(pVisual, dist_sqr, phase);
+    if (nullptr == sh)
+        return;
+    if (!pmask[sh->flags.iPriority / 2])
+        return;
+
+    // strict-sorting selection
+    if (sh->flags.bStrictB2F)
+    {
+        mapSorted.insert_anyway(dist_sqr, _MatrixItemS({SSA, nullptr, pVisual, Fidentity, sh}));
+        return;
+    }
+
+    // Emissive geometry should be marked and R2 special-cases it
+    // a) Allow to skeep already lit pixels
+    // b) Allow to make them 100% lit and really bright
+    // c) Should not cast shadows
+    // d) Should be rendered to accumulation buffer in the second pass
+    if (sh->flags.bEmissive)
+    {
+        mapEmissive.insert_anyway(dist_sqr, _MatrixItemS({.ssa= SSA, .pObject= nullptr, .pVisual= pVisual, .Matrix= Fidentity, .se= sh_d})); // sh_d -> L_special
+    }
+    if (sh->flags.bWmark && pmask_wmark)
+    {
+        mapWmark.insert_anyway(dist_sqr, _MatrixItemS({.ssa= SSA, .pObject= nullptr, .pVisual= pVisual, .Matrix= Fidentity, .se= sh}));
+        return;
+    }
+
+    if (val_feedback && counter_S == val_feedback_breakp)
+        val_feedback->feedback_callback(pVisual);
+
+    counter_S++;
+
+    {
+        //ZoneScopedN("mapNormalPasses");
+
+        ASSERT_FMT(sh->passes.size() <= SHADER_PASSES_MAX, "max pass should be <= 2! shader [%s]", pVisual->shader->dbg_shader_name.c_str());
+        ASSERT_FMT(sh->flags.iPriority / 2 <= 1, "sh->flags.iPriority / 2 <= 1! shader [%s]", pVisual->shader->dbg_shader_name.c_str());
+
+        mapNormalCount++;
+
+        for (u32 iPass = 0; iPass < sh->passes.size(); ++iPass)
+        {
+            mapNormal_T& map = mapNormalPasses[sh->flags.iPriority / 2][iPass];
+            SPass* pass = sh->passes[iPass]._get();
+            mapNormalItems& normalItems = map[pass];
+
+            normalItems.ssa = std::max(SSA, normalItems.ssa);
+
+            if (pVisual->base_crc)
+            {
+                const float lod = calcLOD(SSA);
+                pVisual->select_lod_id(clampr(1.f - (1.f - lod) * ps_r__LOD_k, 0.01f, 1.f), context_id, phase != CRender::PHASE_NORMAL);
+
+                if (auto it = normalItems.trees->find(pVisual->crc[context_id]); it != normalItems.trees->end())
+                {
+                    it->second.data.push_back(&pVisual->tree_data);
+                }
+                else
+                {
+                    (*normalItems.trees)[pVisual->crc[context_id]] = _TreeItem{.pVisual = pVisual, .data = {&pVisual->tree_data}};
+                }
+            }
+            else
+            {
+                normalItems.items->emplace_back(_NormalItem{.ssa= SSA, .pVisual= pVisual});
+            }
+        }
+    }
+}
+
+void R_dsgraph_structure::add_leafs_dynamic(IRenderable* root, dxRender_Visual* pVisual, Fmatrix& xform)
+{
+    if (!pVisual)
+        return;
+
+    ZoneScoped;
+
+    switch (pVisual->Type)
+    {
+    case MT_PARTICLE_GROUP: {
+        if (phase == CRender::PHASE_NORMAL)
+        {
+            // Add all children, doesn't perform any tests
+            const PS::CParticleGroup* pG = smart_cast<PS::CParticleGroup*>(pVisual);
+            for (auto& I : pG->items)
+            {
+                if (I._effect)
+                    add_leafs_dynamic(root, I._effect, xform);
+                for (const auto& pit : I._children_related)
+                    add_leafs_dynamic(root, pit, xform);
+                for (const auto& pit : I._children_free)
+                    add_leafs_dynamic(root, pit, xform);
+            }
+        }
+    }
+        return;
+    case MT_HIERRARHY: {
+        for (dxRender_Visual* Vis : smart_cast<FHierrarhyVisual*>(pVisual)->children)
+            if (Vis->getRZFlag())
+                add_leafs_dynamic(root, Vis, xform);
+    }
+        return;
+    case MT_SKELETON_ANIM:
+    case MT_SKELETON_RIGID: {
+        const auto pV = smart_cast<CKinematics*>(pVisual);
+        BOOL _use_lod = FALSE;
+        if (pV->m_lod)
+        {
+            Fvector Tpos;
+            float dist_sqr;
+            xform.transform_tiny(Tpos, pV->getVisData().sphere.P);
+            const float ssa = CalcSSA(dist_sqr, Tpos, pV->getVisData().sphere.R / 2.f); // assume dynamics never consume full sphere
+            if (ssa < r_ssaLOD_A)
+                _use_lod = TRUE;
+        }
+        if (_use_lod)
+        {
+            add_leafs_dynamic(root, pV->m_lod, xform);
+        }
+        else
+        {
+            if (phase == CRender::PHASE_NORMAL)
+            {
+                pV->CalculateBones(TRUE);
+                pV->CalculateWallmarks(root ? root->renderable_HUD() : false); //. bug?
+            }
+
+            for (dxRender_Visual* Vis : pV->children)
+                if (Vis->getRZFlag())
+                    add_leafs_dynamic(root, Vis, xform);
+        }
+    }
+        return;
+    default: {
+        // General type of visual
+        // Calculate distance to it's center
+        Fvector Tpos;
+        xform.transform_tiny(Tpos, pVisual->getVisData().sphere.P);
+        r_dsgraph_insert_dynamic(root, pVisual, xform, Tpos);
+    }
+        return;
+    }
+}
+
+void R_dsgraph_structure::add_leafs_static(dxRender_Visual* pVisual)
+{
+    ZoneScoped;
+
+    if (pVisual->getVisData().marker[context_id] == marker)
+        return;
+
+    {
+        // ZoneScopedN("add_leafs_static/HOM+IsValuableToRender");
+
+        if (phase == CRender::PHASE_NORMAL && !RImplementation.HOM.visible(pVisual->getVisData()))
+        {
+            // Msg("add_leafs_static skip static model");
+            return;
+        }
+
+        if (!pVisual->ignore_optimization && !IsValuableToRender(pVisual, phase != CRender::PHASE_NORMAL))
+            return;
+    }
+
+    switch (pVisual->Type)
+    {
+    case MT_PARTICLE_GROUP: {
+        // Xottab_DUTY: for dynamic objects we need matrix,
+        // which is nullptr, when we use add_leafs_static
+        Log("Dynamic particles added via static procedure.");
+        NODEFAULT;
+    }
+        return;
+    case MT_HIERRARHY: {
+        for (dxRender_Visual* Vis : smart_cast<FHierrarhyVisual*>(pVisual)->children)
+            if (Vis->getRZFlag())
+                add_leafs_static(Vis);
+    }
+        return;
+    case MT_SKELETON_ANIM:
+    case MT_SKELETON_RIGID: {
+        R_ASSERT(false, "SKELETON in static !");
+    }
+        return;
+    case MT_LOD: {
+        if (ps_r2_ls_flags_ext.test(R2FLAGEXT_DISABLE_STATIC_LOD))
+        {
+            return;
+        }
+
+        const auto pV = smart_cast<FLOD*>(pVisual);
+        float D;
+        float ssa = CalcSSA(D, pV->getVisData().sphere.P, pV->getVisData().sphere.R /*+ 0*/) * pV->lod_factor;
+
+        if (ssa < r_ssaLOD_A && phase == CRender::PHASE_NORMAL)
+        {
+            lstLODs.emplace_back(ssa, pVisual);
+        }
+
+        //if (ssa < r_ssaDISCARD)
+        //    return;
+
+        if (ssa > r_ssaLOD_B || phase != CRender::PHASE_NORMAL)
+        {
+            // Add all children, doesn't perform any tests
+            for (dxRender_Visual* Vis : pV->children)
+                add_leafs_static(Vis);
+        }
+    }
+        return;
+    default: {
+        if (max_render_distance > 0.f) // check used only for light render
+        {
+
+            if (render_position.distance_to(pVisual->getVisData().sphere.P) - pVisual->getVisData().sphere.R / 2 > max_render_distance)
+                return;
+        }
+
+        bool is_normal = pVisual->Type == MT_NORMAL;
+        bool is_tree = pVisual->Type == MT_TREE_ST;
+        bool is_tree_progressive = pVisual->Type == MT_TREE_PM;
+        bool is_progressive = pVisual->Type == MT_PROGRESSIVE;
+
+        if (is_normal && ps_r2_ls_flags_ext.test(R2FLAGEXT_DISABLE_STATIC_NORMAL))
+        {
+            return;
+        }
+        if (is_tree && ps_r2_ls_flags_ext.test(R2FLAGEXT_DISABLE_STATIC_TREE))
+        {
+            return;
+        }
+        if (is_tree_progressive && ps_r2_ls_flags_ext.test(R2FLAGEXT_DISABLE_STATIC_TREE_PROGRESSIVE))
+        {
+            return;
+        }
+        if (is_progressive && ps_r2_ls_flags_ext.test(R2FLAGEXT_DISABLE_STATIC_PROGRESSIVE))
+        {
+            return;
+        }
+
+        // General type of visual
+        r_dsgraph_insert_static(pVisual);
+    }
+    }
+}
+
+void R_dsgraph_structure::add_static(dxRender_Visual* pVisual, const CFrustum& view, u32 planes)
+{
+    ZoneScoped;
+
+    vis_data& vis = pVisual->getVisData();
+    if (vis.marker[context_id] == marker)
+        return;
+
+    {
+        // ZoneScopedN("add_leafs_static/HOM+IsValuableToRender");
+
+        if (phase == CRender::PHASE_NORMAL && !RImplementation.HOM.visible(pVisual->getVisData()))
+        {
+            // Msg("add_leafs_static skip static model");
+            return;
+        }
+
+        if (!pVisual->ignore_optimization && !IsValuableToRender(pVisual, phase != CRender::PHASE_NORMAL))
+            return;
+    }
+
+    // Check frustum visibility and calculate distance to visual's center
+    const EFC_Visible VIS = view.testSAABB(vis.sphere.P, vis.sphere.R, vis.box.data(), planes);
+    if (fcvNone == VIS)
+        return;
+
+    // If we get here visual is visible or partially visible
+
+    switch (pVisual->Type)
+    {
+    case MT_HIERRARHY: {
+        for (dxRender_Visual* Vis : smart_cast<FHierrarhyVisual*>(pVisual)->children)
+        {
+            if (Vis->getRZFlag())
+            {
+                if (fcvPartial == VIS)
+                {
+                    add_static(Vis, view, planes);
+                }
+                else
+                {
+                    add_leafs_static(Vis);
+                }
+            }
+        }
+    }
+    break;
+    default: {
+        add_leafs_static(pVisual);
+    }
+    break;
+    }
+}
+
+// sub-space rendering - main procedure
+void R_dsgraph_structure::build_subspace(const IRender_Sector::sector_id_t& start_sector_id, CFrustum& frustum, const Fmatrix& xform, const Fvector& camera_position,
+                                         const BOOL add_dynamic)
+{
+    ZoneScoped;
+
+    mapMatrixCount = 0;
+    mapNormalCount = 0;
+
+    render_position = camera_position;
+
+    VERIFY(_sector);
+    marker++; // !!! critical here
+
+    if (start_sector_id != IRender_Sector::INVALID_SECTOR_ID)
+    {
+        IRender_Sector* root_sector = sector_portals_structure.Sectors.at(start_sector_id);
+
+        // Traverse sector/portal structure
+        PortalTraverser.traverse(root_sector, frustum, camera_position, xform, 0);
+    }
+
+    if (true)
+    {
+        for (const auto& sector : sector_portals_structure.Sectors)
+        {
+            dxRender_Visual* root = sector->root();
+            // for (u32 v_it = 0; v_it < sector->r_frustums.size(); v_it++)
+            {
+                add_static(root, frustum, frustum.getMask());
+            }
+        }
+    }
+    else
+    {
+        // Determine visibility for static geometry hierrarhy
+        for (const auto& r_sector : PortalTraverser.r_sectors)
+        {
+            dxRender_Visual* root = r_sector->root();
+            for (const auto& view : r_sector->r_frustums)
+            {
+                add_static(root, view, view.getMask());
+            }
+        }
+    }
+
+    if (add_dynamic)
+    {
+        // Traverse object database
+        if (max_render_distance > 0)
+        {
+            g_SpatialSpace->q_sphere(lstRenderables, 0, STYPE_RENDERABLE, render_position, max_render_distance);
+        }
+        else
+        {
+            g_SpatialSpace->q_frustum(lstRenderables, 0, STYPE_RENDERABLE, frustum);
+        }
+
+        // Determine visibility for dynamic part of scene
+        for (const auto spatial : lstRenderables)
+        {
+            /*if (o.is_main_pass)
+            {
+                const auto& entity_pos = spatial->spatial_sector_point();
+                const auto sector_id = detect_sector(entity_pos);
+                spatial->spatial_updatesector(sector_id);
+            }*/
+
+            const auto& sector_id = spatial->spatial.sector_id;
+            if (sector_id == IRender_Sector::INVALID_SECTOR_ID)
+            {
+                continue; // disassociated from S/P structure
+            }
+
+            const auto* sector = sector_portals_structure.Sectors.at(sector_id);
+
+            if ((spatial->spatial.type & STYPE_RENDERABLE) && !ps_r2_ls_flags_ext.test(R2FLAGEXT_DISABLE_DYNAMIC))
+            {
+                // renderable
+                IRenderable* renderable = spatial->dcast_Renderable();
+                R_ASSERT(renderable);
+
+                // casting is faster then using getVis method
+                vis_data& v_orig = renderable->renderable.visual->getVisData();
+
+                if (!renderable->renderable.visual->ignore_optimization && PortalTraverser.frame() == Device.dwFrame) // if portal was updated on this frame
+                {
+                    Fvector pos;
+                    renderable->renderable.xform.transform_tiny(pos, v_orig.sphere.P);
+
+                    const float distance = Device.vCameraPosition.distance_to(pos);
+
+                    if (distance > 15.f)
+                    {
+                        if (PortalTraverser.marker() != sector->r_marker)
+                            continue; // inactive (untouched) sector
+                    }
+                }
+
+                if (max_render_distance > 0.f)
+                {
+                    Fvector pos;
+                    renderable->renderable.xform.transform_tiny(pos, v_orig.sphere.P);
+
+                    if (!renderable->renderable.visual->ignore_optimization && render_position.distance_to(pos) - v_orig.sphere.R / 2 > max_render_distance)
+                        continue;
+                }
+
+                for (auto& view : sector->r_frustums)
+                {
+                    if (!view.testSphere_dirty(spatial->spatial.sphere.P, spatial->spatial.sphere.R))
+                        continue;
+
+                    renderable->renderable_Render(context_id, renderable);
+
+                    break; // exit loop on frustums
+                }
+            }
+        }
+
+        if (g_pGameLevel && g_hud)
+        {
+            if (phase != CRender::PHASE_NORMAL)
+            {
+                g_hud->Render_SMAP(context_id);
+            }
+        }
+    }
+}
+
+void R_dsgraph_structure::reset()
+{
+    context_id = CHW::INVALID_CONTEXT_ID;
+
+    val_feedback = nullptr;
+
+    lstLODs.clear();
+    lstLODgroups.clear();
+    lstRenderables.clear();
+
+    for (int i = 0; i < SHADER_PASSES_MAX; ++i)
+    {
+        mapNormalPasses[0][i].clear();
+        mapNormalPasses[1][i].clear();
+        mapMatrixPasses[0][i].clear();
+        mapMatrixPasses[1][i].clear();
+    }
+
+    mapSorted.clear();
+    mapDistort.clear();
+
+    mapHUD.destroy();
+    mapHUDSorted.destroy();
+
+    mapWmark.destroy();
+    mapEmissive.destroy();
+    mapHUDEmissive.destroy();
+
+    mapScopeHUD.destroy();
+    mapScopeHUDSorted.destroy();
+    mapScopeHUDSorted2.destroy();
+
+    cmd_list.Invalidate();
+
+    main_pass = false;
+    max_render_distance = -1.f;
+}
+
+void R_dsgraph_structure::load(const xr_vector<CSector::level_sector_data_t>& sectors_data, const xr_vector<CPortal::level_portal_data_t>& portals_data)
+{
+    sector_portals_structure.load(sectors_data, portals_data);
+}
+
+void R_dsgraph_structure::unload() { sector_portals_structure.unload(); }

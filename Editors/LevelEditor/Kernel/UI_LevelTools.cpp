@@ -118,6 +118,7 @@ bool CLevelTool::HiddenMode()
 
 bool CLevelTool::KeyDown(WORD Key, TShiftState Shift)
 {
+    if (LUI->IsInGame()) return true;
     if (pCurTool && pCurTool->pCurControl)
         return pCurTool->pCurControl->KeyDown(Key, Shift);
 
@@ -126,6 +127,7 @@ bool CLevelTool::KeyDown(WORD Key, TShiftState Shift)
 
 bool CLevelTool::KeyUp(WORD Key, TShiftState Shift)
 {
+    if (LUI->IsInGame()) return true;
     if (pCurTool && pCurTool->pCurControl)
         return pCurTool->pCurControl->KeyUp(Key, Shift);
 
@@ -134,6 +136,7 @@ bool CLevelTool::KeyUp(WORD Key, TShiftState Shift)
 
 bool CLevelTool::KeyPress(WORD Key, TShiftState Shift)
 {
+    if (LUI->IsInGame()) return true;
     if (pCurTool && pCurTool->pCurControl)
         return pCurTool->pCurControl->KeyPress(Key, Shift);
 
@@ -224,6 +227,7 @@ ObjClassID CLevelTool::CurrentClassID()
 
 void CLevelTool::OnShowHint(AStringVec &ss)
 {
+    if (LUI->IsInGame()) return;
     Scene->OnShowHint(ss);
 }
 
@@ -319,6 +323,7 @@ LPCSTR CLevelTool::GetInfo()
 
 void CLevelTool::OnFrame()
 {
+    if (LUI->IsInGame() && !EDevice.b_is_Active) LUI->StopInGame();
     Scene->OnFrame(EDevice.fTimeDelta);
     EEditorState est = UI->GetEState();
     if ((est == esEditScene) || (est == esEditLibrary) || (est == esEditLightAnim))
@@ -376,9 +381,9 @@ void CLevelTool::Render()
         break;
     }
     // draw cursor
-    LUI->m_Cursor->Render();
+    if (!LUI->IsInGame()) LUI->m_Cursor->Render();
 
-    inherited::Render();
+    if (!LUI->IsInGame()) inherited::Render();
 }
 
 void CLevelTool::ShowObjectList()

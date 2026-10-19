@@ -1,0 +1,11 @@
+#include "common.h"
+#include "sload.h"
+
+float4 main(p_shadow_direct_aref I) : SV_Target
+{
+    float4 C = s_base.Sample(smp_linear, I.tc0);
+
+    calc_alpha_test(I.tc0.xy, C.a);
+
+    return C;
+}

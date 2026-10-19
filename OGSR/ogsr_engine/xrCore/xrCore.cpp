@@ -1,0 +1,163 @@
+// xrCore.cpp : Defines the entry point for the DLL application.
+//
+#include "stdafx.h"
+
+#include <mmsystem.h>
+#include <objbase.h>
+#include <winternl.h>
+
+#pragma comment(lib, "winmm.lib")
+
+XRCORE_API xrCore Core;
+
+XRCORE_API task_thread_pool::task_thread_pool* TTAPI{};
+
+// indicate that we reach WinMain, and all static variables are initialized
+XRCORE_API bool gModulesLoaded = false;
+
+namespace
+{
+u32 init_counter = 0;
+
+NTSTATUS(__stdcall* ZwSetTimerResolution)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution) = (NTSTATUS(__stdcall*)(ULONG, BOOLEAN, PULONG))GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
+
+ULONG actualResolution;
+} // namespace
+
+void xrCore::_initialize(LPCSTR _ApplicationName, LogCallback cb, BOOL init_fs,
+                         LPCSTR fs_fname)
+{
+    strcpy_s(ApplicationName, _ApplicationName);
+    if (0 == init_counter)
+    {
+        // https://stackoverflow.com/questions/85122/how-to-make-thread-sleep-less-than-a-millisecond-on-windows/31411628#31411628
+        ZwSetTimerResolution(1, true, &actualResolution);
+
+        strcpy_s(Params, sizeof(Params), GetCommandLine());
+
+        CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+        if (strstr(Params, "-dbg"))
+            ParamFlags.set(ParamFlag::dbg, TRUE);
+
+        // application path
+        string_path fn, dr, di;
+        GetModuleFileName(nullptr, fn, sizeof(fn));
+        _splitpath(fn, dr, di, nullptr, nullptr);
+        strconcat(sizeof(ApplicationPath), ApplicationPath, dr, di);
+
+        // User/Comp Name
+        DWORD sz_user = sizeof(UserName);
+        GetUserName(UserName, &sz_user);
+
+        DWORD sz_comp = sizeof(CompName);
+        GetComputerName(CompName, &sz_comp);
+
+        Memory._initialize();
+
+        _initialize_cpu();
+
+        rtc_initialize();
+
+        xr_FS = std::make_unique<CLocatorAPI>();
+    }
+    if (init_fs)
+    {
+        u32 flags = 0;
+
+        if (nullptr != strstr(Core.Params, "-file_activity"))
+            flags |= CLocatorAPI::flDumpFileActivity;
+
+        FS._initialize(flags, fs_fname);
+
+        Msg("[OGSR Engine (%s)] build date: [" __DATE__ " " __TIME__ "]",
+            GetBuildConfiguration());
+        if (strlen(APPVEYOR_BUILD_VERSION))
+            Log("[AppVeyor] build version: [" APPVEYOR_BUILD_VERSION
+                "], repo: [" APPVEYOR_REPO_NAME "]");
+
+#pragma message("[" _CRT_STRINGIZE_(_MSC_FULL_VER) "]: [" _CRT_STRINGIZE(_MSC_FULL_VER) "], [" _CRT_STRINGIZE_(_MSVC_LANG) "]: [" _CRT_STRINGIZE(_MSVC_LANG) "]")
+        Log("[" _CRT_STRINGIZE_(_MSC_FULL_VER) "]: [" _CRT_STRINGIZE(_MSC_FULL_VER) "], [" _CRT_STRINGIZE_(_MSVC_LANG) "]: [" _CRT_STRINGIZE(_MSVC_LANG) "]");
+
+        Msg("Working Directory: [%s]", WorkingPath);
+        Msg("CommandLine: [%s]", Core.Params);
+
+#ifdef DEBUG
+        Msg("CRT heap 0x%08x", _get_heap_handle());
+        Msg("Process heap 0x%08x", GetProcessHeap());
+#endif // DEBUG
+    }
+
+    SetLogCB(cb);
+    init_counter++;
+
+    u32 th_count{};
+    // Check for override from command line
+    const char* szSearchFor = "-max-threads";
+    char* pszTemp = strstr(Params, szSearchFor);
+    u32 dwOverride = 0;
+    if (pszTemp && sscanf_s(pszTemp + strlen(szSearchFor), "%u", &dwOverride) &&
+        dwOverride >= 1)
+    {
+        th_count = dwOverride;
+    }
+    TTAPI = xr_new<task_thread_pool::task_thread_pool>("TTAPI", th_count);
+    TTAPI->init();
+    Msg("TTAPI number of threads: [%u]", TTAPI->get_num_threads());
+}
+
+void xrCore::_destroy()
+{
+    --init_counter;
+    if (0 == init_counter)
+    {
+        TTAPI->clear_task_queue();
+        TTAPI->wait_for_tasks();
+        xr_delete(TTAPI);
+
+        FS._destroy();
+
+        xr_FS.reset();
+
+        Memory._destroy();
+
+        CoUninitialize();
+
+        ZwSetTimerResolution(actualResolution, true, &actualResolution);
+    }
+}
+
+const char* xrCore::GetEngineVersion()
+{
+    static string256 buff;
+    if (strlen(APPVEYOR_BUILD_VERSION))
+        std::snprintf(buff, sizeof(buff), APPVEYOR_BUILD_VERSION " (%s) from repo: [" APPVEYOR_REPO_NAME "]", GetBuildConfiguration());
+    else
+        std::snprintf(buff, sizeof(buff), "[OGSR Engine %s (build: " __DATE__ " " __TIME__ ")]", GetBuildConfiguration());
+    return buff;
+}
+
+constexpr const char* xrCore::GetBuildConfiguration()
+{
+#ifdef _DEBUG
+#ifdef __SANITIZE_ADDRESS__
+#ifdef _M_X64
+    return "x64_Dbg_ASAN";
+#else
+    return "x86_Dbg_ASAN";
+#endif
+#else
+#ifdef _M_X64
+    return "x64_Dbg";
+#else
+    return "x86_Dbg";
+#endif
+#endif
+#else
+#ifdef _M_X64
+    return "x64";
+#else
+    return "x86";
+#endif
+#endif
+}

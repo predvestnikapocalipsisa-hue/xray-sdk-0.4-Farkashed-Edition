@@ -50,7 +50,7 @@ static const char* GetTopBarTooltip(const char* name)
 		{"ViewT",      "Top view"},
 		{"ViewX",      "Reset view"},
 
-		{"RunInGame",  "Play in editor"},
+		{"RunInGame",  "InGame: walk in current scene (F5)"},
 	};
 	auto it = tooltips.find(name);
 	return it != tooltips.end() ? it->second : nullptr;
@@ -241,57 +241,7 @@ void UITopBarForm::ClickZoom()
 
 void UITopBarForm::ClickRunInGame()
 {
-	//       $maps$
-	string_path full_map_path;
-	FS.update_path(full_map_path, "$maps$", "ingame.level");
-
-	//     ,    
-	ExecCommand(COMMAND_SAVE_INGAME, xr_string(full_map_path));
-
-	char module_path[MAX_PATH];
-	GetModuleFileNameA(NULL, module_path, MAX_PATH);
-	std::string exe_path(module_path);
-	std::string exe_dir = exe_path.substr(0, exe_path.find_last_of("\\/"));
-	std::string sdk_root_path = exe_dir.substr(0, exe_dir.find_last_of("\\/")) + "\\";
-
-	std::string bat_path = sdk_root_path + "ingame.bat";
-	std::string map_path = full_map_path;
-
-	bool hideAIMap =
-		!Scene->GetTool(OBJCLASS_AIMAP) ||
-		!Scene->GetTool(OBJCLASS_AIMAP)->IsVisible();
-	bool hideSectors =
-		!Scene->GetTool(OBJCLASS_SECTOR) ||
-		!Scene->GetTool(OBJCLASS_SECTOR)->IsVisible();
-	bool hidePortals =
-		!Scene->GetTool(OBJCLASS_PORTAL) ||
-		!Scene->GetTool(OBJCLASS_PORTAL)->IsVisible();
-	bool hideDetails =
-		!Scene->GetTool(OBJCLASS_DO) ||
-		!Scene->GetTool(OBJCLASS_DO)->IsVisible();
-	bool hideSpawn =
-		!Scene->GetTool(OBJCLASS_SPAWNPOINT) ||
-		!Scene->GetTool(OBJCLASS_SPAWNPOINT)->IsVisible();
-	bool hideSceneObj =
-		!Scene->GetTool(OBJCLASS_SCENEOBJECT) ||
-		!Scene->GetTool(OBJCLASS_SCENEOBJECT)->IsVisible();
-
-	std::string params = "\"" + map_path + "\"";
-	if (hideAIMap)    params += " -hide_aimap";
-	if (hideSectors)  params += " -hide_sectors";
-	if (hidePortals)  params += " -hide_portals";
-	if (hideDetails)  params += " -hide_details";
-	if (hideSpawn)    params += " -hide_spawn";
-	if (hideSceneObj) params += " -hide_sceneobj";
-
-	ShellExecuteA(
-		NULL,
-		"open",
-		bat_path.c_str(),
-		params.c_str(),
-		sdk_root_path.c_str(),
-		SW_SHOW
-	);
+    LUI->StartInGame();
 }
 
 void UITopBarForm::ClickZoomSel()

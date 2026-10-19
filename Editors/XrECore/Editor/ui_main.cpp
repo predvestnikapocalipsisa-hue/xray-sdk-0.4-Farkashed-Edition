@@ -19,11 +19,11 @@
 #include "gamefont.h"
 #include <exception>
 #include <new>
+#include "../../XrEUI/SDKMessageBox.h"
 TUI *UI = 0;
 
 TUI::TUI()
 {
-    m_HConsole = 0;
     UI = this;
     m_AppClosed = false;
     m_RenderPaused = false;
@@ -714,13 +714,10 @@ SPBItem *TUI::ProgressStart(float max_val, LPCSTR text)
     VERIFY(m_bReady);
     SPBItem *item = xr_new<SPBItem>(text, "", max_val);
     m_ProgressItems.push_back(item);
-    ELog.Msg(mtInformation, text);
+    ELog.Msg(mtInformation, "%s", text);
+    if (m_ProgressItems.size() == 1)
+        SDKDialogs::BeginProgress(EDevice.m_hWnd);
     ProgressDraw();
-    if (!m_HConsole)
-    {
-        AllocConsole();
-        m_HConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    }
     return item;
 }
 void TUI::ProgressEnd(SPBItem *&pbi)
@@ -732,12 +729,8 @@ void TUI::ProgressEnd(SPBItem *&pbi)
         VERIFY(it != m_ProgressItems.end());
         m_ProgressItems.erase(it);
         xr_delete(pbi);
-        ProgressDraw();
-        if (m_ProgressItems.size() == 0)
-        {
-            FreeConsole();
-            m_HConsole = 0;
-        }
+        if (m_ProgressItems.empty()) SDKDialogs::EndProgress();
+        else ProgressDraw();
     }
 }
 
@@ -749,12 +742,17 @@ void TUI::ProgressDraw()
         xr_string txt;
         float p, m;
         pbi->GetInfo(txt, p, m);
-        // progress
-        int val = fis_zero(m) ? 0 : (int)((p / m) * 100);
-        string2048 out;
-        xr_sprintf(out, "[%d%%]%s\r\n", val, txt.c_str());
-        DWORD dw;
-        WriteConsole(m_HConsole, out, xr_strlen(out), &dw, NULL);
+        // Parent counters count completed stages; the active child supplies the
+        // fractional part of the current stage. Percentages measure work units,
+        // not estimated time, and never restart at zero between scene parts.
+        float fraction = 0.f;
+        for (auto it = m_ProgressItems.rbegin(); it != m_ProgressItems.rend(); ++it)
+        {
+            const SPBItem* item = *it;
+            fraction = item->max > 0.f ? (item->progress + fraction) / item->max : 0.f;
+            clamp(fraction, 0.f, 1.f);
+        }
+        SDKDialogs::UpdateProgress(txt.c_str(), p, m, fraction, fraction >= 1.f);
     }
 }
 

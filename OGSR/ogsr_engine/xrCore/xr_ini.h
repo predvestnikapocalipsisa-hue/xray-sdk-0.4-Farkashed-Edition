@@ -1,0 +1,183 @@
+#pragma once
+
+struct xr_token;
+
+class XRCORE_API CInifile final
+{
+    friend class CIniMerger;
+
+public:
+    struct XRCORE_API Sect final
+    {
+        u32 Index{};
+
+        shared_str Name{};
+        shared_str ParentNames{};
+
+        string_unordered_map<shared_str, shared_str> Data;
+        
+        xr_vector<std::pair<shared_str, shared_str>> Ordered_Data;
+        //xr_map<shared_str, shared_str> Ordered_Data; //Для ЗП обязательно надо чтобы был xr_map для сортировки по алфавату, в ТЧ же вариант с xr_vector работает много лет без проблем, потому не хочу менять пока.
+
+        BOOL line_exist(LPCSTR L) const { return Data.contains(L); }
+        BOOL line_exist(LPCSTR, LPCSTR*) const;
+        u32 line_count() const;
+
+        LPCSTR r_string(LPCSTR) const;
+        u32 r_u32(LPCSTR) const;
+        float r_float(LPCSTR) const;
+
+        Ivector2 r_ivector2(LPCSTR) const;
+        Fvector3 r_fvector3(LPCSTR) const;
+    };
+    using Root = string_unordered_map<shared_str, Sect*>;
+    using RootItem = std::pair<shared_str, Sect*>;
+
+    // factorisation
+    static CInifile* Create(const char*, BOOL = TRUE);
+    static void Destroy(CInifile*);
+
+    static IC BOOL IsBOOL(LPCSTR B) { return (xr_strcmp(B, "on") == 0 || xr_strcmp(B, "yes") == 0 || xr_strcmp(B, "true") == 0 || xr_strcmp(B, "1") == 0); }
+
+private:
+    LPSTR fName;
+
+    Root DATA;
+    xr_vector<RootItem> Ordered_DATA;
+
+    Sect* Current{}; // for use during load only
+
+    void Load(IReader*, LPCSTR, BOOL, const CInifile*, bool root_level, LPCSTR current_file);
+
+    bool bSaveAtEnd;
+
+public:
+    bool bReadOnly;
+
+    CInifile(IReader*, LPCSTR = 0);
+    CInifile(LPCSTR, BOOL ReadOnly = TRUE, BOOL bLoad = TRUE, BOOL SaveAtEnd = TRUE);
+
+    ~CInifile();
+
+    const Root& sections() const { return DATA; }
+
+    const xr_vector<RootItem>& sections_ordered() const { return Ordered_DATA; }
+
+    void load_file(BOOL allow_dup_sections = FALSE, const CInifile* f = NULL);
+
+    bool save_as(LPCSTR = 0);
+    std::string get_as_string() const;
+
+    LPCSTR fname() const { return fName; }
+
+    Sect& r_section(LPCSTR) const;
+    Sect& r_section(const shared_str&) const;
+
+    BOOL line_exist(LPCSTR, LPCSTR) const;
+    BOOL line_exist(const shared_str&, const shared_str&) const;
+
+    u32 line_count(LPCSTR) const;
+    u32 line_count(const shared_str&) const;
+
+    BOOL section_exist(LPCSTR) const;
+    BOOL section_exist(const shared_str&) const;
+
+    CLASS_ID r_clsid(LPCSTR, LPCSTR) const;
+    CLASS_ID r_clsid(const shared_str& S, LPCSTR L) const { return r_clsid(S.c_str(), L); }
+
+    LPCSTR r_string(LPCSTR, LPCSTR) const; // оставляет кавычки
+    LPCSTR r_string(const shared_str& S, LPCSTR L) const { return r_string(S.c_str(), L); } // оставляет кавычки
+
+    shared_str r_string_wb(LPCSTR, LPCSTR) const; // убирает кавычки
+    shared_str r_string_wb(const shared_str& S, LPCSTR L) const { return r_string_wb(S.c_str(), L); } // убирает кавычки
+
+    u8 r_u8(LPCSTR, LPCSTR) const;
+    u8 r_u8_hex(LPCSTR, LPCSTR) const;
+    u8 r_u8(const shared_str& S, LPCSTR L) const { return r_u8(S.c_str(), L); }
+
+    u16 r_u16(LPCSTR, LPCSTR) const;
+    u16 r_u16_hex(LPCSTR, LPCSTR) const;
+    u16 r_u16(const shared_str& S, LPCSTR L) const { return r_u16(S.c_str(), L); }
+
+    u32 r_u32(LPCSTR, LPCSTR) const;
+    u32 r_u32_hex(LPCSTR, LPCSTR) const;
+    u32 r_u32(const shared_str& S, LPCSTR L) const { return r_u32(S.c_str(), L); }
+
+    s8 r_s8(LPCSTR, LPCSTR) const;
+    s8 r_s8(const shared_str& S, LPCSTR L) const { return r_s8(S.c_str(), L); }
+
+    s16 r_s16(LPCSTR, LPCSTR) const;
+    s16 r_s16(const shared_str& S, LPCSTR L) const { return r_s16(S.c_str(), L); }
+
+    s32 r_s32(LPCSTR, LPCSTR) const;
+    s32 r_s32(const shared_str& S, LPCSTR L) const { return r_s32(S.c_str(), L); }
+
+    float r_float(LPCSTR, LPCSTR) const;
+    float r_float(const shared_str& S, LPCSTR L) const { return r_float(S.c_str(), L); }
+
+    Fcolor r_fcolor(LPCSTR, LPCSTR) const;
+    Fcolor r_fcolor(const shared_str& S, LPCSTR L) const { return r_fcolor(S.c_str(), L); }
+
+    u32 r_color(LPCSTR, LPCSTR) const;
+    u32 r_color(const shared_str& S, LPCSTR L) const { return r_color(S.c_str(), L); }
+
+    Ivector2 r_ivector2(LPCSTR, LPCSTR) const;
+    Ivector2 r_ivector2(const shared_str& S, LPCSTR L) const { return r_ivector2(S.c_str(), L); }
+
+    Ivector3 r_ivector3(LPCSTR, LPCSTR) const;
+    Ivector3 r_ivector3(const shared_str& S, LPCSTR L) const { return r_ivector3(S.c_str(), L); }
+
+    Ivector4 r_ivector4(LPCSTR, LPCSTR) const;
+    Ivector4 r_ivector4(const shared_str& S, LPCSTR L) const { return r_ivector4(S.c_str(), L); }
+
+    Fvector2 r_fvector2(LPCSTR, LPCSTR) const;
+    Fvector2 r_fvector2(const shared_str& S, LPCSTR L) const { return r_fvector2(S.c_str(), L); }
+
+    Fvector3 r_fvector3(LPCSTR, LPCSTR) const;
+    Fvector3 r_fvector3(const shared_str& S, LPCSTR L) const { return r_fvector3(S.c_str(), L); }
+
+    Fvector4 r_fvector4(LPCSTR, LPCSTR) const;
+    Fvector4 r_fvector4(const shared_str& S, LPCSTR L) const { return r_fvector4(S.c_str(), L); }
+
+    BOOL r_bool(LPCSTR, LPCSTR) const;
+    BOOL r_bool(const shared_str& S, LPCSTR L) const { return r_bool(S.c_str(), L); }
+
+    int r_token(LPCSTR, LPCSTR, const xr_token* token_list) const;
+
+    bool r_line(LPCSTR, const u32, const char**, const char**) const;
+    bool r_line(const shared_str&, const u32, const char**, const char**) const;
+
+    void w_clsid(LPCSTR, LPCSTR, CLASS_ID);
+    void w_string(LPCSTR, LPCSTR, LPCSTR);
+
+    void w_u8(LPCSTR, LPCSTR, u8);
+    void w_u8_hex(LPCSTR, LPCSTR, u8);
+    void w_u16(LPCSTR, LPCSTR, u16);
+    void w_u16_hex(LPCSTR, LPCSTR, u16);
+    void w_u32(LPCSTR, LPCSTR, u32);
+    void w_u32_hex(LPCSTR, LPCSTR, u32);
+
+    void w_s8(LPCSTR, LPCSTR, s8);
+    void w_s16(LPCSTR, LPCSTR, s16);
+    void w_s32(LPCSTR, LPCSTR, s32);
+
+    void w_float(LPCSTR, LPCSTR, float);
+    void w_fcolor(LPCSTR, LPCSTR, const Fcolor&);
+    void w_color(LPCSTR, LPCSTR, u32);
+
+    void w_ivector2(LPCSTR, LPCSTR, const Ivector2&);
+    void w_ivector3(LPCSTR, LPCSTR, const Ivector3&);
+    void w_ivector4(LPCSTR, LPCSTR, const Ivector4&);
+    void w_fvector2(LPCSTR, LPCSTR, const Fvector2&);
+    void w_fvector3(LPCSTR, LPCSTR, const Fvector3&);
+    void w_fvector4(LPCSTR, LPCSTR, const Fvector4&);
+    void w_bool(LPCSTR, LPCSTR, bool);
+
+    void remove_line(LPCSTR, LPCSTR);
+    void remove_section(LPCSTR);
+
+    Sect& append_section(LPCSTR name, Sect* base = nullptr);
+};
+
+// Main configuration file
+extern XRCORE_API CInifile* pSettings;

@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+
+    <!-- Если сборка ведётся из VS2026 (VisualStudioVersion == 18.0) — используем v145 -->
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '18.0'">v145</PlatformToolset>
+    <!-- Иначе — используем v143 -->
+    <PlatformToolset Condition="'$(PlatformToolset)'==''">v143</PlatformToolset>
+
+    <!--CopyCppRuntimeToOutputDir>true</CopyCppRuntimeToOutputDir-->
+  </PropertyGroup>
+
+  <PropertyGroup Label="Globals">
+    <LatestTargetPlatformVersion>$([Microsoft.Build.Utilities.ToolLocationHelper]::GetLatestSDKTargetPlatformVersion('Windows', '10.0'))</LatestTargetPlatformVersion>
+    <WindowsTargetPlatformVersion Condition="'$(LatestTargetPlatformVersion)'!=''">$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+
+  <!--PropertyGroup Condition="$(Configuration.Contains('Debug'))" Label="Configuration">
+    <EnableASAN>true</EnableASAN>
+  </PropertyGroup-->
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <EnableEnhancedInstructionSet Condition="'$(Platform)'=='Win32'">StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+
+	  <!-- Если сборка ведётся из VS2026 (VisualStudioVersion == 18.0) — используем C++23 -->
+      <LanguageStandard Condition="'$(VisualStudioVersion)' == '18.0'">stdcpp23</LanguageStandard>
+      <!-- Иначе — используем C++20 -->
+      <LanguageStandard Condition="'$(VisualStudioVersion)' != '18.0'">stdcpp20</LanguageStandard>
+
+      <BuildStlModules>false</BuildStlModules>
+      <ConformanceMode>true</ConformanceMode>
+
+      <AdditionalOptions Condition="$(Configuration.Contains('Release'))">/Zc:__cplusplus /Ob3 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="$(Configuration.Contains('Debug'))">/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+
+      <PreprocessorDefinitions Condition="$(Configuration.Contains('Release'))">_MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="$(Configuration.Contains('Debug'))">_MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION;_MSVC_STL_HARDENING=1;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+    </ClCompile>
+
+    <Link>
+      <LargeAddressAware>true</LargeAddressAware>
+    </Link>
+  </ItemDefinitionGroup>
+
+</Project>

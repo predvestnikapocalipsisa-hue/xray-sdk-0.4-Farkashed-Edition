@@ -1,0 +1,15 @@
+#include "common.h"
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Pixel
+
+float4 main(p_TL I) : SV_Target
+{
+	float4 res = s_base.Sample(smp_rtlinear, I.Tex0);
+    res.a *= 1.f - I.Color.a;
+    res.rgb = lerp(I.Color.rgb, res.rgb, res.a);
+
+    clip(res.a - 0.0000001f);
+
+    return res;
+}

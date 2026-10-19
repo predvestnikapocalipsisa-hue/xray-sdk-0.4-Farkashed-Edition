@@ -1,0 +1,58 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+#include "ogsr_build_info.hpp"
+
+#define APSTUDIO_READONLY_SYMBOLS
+#include "winres.h"
+#undef APSTUDIO_READONLY_SYMBOLS
+
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+
+VS_VERSION_INFO VERSIONINFO
+// FILEVERSION 1,6,0,2
+// PRODUCTVERSION 1,6,0,2
+ FILEFLAGSMASK 0x17L
+ FILEFLAGS 0x0L
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "https://github.com/OGSR"
+            VALUE "LegalCopyright", "OGSR © " BUILD_YEAR
+#ifdef APPVEYOR_BUILD_VERSION
+            VALUE "FileDescription", "OGSR Engine x64 v." APPVEYOR_BUILD_VERSION " (" CONFIGURATION_GA ") from repo: " APPVEYOR_REPO_NAME ". Build date: " BUILD_DATE " " BUILD_TIME
+            VALUE "ProductName", "OGSR Engine x64 (" CONFIGURATION_GA ")"
+            VALUE "ProductVersion", APPVEYOR_BUILD_VERSION
+#else
+            VALUE "FileDescription", "OGSR Engine x64 (build: " BUILD_DATE " " BUILD_TIME ")"
+            VALUE "ProductName", "OGSR Engine x64"
+            VALUE "ProductVersion", BUILD_DATE " " BUILD_TIME
+#endif
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
+// Icon
+IDI_ICON1 ICON "stalker.ico"
+
+// Splash 
+IDB_PNG1 PNG "ui_splash3.png"
+
+// Splash Window
+IDD_STARTUP DIALOGEX 0, 0, 534, 327
+STYLE DS_ABSALIGN | DS_SETFONT | DS_SETFOREGROUND | DS_CENTER | WS_POPUP | WS_CLIPCHILDREN
+EXSTYLE WS_EX_TRANSPARENT
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+	CONTROL "", IDC_STATIC, "Static", SS_OWNERDRAW, 0, 0, 534, 327, WS_EX_TRANSPARENT
+END

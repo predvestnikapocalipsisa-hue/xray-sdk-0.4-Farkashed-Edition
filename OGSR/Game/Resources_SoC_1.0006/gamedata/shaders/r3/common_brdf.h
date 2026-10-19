@@ -1,0 +1,25 @@
+/*
+    Common functions used by lighting
+    Material table
+
+    /////////////////
+    Anomaly Team 2020
+    /////////////////
+*/
+
+#ifndef BRDF_H_INCLUDED
+#define BRDF_H_INCLUDED
+
+// SSS Settings
+#include "settings_screenspace_FLORA.h"
+
+////////////////////////
+
+// Simple subsurface scattering
+float3 SSS(float3 N, float3 V, float3 L)
+{
+    float S = saturate(dot(V, -(L + N))) * ssfx_florafixes_2.x;
+    return S * lerp(float3(1.0f, 1.0f, 1.0f), L_sun_color.rgb, ssfx_florafixes_2.y);
+}
+
+#endif

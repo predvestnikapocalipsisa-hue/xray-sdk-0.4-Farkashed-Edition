@@ -297,7 +297,6 @@ public:
 protected:
     virtual void OnDrawUI();
     void RealResetUI();
-    HANDLE m_HConsole;
 
 public:
     IC void ResetUI(bool bForced = false)

@@ -89,6 +89,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Kernel\UI_LevelMain.cpp" />
+    <ClCompile Include="Kernel\InGameMode.cpp" />
     <ClCompile Include="Kernel\UI_LevelTools.cpp" />
     <ClCompile Include="Scene\LEPhysics.cpp" />
     <ClCompile Include="Scene\scene.cpp" />

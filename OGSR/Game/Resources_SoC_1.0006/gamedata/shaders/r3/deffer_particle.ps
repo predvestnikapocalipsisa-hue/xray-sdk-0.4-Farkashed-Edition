@@ -1,0 +1,27 @@
+#include "common.h"
+#include "sload.h"
+
+struct p_particle
+{
+    float4 color : COLOR0;
+    p_flat base;
+};
+
+f_deffer main(p_particle II)
+{
+    p_flat I = II.base;
+
+    // 1. Base texture + kill pixels with low alpha
+    float4 D = s_base.Sample(smp_base, I.tcdh);
+    D *= II.color;
+
+    calc_alpha_test(I.tcdh.xy, D.a);
+
+    float4 Ne = float4(normalize((float3)I.N.xyz), I.position.w);
+
+    f_deffer O = pack_gbuffer(Ne, float4(I.position.xyz + Ne.xyz * def_virtualh / 2.h, xmaterial), float4(D.xyz, def_gloss));
+
+    O.Velocity = get_motion_vector(I.hpos_curr, I.hpos_old);
+
+    return O;
+}

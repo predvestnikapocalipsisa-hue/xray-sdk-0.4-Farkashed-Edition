@@ -1,0 +1,15 @@
+////////////////////////////////////////////////////////////////////////////
+//	Module 		: object_handler_planner_impl.h
+//	Created 	: 11.03.2004
+//  Modified 	: 01.12.2004
+//	Author		: Dmitriy Iassenev
+//	Description : Object handler action planner inline functions implementation
+////////////////////////////////////////////////////////////////////////////
+
+#pragma once
+
+IC bool CObjectHandlerPlanner::object_action(u32 action_id, CObject* object) { return ((action_id >> 16) == object->ID()); }
+
+IC u32 CObjectHandlerPlanner::current_action_object_id() const { return (action_object_id(current_action_id())); }
+
+IC u32 CObjectHandlerPlanner::action_object_id(_condition_type action_id) const { return (action_id >> 16); }

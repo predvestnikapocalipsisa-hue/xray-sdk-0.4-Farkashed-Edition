@@ -90,13 +90,13 @@ void CGlow::Render(int priority, bool strictB2F)
                 }
                 Fvector p = GetPosition();
                 m_RenderSprite.Render(p, m_fRadius, m_Flags.is(gfFixedSize));
-                DU_impl.DrawRomboid(p, VIS_RADIUS, 0x00FF8507);
+                if (!LUI->IsInGame()) DU_impl.DrawRomboid(p, VIS_RADIUS, 0x00FF8507);
             }
             else
             {
                 // рендерим bounding sphere
                 EDevice.SetShader(EDevice.m_WireShader);
-                DU_impl.DrawRomboid(GetPosition(), VIS_RADIUS, 0x00FF8507);
+                if (!LUI->IsInGame()) DU_impl.DrawRomboid(GetPosition(), VIS_RADIUS, 0x00FF8507);
             }
         }
         else
@@ -112,7 +112,7 @@ void CGlow::Render(int priority, bool strictB2F)
             Fvector p = GetPosition();
             m_RenderSprite.Render(p, m_fRadius, m_Flags.is(gfFixedSize));
         }
-        if (Selected())
+        if (Selected() && !LUI->IsInGame())
         {
             Fbox bb;
             GetBox(bb);

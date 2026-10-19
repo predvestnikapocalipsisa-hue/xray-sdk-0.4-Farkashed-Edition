@@ -14,6 +14,7 @@ CLevelMain::CLevelMain()
 
 CLevelMain::~CLevelMain()
 {
+    StopInGame();
     xr_delete(EPrefs);
     xr_delete(m_Cursor);
     // TClipMaker::DestroyForm(g_clip_maker);
@@ -1093,12 +1094,20 @@ char *CLevelMain::GetCaption()
 
 bool CLevelMain::ApplyShortCut(DWORD Key, TShiftState Shift)
 {
+    if (IsInGame()) return true;
     return inherited::ApplyShortCut(Key, Shift);
 }
 //---------------------------------------------------------------------------
 
 bool CLevelMain::ApplyGlobalShortCut(DWORD Key, TShiftState Shift)
 {
+    if (IsInGame()) return true;
+    if (Key == VK_F5 && Shift == ssNone && !ImGui::GetIO().WantTextInput &&
+        !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId))
+    {
+        StartInGame();
+        return true;
+    }
     return inherited::ApplyGlobalShortCut(Key, Shift);
 }
 //---------------------------------------------------------------------------
@@ -1420,6 +1429,7 @@ Ivector2 CLevelMain::GetRenderMousePosition() const
 
 void CLevelMain::OnDrawUI()
 {
+    if (IsInGame()) return;
     inherited::OnDrawUI();
     UIObjectList::Update();
     UIEditLibrary::Update();

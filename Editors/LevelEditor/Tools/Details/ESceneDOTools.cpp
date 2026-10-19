@@ -98,7 +98,7 @@ void EDetailManager::OnRender(int priority, bool strictB2F)
         {
             if (false == strictB2F)
             {
-                if (m_Flags.is(flSlotBoxesDraw))
+                if (m_Flags.is(flSlotBoxesDraw) && !LUI->IsInGame())
                 {
                     RCache.set_xform_world(Fidentity);
                     EDevice.SetShader(EDevice.m_WireShader);
@@ -149,12 +149,12 @@ void EDetailManager::OnRender(int priority, bool strictB2F)
             else
             {
                 RCache.set_xform_world(Fidentity);
-                if (m_Flags.is(flBaseTextureDraw))
+                if (m_Flags.is(flBaseTextureDraw) && !LUI->IsInGame())
                     m_Base.Render(m_Flags.is(flBaseTextureBlended));
                 if (m_Flags.is(flObjectsDraw))
                     CDetailManager::Render();
             }
-            if (LTools->GetAction() == etaAdd)
+            if (LTools->GetAction() == etaAdd && !LUI->IsInGame())
             {
                 if (pForm)
                 {

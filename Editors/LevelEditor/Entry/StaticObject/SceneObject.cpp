@@ -104,7 +104,7 @@ void CSceneObject::Render(int priority, bool strictB2F)
     Scene->SelectLightsForObject(this);
 #endif
     m_pReference->Render(_Transform(), priority, strictB2F, &m_Surfaces);
-    if (Selected())
+    if (Selected() && !LUI->IsInGame())
     {
         if (1 == priority)
         {

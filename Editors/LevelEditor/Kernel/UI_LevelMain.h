@@ -70,9 +70,11 @@ enum
 };
 //------------------------------------------------------------------------------
 
+class CInGameMode;
 class CLevelMain : public TUI
 {
     typedef TUI inherited;
+    CInGameMode* m_InGame = nullptr;
 
     virtual void RealUpdateScene();
 
@@ -82,6 +84,10 @@ public:
 public:
     CLevelMain();
     virtual ~CLevelMain();
+    bool IsInGame() const { return m_InGame != nullptr; }
+    void StartInGame();
+    void StopInGame();
+    void DrawInGame();
 
     virtual LPSTR GetCaption();
 

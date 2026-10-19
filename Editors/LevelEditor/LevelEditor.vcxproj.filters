@@ -223,6 +223,9 @@
     <ClCompile Include="Kernel\UI_LevelMain.cpp">
       <Filter>Kernel</Filter>
     </ClCompile>
+    <ClCompile Include="Kernel\InGameMode.cpp">
+      <Filter>Kernel</Filter>
+    </ClCompile>
     <ClCompile Include="Kernel\UI_LevelTools.cpp">
       <Filter>Kernel</Filter>
     </ClCompile>

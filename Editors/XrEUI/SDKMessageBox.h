@@ -20,6 +20,12 @@ namespace SDKDialogs
         const char* const* captions = nullptr);
     SDK_DIALOG_API int ShowWide(HWND owner, const wchar_t* text, const wchar_t* title, UINT flags);
     SDK_DIALOG_API void Notify(const char* text, const char* title, UINT flags);
+    // Synchronous operations can update this owned ImGui window even from
+    // inside an unfinished editor frame. Text uses the SDK's CP1251 encoding.
+    SDK_DIALOG_API bool BeginProgress(HWND owner);
+    SDK_DIALOG_API void UpdateProgress(const char* text, float completed, float total,
+        float overall = -1.f, bool force = false);
+    SDK_DIALOG_API void EndProgress();
     void Pump();
     void Initialize(HWND owner);
     void Shutdown();

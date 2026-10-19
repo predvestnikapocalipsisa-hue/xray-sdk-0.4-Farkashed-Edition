@@ -16,6 +16,7 @@
 #include <mutex>
 #include <deque>
 #include <cstdint>
+#include <memory>
 #pragma comment(lib, "winmm.lib")
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
@@ -396,6 +397,7 @@ void SDKDialogs::Initialize(HWND owner)
 }
 void SDKDialogs::Shutdown()
 {
+    EndProgress();
     editorOwner = nullptr;
     std::lock_guard<std::mutex> lock(notificationsMutex);
     notifications.clear();
@@ -438,4 +440,209 @@ void SDKDialogs::Pump()
         notifications.pop_front();
     }
     Show(editorOwner, notification.text.c_str(), notification.title.c_str(), notification.flags);
+}
+
+namespace
+{
+    // Loading can run inside an ImGui menu callback with the editor's D3D
+    // BeginScene still active. Its frame/device must remain untouched.
+    struct ProgressWindow
+    {
+        Dialog dialog;
+        HWND window = nullptr, owner = nullptr;
+        HINSTANCE module = nullptr;
+        HMODULE assets = nullptr;
+        IDirect3D9* d3d = nullptr;
+        IDirect3DDevice9* device = nullptr;
+        D3DPRESENT_PARAMETERS parameters{};
+        bool ownerEnabled = false;
+        bool backendsReady = false;
+        ULONGLONG lastDraw = 0;
+        std::string text;
+        float fraction = 0.f, completed = 0.f, total = 0.f;
+
+        ~ProgressWindow()
+        {
+            ImGuiContext* saved = ImGui::GetCurrentContext();
+            if (dialog.context)
+            {
+                ImGui::SetCurrentContext(dialog.context);
+                if (backendsReady)
+                {
+                    ImGui_ImplDX9_Shutdown();
+                    ImGui_ImplWin32_Shutdown();
+                }
+                ImGui::DestroyContext(dialog.context);
+                dialog.context = nullptr;
+                ImGui::SetCurrentContext(saved);
+            }
+            if (device) device->Release();
+            if (d3d) d3d->Release();
+            const bool focused = window && GetForegroundWindow() == window;
+            if (ownerEnabled && IsWindow(owner)) EnableWindow(owner, TRUE);
+            if (window) DestroyWindow(window);
+            if (module) UnregisterClassW(L"XRaySDKImGuiProgress", module);
+            if (assets) FreeLibrary(assets);
+            if (focused && IsWindow(owner)) SetForegroundWindow(owner);
+        }
+
+        bool Create(HWND parent)
+        {
+            owner = parent;
+            ImGuiContext* saved = ImGui::GetCurrentContext();
+            ImGuiStyle style;
+            float fontSize = 16.f;
+            if (saved) { style = ImGui::GetStyle(); fontSize = (std::max)(14.f, ImGui::GetFontSize()); }
+            else ImGui::StyleColorsDark(&style);
+            const float scale = (std::max)(1.f, fontSize / 16.f);
+            const int width = int(560 * scale), height = int(190 * scale);
+            MONITORINFO monitor{sizeof(monitor)};
+            GetMonitorInfoW(MonitorFromWindow(owner, MONITOR_DEFAULTTONEAREST), &monitor);
+            RECT area = monitor.rcWork;
+            RECT parentRect;
+            if (owner && GetWindowRect(owner, &parentRect)) area = parentRect;
+            const int x = (std::max)(monitor.rcWork.left, (std::min)(
+                area.left + (area.right - area.left - width) / 2, monitor.rcWork.right - width));
+            const int y = (std::max)(monitor.rcWork.top, (std::min)(
+                area.top + (area.bottom - area.top - height) / 2, monitor.rcWork.bottom - height));
+            GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                reinterpret_cast<LPCWSTR>(&DialogProc), &module);
+            WNDCLASSW cls{};
+            cls.lpfnWndProc = DialogProc;
+            cls.hInstance = module;
+            cls.hCursor = LoadCursor(nullptr, IDC_ARROW);
+            cls.lpszClassName = L"XRaySDKImGuiProgress";
+            RegisterClassW(&cls);
+            dialog.dragHeight = int(fontSize + style.WindowPadding.y * 2);
+            dialog.closeLeft = width;
+            window = CreateWindowExW(WS_EX_TOOLWINDOW, cls.lpszClassName, L"X-Ray SDK - Loading",
+                WS_POPUP, x, y, width, height, owner, nullptr, module, &dialog);
+            if (!window) return false;
+            d3d = Direct3DCreate9(D3D_SDK_VERSION);
+            if (!d3d) return false;
+            parameters.Windowed = TRUE;
+            parameters.SwapEffect = D3DSWAPEFFECT_DISCARD;
+            parameters.BackBufferFormat = D3DFMT_UNKNOWN;
+            parameters.hDeviceWindow = window;
+            parameters.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+            if (FAILED(d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, window,
+                D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_FPU_PRESERVE, &parameters, &device))) return false;
+            dialog.context = ImGui::CreateContext();
+            ImGui::SetCurrentContext(dialog.context);
+            ImGuiIO& io = ImGui::GetIO();
+            io.IniFilename = nullptr;
+            io.LogFilename = nullptr;
+            ImGui::GetStyle() = style;
+            wchar_t modulePath[MAX_PATH]{};
+            GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
+            wchar_t* separator = wcsrchr(modulePath, L'\\');
+            if (separator)
+            {
+                *(separator + 1) = 0;
+                assets = LoadLibraryExW((std::wstring(modulePath) + L"LauncherAssets.dll").c_str(),
+                    nullptr, LOAD_LIBRARY_AS_DATAFILE);
+            }
+            HRSRC resource = assets ? FindResourceW(assets, MAKEINTRESOURCEW(IDR_LAUNCHER_FONT), MAKEINTRESOURCEW(10)) : nullptr;
+            HGLOBAL font = resource ? LoadResource(assets, resource) : nullptr;
+            if (font)
+            {
+                ImFontConfig config;
+                config.FontDataOwnedByAtlas = false;
+                io.Fonts->AddFontFromMemoryTTF(LockResource(font), int(SizeofResource(assets, resource)),
+                    fontSize, &config, io.Fonts->GetGlyphRangesCyrillic());
+            }
+            else io.Fonts->AddFontDefault();
+            ImGui_ImplWin32_Init(window);
+            ImGui_ImplDX9_Init(device);
+            backendsReady = true;
+            ImGui::SetCurrentContext(saved);
+            ownerEnabled = owner && IsWindowEnabled(owner);
+            if (ownerEnabled) EnableWindow(owner, FALSE);
+            ShowWindow(window, SW_SHOW);
+            return true;
+        }
+
+        void Draw(bool force)
+        {
+            const ULONGLONG now = GetTickCount64();
+            if (!force && now - lastDraw < 33) return;
+            lastDraw = now;
+            // Never dispatch editor commands while a partially loaded scene is live.
+            MSG message;
+            while (PeekMessageW(&message, window, 0, 0, PM_REMOVE))
+            {
+                if (message.message == WM_QUIT)
+                {
+                    PostQuitMessage(int(message.wParam));
+                    break;
+                }
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
+            const HRESULT status = device->TestCooperativeLevel();
+            if (status == D3DERR_DEVICELOST) return;
+            ImGuiContext* saved = ImGui::GetCurrentContext();
+            ImGui::SetCurrentContext(dialog.context);
+            if (status == D3DERR_DEVICENOTRESET)
+            {
+                ImGui_ImplDX9_InvalidateDeviceObjects();
+                if (FAILED(device->Reset(&parameters))) { ImGui::SetCurrentContext(saved); return; }
+            }
+            ImGui_ImplDX9_NewFrame();
+            ImGui_ImplWin32_NewFrame();
+            ImGui::NewFrame();
+            ImGui::SetNextWindowPos(ImVec2(0, 0));
+            ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+            ImGui::Begin("##SDKProgress", nullptr, ImGuiWindowFlags_NoDecoration |
+                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+            ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_CheckMark], "X-RAY SDK");
+            ImGui::SameLine();
+            ImGui::TextUnformatted("Operation in progress");
+            ImGui::Separator();
+            ImGui::Spacing();
+            ImGui::TextWrapped("%s", text.c_str());
+            ImGui::Spacing();
+            char percent[32];
+            snprintf(percent, sizeof(percent), "%.0f%%", fraction * 100.f);
+            ImGui::ProgressBar(fraction, ImVec2(-1, ImGui::GetFrameHeight() * 1.3f), percent);
+            if (total > 0.f) ImGui::TextDisabled("%.0f / %.0f", completed, total);
+            ImGui::End();
+            ImGui::Render();
+            device->Clear(0, nullptr, D3DCLEAR_TARGET, 0, 1.f, 0);
+            if (SUCCEEDED(device->BeginScene()))
+            {
+                ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+                device->EndScene();
+            }
+            device->Present(nullptr, nullptr, nullptr, nullptr);
+            ImGui::SetCurrentContext(saved);
+        }
+    };
+    std::unique_ptr<ProgressWindow> progressWindow;
+}
+
+bool SDKDialogs::BeginProgress(HWND owner)
+{
+    if (progressWindow) return true;
+    std::unique_ptr<ProgressWindow> window(new ProgressWindow);
+    if (!window->Create(owner ? owner : editorOwner)) return false;
+    progressWindow = std::move(window);
+    return true;
+}
+
+void SDKDialogs::UpdateProgress(const char* text, float completed, float total, float overall, bool force)
+{
+    if (!progressWindow) return;
+    progressWindow->text = UTF8(text);
+    progressWindow->total = (std::max)(0.f, total);
+    progressWindow->completed = (std::max)(0.f, (std::min)(completed, progressWindow->total));
+    progressWindow->fraction = overall >= 0.f ?
+        (std::max)(progressWindow->fraction, (std::min)(overall, 1.f)) :
+        (total > 0.f ? progressWindow->completed / total : 0.f);
+    progressWindow->Draw(force);
+}
+
+void SDKDialogs::EndProgress()
+{
+    progressWindow.reset();
 }

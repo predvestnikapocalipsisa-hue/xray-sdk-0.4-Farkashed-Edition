@@ -44,7 +44,7 @@ void object_StrictB2F_3(EScene::mapObject_Node *N) { RENDER_OBJECT(3, true); }
             RCache.set_xform_world(Fidentity);                                                                                                                \
             try                                                                                                                                               \
             {                                                                                                                                                 \
-                (*s_it)->OnRenderRoot(P, B);                                                                                                                  \
+                if (!LUI->IsInGame() || IsInGameVisual((*s_it)->FClassID)) (*s_it)->OnRenderRoot(P, B);                                                         \
             }                                                                                                                                                 \
             catch (...)                                                                                                                                       \
             {                                                                                                                                                 \
@@ -52,6 +52,12 @@ void object_StrictB2F_3(EScene::mapObject_Node *N) { RENDER_OBJECT(3, true); }
             }                                                                                                                                                 \
         }                                                                                                                                                     \
     }
+
+static bool IsInGameVisual(ObjClassID cls)
+{
+    return cls == OBJCLASS_GROUP || cls == OBJCLASS_SCENEOBJECT || cls == OBJCLASS_DO || cls == OBJCLASS_PS ||
+        cls == OBJCLASS_GLOW || cls == OBJCLASS_WM;
+}
 
 void EScene::RenderSky(const Fmatrix &camera)
 {
@@ -108,7 +114,8 @@ void EScene::Render(const Fmatrix &camera)
                 t_it->second->BeforeRender();
                 // sort tools
                 ESceneCustomOTool *mt = dynamic_cast<ESceneCustomOTool *>(t_it->second);
-                if (mt)
+                // Preview only scene visuals; editor markers and volumes stay hidden.
+                if (mt && (!LUI->IsInGame() || IsInGameVisual(t_it->first)))
                     object_tools.insert(mt);
                 scene_tools.insert(t_it->second);
             }
@@ -165,7 +172,7 @@ void EScene::Render(const Fmatrix &camera)
     RENDER_SCENE_TOOLS(3, true);
 
     // render snap
-    RenderSnapList();
+    if (!LUI->IsInGame()) RenderSnapList();
 
     // clear
     mapRenderObjects.clear();

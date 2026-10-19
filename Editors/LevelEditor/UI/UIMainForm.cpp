@@ -34,6 +34,7 @@ UIMainForm::UIMainForm()
 
 UIMainForm::~UIMainForm()
 {
+    LUI->StopInGame();
     dynamic_cast<CLevelPreferences*>(EPrefs)->OpenProperties = !m_Properties->IsClosed();
     dynamic_cast<CLevelPreferences*>(EPrefs)->OpenObjectList = UIObjectList::IsOpen();
 
@@ -49,10 +50,16 @@ UIMainForm::~UIMainForm()
 
 void UIMainForm::Draw()
 {
+    if (LUI->IsInGame())
+    {
+        LUI->DrawInGame();
+        return;
+    }
     UIWorkspace::ApplyLayout();
     m_MainMenu->Draw(); 
 
     m_TopBar->Draw();
+    if (LUI->IsInGame()) return;
     m_LeftBar->Draw();
     m_Properties->Draw();
 

@@ -1,0 +1,14 @@
+#include "common.h"
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// Vertex
+p_screen main(v2p_screen I)
+{
+    p_screen O;
+
+    O.hpos = I.HPos;
+
+    O.tc0 = I.tc0;
+
+    return O;
+}
