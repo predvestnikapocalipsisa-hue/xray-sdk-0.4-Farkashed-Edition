@@ -884,7 +884,7 @@ void SPBItem::Info(LPCSTR text, bool bWarn)
         xr_string txt;
         float p, m;
         GetInfo(txt, p, m);
-        ELog.Msg(bWarn ? mtError : mtInformation, txt.c_str());
+        ELog.Msg(bWarn ? mtError : mtInformation, "%s", txt.c_str());
         UI->ProgressDraw();
     }
 }

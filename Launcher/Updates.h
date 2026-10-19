@@ -2,6 +2,7 @@
 #include "UpdateBridge.h"
 #include "../LauncherAssets/ResourceIds.h"
 #include "imgui.h"
+#include "SDKProgressBar.h"
 #include <fstream>
 #include <sstream>
 #include <cmath>
@@ -125,27 +126,7 @@ namespace SDKUpdates
                     phase=="waiting" ? "Waiting for SDK to close" : phase=="installing" ? "Installing" : "Downloading";
                 ImGui::TextDisabled("%s",label);
                 const bool measured=phase=="downloading" || phase=="installing";
-                const ImVec2 min=ImGui::GetCursorScreenPos();
-                const float width=ImGui::GetContentRegionAvail().x, height=6.f*scale;
-                ImDrawList* draw=ImGui::GetWindowDrawList();
-                draw->AddRectFilled(min,ImVec2(min.x+width,min.y+height),IM_COL32(35,35,39,255),height*.5f);
-                if (measured)
-                {
-                    const float fraction=(std::max)(0.f,(std::min)(1.f,progress));
-                    if (fraction>0.f) draw->AddRectFilled(min,ImVec2(min.x+width*fraction,min.y+height),
-                        ImGui::GetColorU32(ImGuiCol_CheckMark),height*.5f);
-                }
-                else
-                {
-                    // Checking, extraction and lock waits have no byte total.
-                    // Show motion instead of an empty zero-percent bar.
-                    const float travel=float(std::fmod(ImGui::GetTime()*.65,1.0));
-                    const float left=(std::max)(0.f,travel*1.3f-.3f);
-                    const float right=(std::min)(1.f,travel*1.3f);
-                    draw->AddRectFilled(ImVec2(min.x+width*left,min.y),ImVec2(min.x+width*right,min.y+height),
-                        ImGui::GetColorU32(ImGuiCol_CheckMark),height*.5f);
-                }
-                ImGui::Dummy(ImVec2(width,height));
+                SDKUI::ProgressBar(progress, measured, scale);
                 if (measured) ImGui::TextDisabled("%.0f%%  /  %.2f MB/s",100.f*(std::max)(0.f,(std::min)(1.f,progress)),rate/1048576.f);
             }
             else

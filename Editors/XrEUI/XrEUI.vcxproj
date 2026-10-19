@@ -59,6 +59,7 @@
     <ClInclude Include="ModernUI.h" />
     <ClInclude Include="XrUIManager.h" />
     <ClInclude Include="SDKMessageBox.h" />
+    <ClInclude Include="SDKProgressBar.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="imgui.natvis" />
