@@ -10,7 +10,7 @@
 // class pointers nor STL containers are shared across the process boundary.
 namespace SDKInGame
 {
-    constexpr uint32_t sceneVersion = 4;
+    constexpr uint32_t sceneVersion = 5;
     constexpr uint64_t maxSceneBytes = 2ull * 1024 * 1024 * 1024;
     constexpr uint64_t maxSpawnPacketBytes = 16 * 1024 - 1;
 #pragma pack(push, 4)
@@ -32,6 +32,7 @@ namespace SDKInGame
         uint64_t patrols, patrolBytes;
         float navigationCell;
         Vertex camera, angles;
+        char sdkDataRoot[1024]; // UTF-8, SDK shader and game-material libraries
         char textureRoot[1024]; // UTF-8, optional SDK resource fallback
     };
 #pragma pack(pop)
@@ -81,7 +82,7 @@ namespace SDKInGame
                 !section(header.navigation, header.navigationCount, sizeof(NavigationNode)))
                 { error = "Invalid scene sections"; return false; }
             if (header.vertexCount < 4 || header.triangleCount < 2 || header.spawnCount > 60000 || header.navigationCount >= 0x00ffffff ||
-                !Finite(header.camera) || !Finite(header.angles) || !std::memchr(header.textureRoot, 0, sizeof(header.textureRoot)))
+                !Finite(header.camera) || !Finite(header.angles) || !std::memchr(header.sdkDataRoot, 0, sizeof(header.sdkDataRoot)) || !std::memchr(header.textureRoot, 0, sizeof(header.textureRoot)))
                 { error = "Invalid scene metadata"; return false; }
             data = static_cast<const uint8_t*>(bytes);
             for (size_t i = 0; i < header.vertexCount; ++i)
@@ -89,6 +90,7 @@ namespace SDKInGame
             for (size_t i = 0; i < header.triangleCount; ++i)
             {
                 const Triangle t = GetTriangle(i);
+                if (t.material > 0xffff) { error = "Invalid collision material flags"; data = nullptr; return false; }
                 if (t.vertex[0] >= header.vertexCount || t.vertex[1] >= header.vertexCount || t.vertex[2] >= header.vertexCount)
                     { error = "Triangle index outside vertex buffer"; data = nullptr; return false; }
                 const Vertex a = GetVertex(t.vertex[0]), b = GetVertex(t.vertex[1]), c = GetVertex(t.vertex[2]);

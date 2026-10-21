@@ -2,6 +2,7 @@
 #include "stdafx.h"
 
 #include "GameMtlLib.h"
+#include "SDKPreview.h"
 
 CGameMtlLibrary GMLib;
 // CSound_manager_interface*	Sound = NULL;
@@ -57,7 +58,7 @@ void SGameMtl::Load(IReader& fs)
 void CGameMtlLibrary::Load()
 {
     string_path name;
-    if (!FS.exist(name, fsgame::game_data, GAMEMTL_FILENAME))
+    if (!SDKPreviewResource(GAMEMTL_FILENAME, name, sizeof(name)) && !FS.exist(name, fsgame::game_data, GAMEMTL_FILENAME))
     {
         Msg("! Can't find game material file: [%s]", name);
         return;
@@ -66,6 +67,7 @@ void CGameMtlLibrary::Load()
     R_ASSERT(material_pairs.empty());
     R_ASSERT(materials.empty());
 
+    if (SDKPreviewRequested()) Msg("SDK preview material library: %s",name);
     IReader* F = FS.r_open(name);
 
     R_ASSERT(F->find_chunk(GAMEMTLS_CHUNK_VERSION));

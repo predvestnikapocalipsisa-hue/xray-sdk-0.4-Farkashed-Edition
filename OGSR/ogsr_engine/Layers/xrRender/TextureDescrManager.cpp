@@ -113,6 +113,15 @@ void CTextureDescrMngr::LoadTHM(LPCSTR initial_path)
         FS.update_path(full_name, initial_path, file_nm);
         IReader* F = FS.r_open(full_name);
 
+        if (xr_strcmp(initial_path,"$sdk_preview_textures$")==0)
+        {
+            string_path key; xr_strcpy(key,file_nm); fix_texture_thm_name(key);
+            if (auto found=m_texture_details.find(key); found!=m_texture_details.end())
+            {
+                xr_delete(found->second.m_assoc); xr_delete(found->second.m_spec);
+                m_texture_details.erase(found); m_detail_scalers.erase(key);
+            }
+        }
         LoadTHMFile(F, file_nm);
     }
 }
@@ -230,6 +239,7 @@ void CTextureDescrMngr::Load()
 #endif
     LoadTHM(fsgame::game_textures);
     LoadTHM(fsgame::level);
+    if (FS.path_exist("$sdk_preview_textures$")) LoadTHM("$sdk_preview_textures$");
 
 #ifdef DEBUG
     Msg("load time=%d ms", TT.GetElapsed_ms());

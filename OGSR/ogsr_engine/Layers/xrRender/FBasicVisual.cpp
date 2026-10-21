@@ -8,6 +8,7 @@
 #include "../../xr_3da/render.h"
 
 #include "fbasicvisual.h"
+#include "../../../../SDKRuntime/InGame/PreviewGeometryFormat.h"
 #include "../../xr_3da/fmesh.h"
 
 
@@ -166,7 +167,7 @@ void dxRender_Visual::Load(const char* N, IReader* data, u32)
         data->r_stringZ(fnS, sizeof(fnS));
         // SDK OGF previews have no baked lightmaps. Use the dynamic model
         // material path; its lighting is supplied by the preview CObject.
-        if (N && strncmp(N, "sdk_preview_mesh_", 17) == 0)
+        if (N && strncmp(N, "sdk_preview_mesh_", 17) == 0 && !data->find_chunk(SDKInGame::previewLightingChunk))
         {
             // SDK vegetation uses tree/def_trans materials as well as aref.
             // Losing alpha testing turns every leaf card into an opaque quad.
@@ -180,7 +181,9 @@ void dxRender_Visual::Load(const char* N, IReader* data, u32)
         }
         dbg_texture_name = fnT;
         dbg_shader_name = fnS;
-        shader = GetCachedModelShader(fnS, fnT);
+        xr_string textures=fnT;
+        if (data->find_chunk(SDKInGame::previewLightingChunk)) textures += ",$null,$null";
+        shader = GetCachedModelShader(fnS, textures.c_str());
     }
 }
 

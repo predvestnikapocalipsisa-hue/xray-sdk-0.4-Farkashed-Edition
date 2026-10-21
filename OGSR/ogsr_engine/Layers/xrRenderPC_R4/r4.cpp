@@ -664,6 +664,7 @@ HRESULT CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
 {
     xr_vector<D3D_SHADER_MACRO> defines{m_ShaderOptions};
     defines.reserve(50);
+    if (strstr(Core.Params,"-sdk-preview ")) defines.emplace_back("SDK_PREVIEW","1");
 
     // options:
     const auto appendShaderOption = [&](u32 option, const char* macro, const char* value) {

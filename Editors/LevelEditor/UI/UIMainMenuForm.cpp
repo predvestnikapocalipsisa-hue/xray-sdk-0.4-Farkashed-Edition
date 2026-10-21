@@ -25,6 +25,7 @@ UIMainMenuForm::~UIMainMenuForm()
 void UIMainMenuForm::Draw()
 {
 
+    LUI->DrawOGSRSceneOptions();
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
@@ -124,6 +125,7 @@ void UIMainMenuForm::Draw()
             }
             if (ImGui::MenuItem("Validate OGSR scene bridge"))
                 LUI->ValidateOGSRBridge();
+            if (ImGui::MenuItem("InGame materials and lighting...")) LUI->OpenOGSRSceneOptions();
             if (ImGui::MenuItem("Start OGSR InGame"))
                 LUI->StartOGSRPreview();
             ImGui::Separator();

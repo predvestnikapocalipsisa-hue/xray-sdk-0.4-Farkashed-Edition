@@ -6,6 +6,7 @@
 
 #include "../../xr_3da/fmesh.h"
 #include "fvisual.h"
+#include "../../../../SDKRuntime/InGame/PreviewGeometryFormat.h"
 
 #include "../xrRenderDX10/dx10BufferUtils.h"
 
@@ -29,6 +30,18 @@ void Fvisual::Release() { dxRender_Visual::Release(); }
 
 void Fvisual::Load(const char* N, IReader* data, u32 dwFlags)
 {
+    bool sdkStatic=false;
+    xr_vector<SDKInGame::PreviewLighting> bakedLighting;
+    if (IReader* lighting=data->open_chunk(SDKInGame::previewLightingChunk))
+    {
+        R_ASSERT(lighting->r_u32()==SDKInGame::previewLightingVersion);
+        sdkStatic=lighting->r_u32()!=0;
+        const u32 count=lighting->r_u32();
+        R_ASSERT(count<=lighting->elapsed()/sizeof(SDKInGame::PreviewLighting));
+        bakedLighting.resize(count);
+        lighting->r(bakedLighting.data(),count*sizeof(SDKInGame::PreviewLighting));
+        lighting->close();
+    }
     dxRender_Visual::Load(N, data, dwFlags);
 
     auto dcl = std::vector<D3DVERTEXELEMENT9>(MAXD3DDECLLENGTH + 1);
@@ -167,7 +180,30 @@ void Fvisual::Load(const char* N, IReader* data, u32 dwFlags)
                         {0,36,D3DDECLTYPE_FLOAT3,0,D3DDECLUSAGE_BINORMAL,0},
                         {0,48,D3DDECLTYPE_FLOAT2,0,D3DDECLUSAGE_TEXCOORD,0}, D3DDECL_END()};
                     vFormat = dcl.data();
-                    R_CHK(dx10BufferUtils::CreateVertexBuffer(&p_rm_Vertices, vertices.data(), vCount * sizeof(Vertex)));
+                    if (sdkStatic)
+                    {
+                        R_ASSERT(bakedLighting.size()==vCount);
+                        struct V4 { float x,y,z,w; };
+                        struct StaticVertex { Fvector p; V4 n,t,b; Fvector2 uv; V4 color; };
+                        static_assert(sizeof(StaticVertex)==84);
+                        xr_vector<StaticVertex> packed(vCount);
+                        const auto encode=[](const Fvector& n,float w) -> V4 { return {n.z*.5f+.5f,n.y*.5f+.5f,n.x*.5f+.5f,w}; };
+                        for (u32 i=0;i<vCount;++i)
+                        {
+                            const auto& v=vertices[i]; const auto& light=bakedLighting[i];
+                            packed[i]={v.p,encode(v.n,light.hemi),encode(v.t,0),encode(v.b,0),v.uv,{1,1,1,light.sun}};
+                        }
+                        dcl={{0,0,D3DDECLTYPE_FLOAT3,0,D3DDECLUSAGE_POSITION,0},
+                            {0,12,D3DDECLTYPE_FLOAT4,0,D3DDECLUSAGE_NORMAL,0},
+                            {0,28,D3DDECLTYPE_FLOAT4,0,D3DDECLUSAGE_TANGENT,0},
+                            {0,44,D3DDECLTYPE_FLOAT4,0,D3DDECLUSAGE_BINORMAL,0},
+                            {0,60,D3DDECLTYPE_FLOAT2,0,D3DDECLUSAGE_TEXCOORD,0},
+                            {0,68,D3DDECLTYPE_FLOAT4,0,D3DDECLUSAGE_COLOR,0}, D3DDECL_END()};
+                        vFormat=dcl.data();
+                        R_CHK(dx10BufferUtils::CreateVertexBuffer(&p_rm_Vertices, packed.data(),vCount*sizeof(StaticVertex)));
+                    }
+                    else
+                        R_CHK(dx10BufferUtils::CreateVertexBuffer(&p_rm_Vertices, vertices.data(), vCount * sizeof(Vertex)));
                 }
                 else
                     R_CHK(dx10BufferUtils::CreateVertexBuffer(&p_rm_Vertices, data->pointer(), vCount * vStride));

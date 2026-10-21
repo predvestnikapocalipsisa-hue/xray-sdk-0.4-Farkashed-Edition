@@ -92,6 +92,8 @@ public:
     void StopInGame();
     void DrawInGame();
     void ValidateOGSRBridge();
+    void OpenOGSRSceneOptions();
+    void DrawOGSRSceneOptions();
     static bool& AutoRepairOGSRNavigation();
 
     virtual LPSTR GetCaption();

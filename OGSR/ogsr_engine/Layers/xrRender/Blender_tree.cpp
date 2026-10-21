@@ -5,6 +5,7 @@
 #include "stdafx.h"
 
 #include "Blender_tree.h"
+#include "../../xr_3da/SDKPreview.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -82,12 +83,14 @@ void CBlender_Tree::Compile(CBlender_Compile& C)
             tvs_s = "shadow_direct_tree";
     }
 
+    const bool snapshot=SDKPreviewRequested();
+    if (snapshot) { tvs="base"; tvs_s=oBlend.value ? "shadow_direct_base_aref" : "shadow_direct_base"; }
     switch (C.iElement)
     {
     case SE_R2_NORMAL_HQ: // deffer
 
         // Is a branch/bush. Use a different VS
-        if (oBlend.value && !oNotAnTree.value)
+        if (oBlend.value && !oNotAnTree.value && !snapshot)
         {
             tvs = "tree_branch";
         }
@@ -113,7 +116,7 @@ void CBlender_Tree::Compile(CBlender_Compile& C)
         if (oBlend.value)
         {
             C.r_Pass(tvs_s, "shadow_direct_base_aref", FALSE, TRUE, TRUE, TRUE, D3DBLEND_ZERO, D3DBLEND_ONE, TRUE, 200);
-            if (!oNotAnTree.value)
+            if (!oNotAnTree.value && !snapshot)
                 C.SH->flags.bTreeBranch = TRUE;
         }
         else

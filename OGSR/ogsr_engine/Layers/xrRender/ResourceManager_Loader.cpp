@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "ResourceManager.h"
+#include "../../xr_3da/SDKPreview.h"
 #include "blenders/blender.h"
 
 BOOL bShadersXrExport{};
@@ -33,6 +34,10 @@ void CResourceManager::OnDeviceCreate()
     LS_Load();
 
     string_path fname;
+    // The editor's library carries per-terrain layer names and foliage alpha settings.
+    // Load it first; runtime-only shaders below fill the remaining entries.
+    if (SDKPreviewResource("shaders.xr",fname,sizeof(fname)))
+    { Msg("SDK preview shader library: %s",fname); LoadShaderFile(fname); }
     if (FS.exist(fname, fsgame::game_data, "shaders.ltx"))
     {
         Msg("Loading shader file: [%s]", fname);
@@ -119,6 +124,8 @@ void CResourceManager::LoadShaderFile(LPCSTR fname)
 
                 //Msg("Loading shader: [%s]", desc.cName);
 
+                if (SDKPreviewRequested() && m_blenders.find(desc.cName)!=m_blenders.end())
+                { IBlenderXr::Destroy(B); chunk->close(); ++chunk_id; continue; }
                 const auto I = m_blenders.insert_or_assign(xr_strdup(desc.cName), B);
                 ASSERT_FMT(I.second, "CResourceManager::LoadSharedFile - found shader name [%s]", desc.cName);
             }
@@ -160,6 +167,8 @@ void CResourceManager::LoadShaderLtxFile(LPCSTR fname)
 
             // Msg("Loading shader: [%s]", desc.cName);
 
+            if (SDKPreviewRequested() && m_blenders.find(name.c_str())!=m_blenders.end())
+            { IBlenderXr::Destroy(B); continue; }
             const std::pair<map_BlenderIt, bool> I = m_blenders.insert_or_assign(xr_strdup(name.c_str()), B);
             ASSERT_FMT(I.second, "CResourceManager::LoadSharedFile - found shader name [%s]", name.c_str());
         }

@@ -60,6 +60,11 @@ namespace
         const xr_string utf8 = XrUIManager::ConvertCP1251ToUTF8(textures);
         if (utf8.size() >= sizeof(builder.info.textureRoot)) throw std::runtime_error("SDK texture path is too long");
         std::memcpy(builder.info.textureRoot, utf8.c_str(), utf8.size() + 1);
+        string_path dataRoot;
+        FS.update_path(dataRoot, "$game_data$", "");
+        const xr_string dataUTF8 = XrUIManager::ConvertCP1251ToUTF8(dataRoot);
+        if (dataUTF8.size() >= sizeof(builder.info.sdkDataRoot)) throw std::runtime_error("SDK resource path is too long");
+        std::memcpy(builder.info.sdkDataRoot, dataUTF8.c_str(), dataUTF8.size()+1);
         ObjectList objects;
         SExportStreams routes;
         if (Scene->GetTool(OBJCLASS_SCENEOBJECT)->IsVisible())
@@ -72,7 +77,7 @@ namespace
         // objects still need their routes when that overlay is hidden.
         Scene->GetQueryObjects(objects, OBJCLASS_WAY, -1, 1, -1);
         xr_set<CCustomObject*> visited;
-        xr_map<CEditableObject*, uint32_t> meshes;
+        xr_vector<CSceneObject*> sceneObjects;
         for (CCustomObject* object : objects)
         {
             if (!object->Visible() || !visited.insert(object).second) continue;
@@ -135,38 +140,62 @@ namespace
             CSceneObject* instance = static_cast<CSceneObject*>(object);
             CEditableObject* reference = instance->GetReference();
             if (!reference) continue;
-            auto found = meshes.find(reference);
-            uint32_t meshIndex;
-            if (found == meshes.end())
-            {
-                CMemoryWriter ogf;
-                if (!PrepareOGSRPreviewGeometry(*reference, ogf))
-                    throw std::runtime_error(std::string("Cannot prepare scene model for OGSR: ") + reference->GetName());
-                meshIndex = builder.AddMesh(ogf.pointer(), ogf.size());
-                meshes.insert(std::make_pair(reference, meshIndex));
-            }
-            else meshIndex = found->second;
-            SDKInGame::Instance visual{};
-            static_assert(sizeof(Fmatrix) == sizeof(visual.transform), "transform layout");
-            std::memcpy(visual.transform, &instance->_Transform(), sizeof(visual.transform));
-            visual.mesh = meshIndex;
-            builder.instances.push_back(visual);
-            for (CEditableMesh* mesh : reference->Meshes())
-                for (u32 face = 0; face < mesh->GetFCount(); ++face)
-                {
-                    const Fvector* local[3];
-                    Fvector world[3], normal;
-                    mesh->GetFacePT(face, local);
-                    for (unsigned i = 0; i < 3; ++i) instance->_Transform().transform_tiny(world[i], *local[i]);
-                    normal.mknormal_non_normalized(world[0], world[1], world[2]);
-                    if (normal.square_magnitude() <= EPS_S * EPS_S) continue;
-                    const uint32_t first = uint32_t(builder.vertices.size());
-                    for (const Fvector& v : world) builder.vertices.push_back({v.x, v.y, v.z});
-                    builder.triangles.push_back({{first, first + 1, first + 2}, 0});
-                }
+            sceneObjects.push_back(instance);
         }
+        xr_vector<Fvector> shadowVertices;
+        xr_vector<CDB::TRI> shadowTriangles;
+        for (auto* instance : sceneObjects)
+            for (auto* mesh : instance->GetReference()->Meshes())
+                for (const auto& entry : mesh->GetSurfFaces())
+                {
+                    auto* surface = entry.first;
+                    const auto policy = SDKPreviewExport::Policy(*surface);
+                    if (!policy.collision && !(policy.visible && policy.shadow)) continue;
+                    auto* material = GMLib.GetMaterialByID(surface->_GameMtl());
+                    if (!material) throw std::runtime_error(std::string("Undefined game material: ")+surface->_GameMtlName());
+                    const u32 materialIndex = GMLib.GetMaterialIdx(surface->_GameMtlName());
+                    if (materialIndex >= 0x4000) throw std::runtime_error("Too many SDK collision materials");
+                    const u32 flags = materialIndex | (material->Flags.test(SGameMtl::flSuppressShadows) ? 0x4000u : 0u) |
+                        (material->Flags.test(SGameMtl::flSuppressWallmarks) ? 0x8000u : 0u);
+                    for (u32 face : entry.second)
+                    {
+                        const Fvector* points[3]; mesh->GetFacePT(face,points);
+                        Fvector world[3], normal;
+                        for (unsigned i=0;i<3;++i) instance->_Transform().transform_tiny(world[i],*points[i]);
+                        if (SDKPreviewExport::Mirrored(instance->_Transform())) std::swap(world[1],world[2]);
+                        normal.mknormal_non_normalized(world[0],world[1],world[2]);
+                        if (normal.square_magnitude() <= EPS_S*EPS_S) continue;
+                        if (policy.collision)
+                        {
+                            const u32 first = u32(builder.vertices.size());
+                            for (const auto& v : world) builder.vertices.push_back({v.x,v.y,v.z});
+                            builder.triangles.push_back({{first,first+1,first+2},flags});
+                        }
+                        if (policy.visible && policy.shadow && !material->Flags.test(SGameMtl::flSuppressShadows))
+                        {
+                            CDB::TRI triangle{};
+                            for (unsigned i=0;i<3;++i) triangle.verts[i]=u32(shadowVertices.size())+i;
+                            for (const auto& v : world) shadowVertices.push_back(v);
+                            shadowTriangles.push_back(triangle);
+                        }
+                    }
+                }
+        SDKPreviewExport::Lighting lighting;
+        lighting.Build(shadowVertices,shadowTriangles);
+        for (auto* instance : sceneObjects)
+        {
+            if (UI->NeedAbort()) throw CaptureCancelled{};
+            CMemoryWriter ogf;
+            if (!SDKPreviewExport::Export(*instance,ogf,lighting)) continue;
+            SDKInGame::Instance visual{};
+            Fmatrix identity; identity.identity();
+            std::memcpy(visual.transform,&identity,sizeof(identity));
+            visual.mesh=builder.AddMesh(ogf.pointer(),ogf.size());
+            builder.instances.push_back(visual);
+        }
+        Msg("OGSR static lighting: %zu cached sky visibility samples",lighting.Samples());
         if (builder.triangles.size() < 2)
-            throw std::runtime_error("InGame needs visible scene geometry. Place the editor camera above the ground.");
+            throw std::runtime_error("InGame needs at least two collision faces. Keep ground collision enabled.");
         auto* aiMap = static_cast<ESceneAIMapTool*>(Scene->GetTool(OBJCLASS_AIMAP));
         if (!builder.spawns.empty() && aiMap && !aiMap->Nodes().empty())
         {
@@ -231,7 +260,13 @@ namespace
             // daylight rather than the zeroed lighting of unbuilt detail slots.
             const size_t count = size_t(header.size_x) * header.size_z;
             std::vector<DetailSlot> slots(details->dtSlots, details->dtSlots + count);
-            for (auto& slot : slots) { slot.c_hemi = 15; slot.c_dir = 15; }
+            for (size_t i=0;i<count;++i)
+            {
+                auto& slot=slots[i];
+                Fvector position{(int(i%header.size_x)-header.offs_x+.5f)*DETAIL_SLOT_SIZE,slot.r_ybase()+.3f,(int(i/header.size_x)-header.offs_z+.5f)*DETAIL_SLOT_SIZE};
+                const auto sample=lighting.Sample(position,Fvector{0,1,0});
+                slot.c_hemi=u32(_min(15.f,sample.hemi*15.f)); slot.c_dir=u32(sample.sun*15.f);
+            }
             grass.w_chunk(2, slots.data(), slots.size() * sizeof(DetailSlot));
             builder.details.assign(grass.pointer(), grass.pointer() + grass.size());
             Msg("OGSR preview: %u grass models, %u x %u detail slots", header.object_count, header.size_x, header.size_z);
@@ -413,4 +448,59 @@ void CLevelMain::ValidateOGSRBridge()
     }
     catch (const CaptureCancelled&) { Msg("OGSR snapshot cancelled by user."); }
     catch (const std::exception& error) { ELog.DlgMsg(mtError, "OGSR scene bridge: %s", error.what()); }
+}
+
+namespace { bool showOGSRSceneOptions=false; }
+void CLevelMain::OpenOGSRSceneOptions() { showOGSRSceneOptions=true; }
+void CLevelMain::DrawOGSRSceneOptions()
+{
+    if (!showOGSRSceneOptions) return;
+    ImGui::SetNextWindowSize(ImVec2(820,560),ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("InGame materials and lighting",&showOGSRSceneOptions)) { ImGui::End(); return; }
+    auto& settings=SDKPreviewExport::Settings();
+    ImGui::TextWrapped("Applies when starting or validating InGame. Source scene is unchanged. Options last for this editor session.");
+    ImGui::Checkbox("Hide technical surfaces by default",&settings.hideTechnical);
+    ImGui::Checkbox("Disable technical surface collision by default",&settings.disableTechnicalCollision);
+    ImGui::Checkbox("Generate quick static sky lighting",&settings.bakeLighting);
+    ImGui::SliderFloat("Lighting sample spacing (m)",&settings.cellSize,.25f,4.f,"%.2f");
+    ImGui::SliderFloat("Outdoor ambient cap",&settings.ambientCap,.1f,1.f,"%.2f");
+    ImGui::TextWrapped("Preview vertex sky occlusion and sun visibility, not full xrLC lightmaps. Recomputed automatically on each start. Grass slots use the same bake.");
+    if (ImGui::Button("Reset surface overrides")) settings.overrides.clear();
+    ImGui::Separator();
+    ObjectList objects;
+    Scene->GetQueryObjects(objects,OBJCLASS_SCENEOBJECT,-1,-1,-1);
+    Scene->GetQueryObjects(objects,OBJCLASS_GROUP,-1,-1,-1);
+    xr_set<CCustomObject*> visited;
+    std::map<xr_string,CSurface*> surfaces;
+    for (auto* object : objects)
+    {
+        if (!visited.insert(object).second) continue;
+        if (object->FClassID==OBJCLASS_GROUP)
+        {
+            ObjectList children; static_cast<CGroupObject*>(object)->GetObjects(children);
+            objects.splice(objects.end(),children); continue;
+        }
+        if (object->FClassID!=OBJCLASS_SCENEOBJECT) continue;
+        auto* reference=static_cast<CSceneObject*>(object)->GetReference();
+        if (!reference) continue;
+        for (auto* mesh : reference->Meshes())
+            for (const auto& entry : mesh->GetSurfFaces()) surfaces.emplace(SDKPreviewExport::Key(*entry.first),entry.first);
+    }
+    static ImGuiTextFilter filter;
+    filter.Draw("Filter surfaces");
+    if (ImGui::BeginChild("Surface policies",ImVec2(0,0),true))
+        for (const auto& entry : surfaces)
+        {
+            if (!filter.PassFilter(entry.first.c_str())) continue;
+            ImGui::PushID(entry.first.c_str());
+            auto policy=SDKPreviewExport::Policy(*entry.second);
+            bool changed=ImGui::Checkbox("Render",&policy.visible);
+            ImGui::SameLine(); changed=ImGui::Checkbox("Collision",&policy.collision)||changed;
+            ImGui::SameLine();
+            ImGui::TextUnformatted(SDKPreviewExport::Technical(*entry.second) ? "Technical" : "Surface");
+            ImGui::TextWrapped("%s",entry.first.c_str());
+            if (changed) settings.overrides[entry.first]=policy;
+            ImGui::Separator(); ImGui::PopID();
+        }
+    ImGui::EndChild(); ImGui::End();
 }
