@@ -3,6 +3,7 @@
 #include "phrasedialogmanager.h"
 #include "gameobject.h"
 #include "ai_debug.h"
+#include "../xr_3da/SDKPreview.h"
 
 SPhraseDialogData::SPhraseDialogData()
 {
@@ -112,7 +113,19 @@ bool CPhraseDialog::SayPhrase(DIALOG_SHARED_PTR& phrase_dialog, const shared_str
             }
         }
 
-        R_ASSERT2(!phrase_dialog->m_PhraseVector.empty(), make_string("No available phrase to say, dialog[%s]", *phrase_dialog->m_DialogId));
+        if (phrase_dialog->m_PhraseVector.empty() && SDKPlayRequested())
+        {
+            // A scene preview may lack the campaign state required by every
+            // successor. Use the same terminal state as a phrase with no edges:
+            // NPC ReceivePhrase must not try to select an answer from an empty list.
+            Msg("! [SDK InGame] Dialog [%s], phrase [%s]: all %u replies were rejected by preconditions; ending this branch.",
+                phrase_dialog->m_DialogId.c_str(), phrase_id.c_str(), u32(phrase_vertex->edges().size()));
+            phrase_dialog->m_bFinished = true;
+        }
+        else
+        {
+            R_ASSERT2(!phrase_dialog->m_PhraseVector.empty(), make_string("No available phrase to say, dialog[%s]", *phrase_dialog->m_DialogId));
+        }
 
         //упорядочить списко по убыванию благосклонности
         std::sort(phrase_dialog->m_PhraseVector.begin(), phrase_dialog->m_PhraseVector.end(), PhraseGoodwillPred);
