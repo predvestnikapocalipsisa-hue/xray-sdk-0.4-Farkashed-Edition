@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "../XrEUI/imgui.h"
 #include "../XrEUI/XrUIManager.h"
+#include "../XrEUI/SDKMessageBox.h"
 
 namespace Colors {
 
@@ -768,6 +769,16 @@ inline void Render()
         // =========================================================
         //  TAB: Config
         // =========================================================
+        if (ImGui::BeginTabItem("  Sound  "))
+        {
+            ImGui::Spacing();
+            SectionLabel("  Message box sound");
+            if (SDKDialogs::DrawSoundSettings() && EPrefs) EPrefs->Save();
+            ImGui::Spacing();
+            ImGui::TextDisabled("Sound settings are saved automatically.");
+            ImGui::EndTabItem();
+        }
+
         if (ImGui::BeginTabItem("  Config  "))
         {
             ImGui::Spacing();

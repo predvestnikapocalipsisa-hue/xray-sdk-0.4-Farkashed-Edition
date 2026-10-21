@@ -11,6 +11,9 @@
 #include "imgui_impl_win32.h"
 #include "../../LauncherAssets/ResourceIds.h"
 #include <mmsystem.h>
+#include <commdlg.h>
+#include <cmath>
+#pragma comment(lib, "comdlg32.lib")
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -26,6 +29,19 @@ namespace
 {
     constexpr UINT dialogMessage = WM_APP + 0x3A1;
     HWND editorOwner = nullptr;
+    bool soundEnabled = true;
+    float soundVolume = 1.f;
+    std::string customSoundPath; // UTF-8, including paths outside the SDK directory
+    std::string soundSettingsError;
+    std::wstring WideUTF8(const std::string& text)
+    {
+        if (text.empty()) return {};
+        const int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.c_str(), -1, nullptr, 0);
+        if (!count) return {};
+        std::vector<wchar_t> result(count);
+        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.c_str(), -1, result.data(), count);
+        return result.data();
+    }
     struct Request
     {
         HWND owner;
@@ -123,6 +139,15 @@ namespace
         HMODULE assets = nullptr;
         wchar_t path[MAX_PATH]{};
         std::wstring alias;
+        bool Open(const wchar_t* filename)
+        {
+            if (!filename || !*filename) return false;
+            const std::wstring candidate = L"xr_dialog_" + std::to_wstring(reinterpret_cast<uintptr_t>(this));
+            const std::wstring command = L"open \"" + std::wstring(filename) + L"\" type mpegvideo alias " + candidate;
+            if (mciSendStringW(command.c_str(), nullptr, 0, nullptr)) return false;
+            alias = candidate;
+            return true;
+        }
         void Prepare()
         {
             wchar_t modulePath[MAX_PATH]{};
@@ -132,6 +157,15 @@ namespace
             *(separator + 1) = 0;
             const std::wstring dll = std::wstring(modulePath) + L"LauncherAssets.dll";
             assets = LoadLibraryExW(dll.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
+            // Assets also contain the dialog font, so load them even when muted
+            // or using custom audio. Custom audio does not require this DLL.
+            if (!soundEnabled) return;
+            if (!customSoundPath.empty())
+            {
+                const auto filename = WideUTF8(customSoundPath);
+                Open(filename.c_str());
+                return; // Missing/unplayable custom files stay silent.
+            }
             if (!assets) return;
             HRSRC resource = FindResourceW(assets, MAKEINTRESOURCEW(IDR_SDK_ERROR_SOUND), MAKEINTRESOURCEW(10));
             HGLOBAL data = resource ? LoadResource(assets, resource) : nullptr;
@@ -147,13 +181,16 @@ namespace
             const bool success = WriteFile(file, bytes, size, &written, nullptr) && written == size;
             CloseHandle(file);
             if (!success) return;
-            alias = L"xr_dialog_" + std::to_wstring(reinterpret_cast<uintptr_t>(this));
-            const std::wstring command = L"open \"" + std::wstring(path) + L"\" type mpegvideo alias " + alias;
-            mciSendStringW(command.c_str(), nullptr, 0, nullptr);
+            Open(path);
         }
         void Play()
         {
-            if (!alias.empty()) mciSendStringW((L"play " + alias + L" from 0").c_str(), nullptr, 0, nullptr);
+            if (!alias.empty())
+            {
+                const std::wstring volume = L"setaudio " + alias + L" volume to " + std::to_wstring(int(soundVolume * 1000.f));
+                mciSendStringW(volume.c_str(), nullptr, 0, nullptr);
+                if (soundVolume > 0.f) mciSendStringW((L"play " + alias + L" from 0").c_str(), nullptr, 0, nullptr);
+            }
         }
         ~Sound()
         {
@@ -162,6 +199,8 @@ namespace
             if (assets) FreeLibrary(assets);
         }
     };
+    std::unique_ptr<Sound> soundPreview;
+
     int ShowDialog(const Request& request)
     {
         ImGuiContext* saved = ImGui::GetCurrentContext();
@@ -392,12 +431,106 @@ namespace
     }
 }
 
+float SDKDialogs::SoundVolume() { return soundVolume; }
+void SDKDialogs::SetSoundVolume(float volume)
+{
+    soundVolume = std::isfinite(volume) ? (std::max)(0.f, (std::min)(1.f, volume)) : 1.f;
+    if (soundPreview && !soundPreview->alias.empty())
+    {
+        const auto command = L"setaudio " + soundPreview->alias + L" volume to " + std::to_wstring(int(soundVolume * 1000.f));
+        mciSendStringW(command.c_str(), nullptr, 0, nullptr);
+    }
+}
+bool SDKDialogs::SoundEnabled() { return soundEnabled; }
+const char* SDKDialogs::CustomSoundPath() { return customSoundPath.c_str(); }
+void SDKDialogs::SetSoundSettings(bool enabled, const char* customPath)
+{
+    const std::string path = customPath ? customPath : "";
+    soundPreview.reset();
+    soundEnabled = enabled;
+    customSoundPath = path;
+    soundSettingsError.clear();
+}
+bool SDKDialogs::DrawSoundSettings()
+{
+    bool changed = false;
+    if (ImGui::Checkbox("Enable message box sound", &soundEnabled))
+    {
+        soundPreview.reset();
+        changed = true;
+    }
+    float percent = soundVolume * 100.f;
+    if (ImGui::SliderFloat("Volume", &percent, 0.f, 100.f, "%.0f%%"))
+    {
+        SetSoundVolume(percent / 100.f);
+        changed = true;
+    }
+    ImGui::TextUnformatted(customSoundPath.empty() ? "Sound: Default" : "Sound: Custom");
+    if (!customSoundPath.empty())
+    {
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 350.f);
+        ImGui::TextUnformatted(customSoundPath.c_str());
+        ImGui::PopTextWrapPos();
+    }
+    if (ImGui::Button("Choose audio file..."))
+    {
+        wchar_t filename[32768]{};
+        OPENFILENAMEW dialog{sizeof(dialog)};
+        dialog.hwndOwner = editorOwner;
+        dialog.lpstrFilter = L"Audio files (*.wav;*.mp3)\0*.wav;*.mp3\0All files\0*.*\0\0";
+        dialog.lpstrFile = filename;
+        dialog.nMaxFile = DWORD(sizeof(filename)/sizeof(filename[0]));
+        dialog.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
+        if (GetOpenFileNameW(&dialog))
+        {
+            soundPreview.reset();
+            Sound candidate;
+            const auto chosen = UTF8(filename);
+            if (chosen.size() >= 4000)
+                soundSettingsError = "The selected path is too long to save. Choose a file with a shorter path.";
+            else if (candidate.Open(filename))
+            {
+                customSoundPath = chosen;
+                soundSettingsError.clear();
+                changed = true;
+            }
+            else soundSettingsError = "Cannot open this audio file. Choose a playable WAV or MP3 file.";
+        }
+        else if (CommDlgExtendedError()) soundSettingsError = "Cannot open the audio file picker.";
+    }
+    if (ImGui::Button("Use default sound"))
+    {
+        soundPreview.reset();
+        customSoundPath.clear();
+        soundSettingsError.clear();
+        changed = true;
+    }
+    ImGui::BeginDisabled(!soundEnabled);
+    if (ImGui::Button("Test sound"))
+    {
+        soundPreview.reset(new Sound);
+        soundPreview->Prepare();
+        if (soundPreview->alias.empty()) soundSettingsError = "Cannot play the selected sound. Check that the file still exists and is supported.";
+        else { soundSettingsError.clear(); soundPreview->Play(); }
+    }
+    ImGui::EndDisabled();
+    if (ImGui::Button("Stop preview")) soundPreview.reset();
+    if (!soundSettingsError.empty())
+    {
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 350.f);
+        ImGui::TextUnformatted(soundSettingsError.c_str());
+        ImGui::PopTextWrapPos();
+    }
+    return changed;
+}
+
 void SDKDialogs::Initialize(HWND owner)
 {
     editorOwner = owner;
 }
 void SDKDialogs::Shutdown()
 {
+    soundPreview.reset();
     EndProgress();
     editorOwner = nullptr;
     std::lock_guard<std::mutex> lock(notificationsMutex);

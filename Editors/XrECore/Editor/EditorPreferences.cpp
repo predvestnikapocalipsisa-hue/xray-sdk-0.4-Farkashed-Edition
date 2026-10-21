@@ -6,6 +6,7 @@
 #include "ui_toolscustom.h"
 #include "../../../Launcher/RecentFiles.h"
 #include "TransformDragSensitivity.h"
+#include "../../XrEUI/SDKMessageBox.h"
 //---------------------------------------------------------------------------
 CCustomPreferences *EPrefs = 0;
 //---------------------------------------------------------------------------
@@ -321,6 +322,11 @@ void CCustomPreferences::Load(CInifile *I)
     shift_fine_factor = R_FLOAT_SAFE("editor_prefs", "shift_fine_factor", shift_fine_factor);
     LoadShortcuts(I);
 
+    const shared_str dialogSound = R_STRING_SAFE("editor_prefs", "message_box_sound_path", shared_str(""));
+    const bool dialogSoundEnabled = R_BOOL_SAFE("editor_prefs", "message_box_sound_enabled", true);
+    SDKDialogs::SetSoundSettings(dialogSoundEnabled, dialogSound.c_str());
+    const float dialogSoundVolume = R_FLOAT_SAFE("editor_prefs", "message_box_sound_volume", 1.f);
+    SDKDialogs::SetSoundVolume(dialogSoundVolume);
     UI->LoadSettings(I);
 }
 
@@ -386,6 +392,10 @@ void CCustomPreferences::Save(CInifile *I)
 
     // load shortcuts
     SaveShortcuts(I);
+    I->w_bool("editor_prefs", "message_box_sound_enabled", SDKDialogs::SoundEnabled());
+    I->w_float("editor_prefs", "message_box_sound_volume", SDKDialogs::SoundVolume());
+    const xr_string dialogSoundPath = xr_string("\"") + SDKDialogs::CustomSoundPath() + "\"";
+    I->w_string("editor_prefs", "message_box_sound_path", dialogSoundPath.c_str());
     UI->SaveSettings(I);
 }
 

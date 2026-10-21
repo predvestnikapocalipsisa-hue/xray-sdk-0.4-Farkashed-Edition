@@ -26,6 +26,14 @@ namespace SDKDialogs
     SDK_DIALOG_API void UpdateProgress(const char* text, float completed, float total,
         float overall = -1.f, bool force = false);
     SDK_DIALOG_API void EndProgress();
+    // Custom audio path is UTF-8; an empty path selects the bundled sound.
+    SDK_DIALOG_API bool SoundEnabled();
+    SDK_DIALOG_API const char* CustomSoundPath();
+    SDK_DIALOG_API float SoundVolume();
+    SDK_DIALOG_API void SetSoundVolume(float volume); // 0..1
+    SDK_DIALOG_API void SetSoundSettings(bool enabled, const char* customPath);
+    // Returns true when settings changed, so the caller can persist preferences.
+    SDK_DIALOG_API bool DrawSoundSettings();
     void Pump();
     void Initialize(HWND owner);
     void Shutdown();
