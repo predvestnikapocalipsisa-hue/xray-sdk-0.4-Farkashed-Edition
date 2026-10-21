@@ -166,6 +166,7 @@ ECORE_API void RegisterSubCommand(SECommand *cmd_impl, LPCSTR desc, CCommandVar 
 ECORE_API void EnableReceiveCommands();
 ECORE_API bool OpenLauncherDocument();
 ECORE_API ECommandVec &GetEditorCommands();
+ECORE_API SECommand* FindCommandByName(LPCSTR name);
 ECORE_API SESubCommand *FindCommandByShortcut(const xr_shortcut &val);
 ECORE_API BOOL LoadShortcuts(CInifile *ini);
 ECORE_API BOOL SaveShortcuts(CInifile *ini);

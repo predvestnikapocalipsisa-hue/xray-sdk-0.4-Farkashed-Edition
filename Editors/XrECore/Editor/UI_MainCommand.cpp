@@ -5,6 +5,7 @@
 #pragma hdrstop
 
 #include "ui_main.h"
+#include "SDKScriptHost.h"
 #include "UI_ToolsCustom.h"
 #include "../../../Launcher/RecentFiles.h"
 #include <shellapi.h>
@@ -118,7 +119,7 @@ CCommandVar ExecCommand(u32 cmd, CCommandVar p1, CCommandVar p2)
     SECommand* CMD = ECommands[cmd];
     VERIFY(CMD && !CMD->command.empty());
     static int exec_level = 0;
-    if (bAllowLogCommands)
+    if (bAllowLogCommands && cmd != COMMAND_UPDATE_PROPERTIES && cmd != COMMAND_UPDATE_CAPTION)
     {
         string128 level;
         strcpy(level, exec_level == 0 ? "" : ";");
@@ -139,8 +140,11 @@ CCommandVar ExecCommand(u32 cmd, CCommandVar p1, CCommandVar p2)
         else if (p1.IsString() && p2.IsInteger())
             Msg("%s%s (\"%s\",%d)", level, CMD->Name(), sp1.c_str(), u32(p2));
     }
+    SDKScript::CommandEvent(CMD->Name(), true);
     exec_level++;
-    res = CMD->command(p1, p2);
+    try { res = CMD->command(p1, p2); }
+    catch (...) { --exec_level; throw; }
+    SDKScript::CommandEvent(CMD->Name(), false);
     exec_level--;
     VERIFY(exec_level >= 0);
     return res;
@@ -331,6 +335,7 @@ CCommandVar CommandInitialize(CCommandVar p1, CCommandVar p2)
 }
 CCommandVar CommandDestroy(CCommandVar p1, CCommandVar p2)
 {
+    SDKScript::Shutdown();
     ExecCommand(COMMAND_SAVE_UI_BAR);
     EPrefs->OnDestroy();
     ExecCommand(COMMAND_CLEAR);

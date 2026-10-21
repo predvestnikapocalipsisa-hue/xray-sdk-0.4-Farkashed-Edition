@@ -1,4 +1,5 @@
 #include "stdafx.h"
+bool SDKScriptSceneCaptureUndo();
 
 void EScene::UndoClear()
 {
@@ -8,6 +9,7 @@ void EScene::UndoClear()
 
 void EScene::UndoSave()
 {
+    if (SDKScriptSceneCaptureUndo()) return;
 	if (UI->GetEState() != esEditScene)
 		return;
 	Modified();

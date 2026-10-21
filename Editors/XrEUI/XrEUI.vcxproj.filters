@@ -34,6 +34,9 @@
     <ClCompile Include="XrUIManager.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="MediaPlayer.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
     <ClCompile Include="imgui_impl_dx9.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
@@ -101,6 +104,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="discord_rpc.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="MediaPlayer.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

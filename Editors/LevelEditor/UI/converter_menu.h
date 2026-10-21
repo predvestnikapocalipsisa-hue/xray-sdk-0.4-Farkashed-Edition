@@ -121,15 +121,23 @@ namespace ConverterMenu
             return DirOf(std::string(buf));
         }
 
-        inline bool FindFsGameLtx(std::string& outPath, int maxLevelsUp = 8)
+        inline bool FindFsGameLtx(std::string& outPath, std::string& outRoot, int maxLevelsUp = 8)
         {
             std::string dir = ExeDir();
             for (int i = 0; i <= maxLevelsUp; ++i)
             {
-                std::string candidate = dir + "\\fsgame.ltx";
+                std::string candidate = dir + "\\settings\\fsgame.ltx";
                 if (FileExists(candidate))
                 {
                     outPath = candidate;
+                    outRoot = dir;
+                    return true;
+                }
+                candidate = dir + "\\fsgame.ltx";
+                if (FileExists(candidate))
+                {
+                    outPath = candidate;
+                    outRoot = dir;
                     return true;
                 }
                 std::string parent = DirOf(dir);
@@ -231,7 +239,8 @@ namespace ConverterMenu
     inline bool AutoDetectSdkRoot()
     {
         std::string ltxPath;
-        if (!detail::FindFsGameLtx(ltxPath))
+        std::string fsRootDir;
+        if (!detail::FindFsGameLtx(ltxPath, fsRootDir))
         {
             detail::DetectOkRef() = false;
             detail::DetectStatusRef() = "fsgame.ltx не найден рядом с exe (поднимался по дереву папок)";
@@ -253,7 +262,6 @@ namespace ConverterMenu
             return false;
         }
 
-        std::string fsRootDir = detail::DirOf(ltxPath);
         std::string resolved = detail::ResolveAlias("$sdk_root$", entries, fsRootDir);
 
         if (resolved.empty() || !detail::DirExists(resolved))

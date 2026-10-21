@@ -84,6 +84,8 @@ public:
 
 public:
     shared_str FName;
+    // Session-only identity for scripts; never serialized into level files.
+    u64 ScriptHandle = 0;
     int save_id;
     time_t m_dwCreationTime;
     // orientation

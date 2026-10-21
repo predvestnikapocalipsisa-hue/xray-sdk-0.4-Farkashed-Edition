@@ -52,4 +52,13 @@
   </ItemGroup>
   <Import Project="$(SolutionDir)SdkPackaging.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="StageSdkScripting" AfterTargets="Build">
+    <ItemGroup>
+      <SdkPythonSource Include="$(SolutionDir)SDKRuntime\Scripting\python\xray\**\*.py" />
+      <SdkScriptApi Include="$(SolutionDir)SDKRuntime\Scripting\api\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SdkPythonSource)" DestinationFiles="@(SdkPythonSource->'$(OutDir)scripting\xray\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SdkScriptApi)" DestinationFiles="@(SdkScriptApi->'$(OutDir)scripting\api\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(SolutionDir)SDKRuntime\Scripting\api\xray.pyi" DestinationFiles="$(OutDir)scripting\xray\__init__.pyi" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

@@ -35,8 +35,17 @@ void ELocatorAPI::InitFS(u32 flags)
 	if (m_Flags.is(flScanAppRoot))
 	{
 		string_path tmpFsPath;
-		strconcat(sizeof(tmpFsPath), tmpFsPath, Core.WorkingPath, "\\", FSLTX);
-		if (exist(tmpFsPath))
+		auto findDefinition = [&](const char* directory)
+		{
+			// The SDK root stays unchanged when its definitions live in settings/.
+			FSLTX = "settings\\fs.ltx";
+			strconcat(sizeof(tmpFsPath), tmpFsPath, directory, "\\", FSLTX);
+			if (exist(tmpFsPath)) return true;
+			FSLTX = "fs.ltx";
+			strconcat(sizeof(tmpFsPath), tmpFsPath, directory, "\\", FSLTX);
+			return exist(tmpFsPath);
+		};
+		if (findDefinition(Core.WorkingPath))
 			xr_strcpy(tmpAppPath, Core.WorkingPath);
 		else
 		{
@@ -45,8 +54,7 @@ void ELocatorAPI::InitFS(u32 flags)
 				const size_t length = xr_strlen(tmpAppPath);
 				if (length > 3 && tmpAppPath[length - 1] == '\\')
 					tmpAppPath[length - 1] = 0;
-				strconcat(sizeof(tmpFsPath), tmpFsPath, tmpAppPath, "\\", FSLTX);
-				if (exist(tmpFsPath))
+				if (findDefinition(tmpAppPath))
 					break;
 				char* slash = strrchr(tmpAppPath, '\\');
 				if (!slash || slash < tmpAppPath + 2 || (slash == tmpAppPath + 2 && length <= 3))

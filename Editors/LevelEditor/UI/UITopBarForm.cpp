@@ -210,7 +210,8 @@ void UITopBarForm::RefreshBar()
 			m_bZX = true;
 			break;
 		default:
-			Msg("! [TopBar] Unknown State: Action[%d] Axis[%d]", Tools->GetAction(), Tools->GetAxis());
+			// Camera/unconstrained axes have no corresponding toolbar toggle.
+			break;
 		}
 	}
 	// settings

@@ -4,6 +4,7 @@
 #include "imgui_impl_win32.h"
 #include "imgui_internal.h"
 #include "ModernUI.h"
+#include "MediaPlayer.h"
 #include "../../Launcher/DiscordPresence.h"
 #include "../../Launcher/UpdateBridge.h"
 #include "../../LauncherAssets/ResourceIds.h"
@@ -27,12 +28,80 @@ namespace
     HWND editorWindow = nullptr;
     bool effectsDirty = true;
     bool customFrame = false;
+    RECT mediaControlsRect = {};
     float uiScale = 1.f, requestedUIScale = 1.f;
     bool aboutRequested = false;
     IDirect3DTexture9* aboutLogo = nullptr;
     IDirect3DDevice9* aboutDevice = nullptr;
     float aboutLogoAspect = 1.93f;
     bool aboutLogoAttempted = false;
+    std::vector<unsigned char> aboutLogoPixels;
+    unsigned aboutSourceWidth = 0, aboutSourceHeight = 0;
+    unsigned aboutLogoWidth = 0, aboutLogoHeight = 0;
+
+    void PrepareAboutLogo(unsigned targetWidth)
+    {
+        if (!aboutDevice) return;
+        if (!aboutLogoAttempted)
+        {
+            aboutLogoAttempted = true;
+            HRSRC resource = editorFontAssets ? FindResourceW(editorFontAssets,MAKEINTRESOURCEW(IDR_LAUNCHER_LOGO),MAKEINTRESOURCEW(10)) : nullptr;
+            HGLOBAL loaded = resource ? LoadResource(editorFontAssets,resource) : nullptr;
+            void* bytes = loaded ? LockResource(loaded) : nullptr;
+            const DWORD size = resource ? SizeofResource(editorFontAssets,resource) : 0;
+            D3DXIMAGE_INFO info = {};
+            IDirect3DTexture9* source = nullptr;
+            if (bytes && SUCCEEDED(D3DXGetImageInfoFromFileInMemory(bytes,size,&info)) && info.Height &&
+                SUCCEEDED(D3DXCreateTextureFromFileInMemoryEx(aboutDevice,bytes,size,info.Width,info.Height,
+                    1,0,D3DFMT_A8R8G8B8,D3DPOOL_MANAGED,D3DX_FILTER_NONE,D3DX_FILTER_NONE,0,nullptr,nullptr,&source)))
+            {
+                D3DSURFACE_DESC description = {};
+                D3DLOCKED_RECT locked = {};
+                source->GetLevelDesc(0,&description);
+                if (SUCCEEDED(source->LockRect(0,&locked,nullptr,D3DLOCK_READONLY)))
+                {
+                    aboutSourceWidth = description.Width; aboutSourceHeight = description.Height;
+                    aboutLogoPixels.resize(size_t(aboutSourceWidth)*aboutSourceHeight*4);
+                    for (unsigned y=0;y<aboutSourceHeight;++y)
+                        std::memcpy(aboutLogoPixels.data()+size_t(y)*aboutSourceWidth*4,
+                            static_cast<const unsigned char*>(locked.pBits)+size_t(y)*locked.Pitch,aboutSourceWidth*4);
+                    source->UnlockRect(0);
+                    aboutLogoAspect = float(info.Width)/info.Height;
+                }
+                source->Release();
+            }
+        }
+        const unsigned targetHeight = ImMax(1u,unsigned(targetWidth/aboutLogoAspect+.5f));
+        if (aboutLogoPixels.empty() || (aboutLogo && aboutLogoWidth == targetWidth && aboutLogoHeight == targetHeight)) return;
+        IDirect3DTexture9* resized = nullptr;
+        if (FAILED(aboutDevice->CreateTexture(targetWidth,targetHeight,1,0,D3DFMT_A8R8G8B8,D3DPOOL_MANAGED,&resized,nullptr))) return;
+        D3DLOCKED_RECT locked = {};
+        if (FAILED(resized->LockRect(0,&locked,nullptr,0))) { resized->Release(); return; }
+        // Integrate the full source footprint of every screen pixel. Weight RGB by
+        // alpha while filtering so transparent pixels cannot create dark fringes.
+        for (unsigned y=0;y<targetHeight;++y)
+            for (unsigned x=0;x<targetWidth;++x)
+            {
+                const float x0 = float(x)*aboutSourceWidth/targetWidth, x1 = float(x+1)*aboutSourceWidth/targetWidth;
+                const float y0 = float(y)*aboutSourceHeight/targetHeight, y1 = float(y+1)*aboutSourceHeight/targetHeight;
+                float alpha = 0.f, area = 0.f, colors[3] = {};
+                for (unsigned sy=unsigned(y0);sy<ImMin(aboutSourceHeight,unsigned(std::ceil(y1)));++sy)
+                    for (unsigned sx=unsigned(x0);sx<ImMin(aboutSourceWidth,unsigned(std::ceil(x1)));++sx)
+                    {
+                        const float weight = (ImMin(x1,float(sx+1))-ImMax(x0,float(sx)))*(ImMin(y1,float(sy+1))-ImMax(y0,float(sy)));
+                        const unsigned char* pixel = aboutLogoPixels.data()+(size_t(sy)*aboutSourceWidth+sx)*4;
+                        const float weightedAlpha = weight*pixel[3];
+                        area += weight; alpha += weightedAlpha;
+                        for (unsigned c=0;c<3;++c) colors[c] += weightedAlpha*pixel[c];
+                    }
+                unsigned char* pixel = static_cast<unsigned char*>(locked.pBits)+size_t(y)*locked.Pitch+x*4;
+                for (unsigned c=0;c<3;++c) pixel[c] = alpha > 0.f ? static_cast<unsigned char>(ImMin(255.f,colors[c]/alpha+.5f)) : 0;
+                pixel[3] = area > 0.f ? static_cast<unsigned char>(ImMin(255.f,alpha/area+.5f)) : 0;
+            }
+        resized->UnlockRect(0);
+        if (aboutLogo) aboutLogo->Release();
+        aboutLogo = resized; aboutLogoWidth = targetWidth; aboutLogoHeight = targetHeight;
+    }
 
     struct LauncherBuildInfo
     {
@@ -71,25 +140,13 @@ namespace
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
         ImGui::PopStyleVar(2);
         if (!visible) return;
-        if (!aboutLogoAttempted)
-        {
-            aboutLogoAttempted = true;
-            HRSRC resource = editorFontAssets ? FindResourceW(editorFontAssets,MAKEINTRESOURCEW(IDR_LAUNCHER_LOGO),MAKEINTRESOURCEW(10)) : nullptr;
-            HGLOBAL loaded = resource ? LoadResource(editorFontAssets,resource) : nullptr;
-            void* bytes = loaded ? LockResource(loaded) : nullptr;
-            const DWORD size = resource ? SizeofResource(editorFontAssets,resource) : 0;
-            D3DXIMAGE_INFO info = {};
-            if (bytes && aboutDevice && SUCCEEDED(D3DXGetImageInfoFromFileInMemory(bytes,size,&info)) && info.Height)
-            {
-                if (SUCCEEDED(D3DXCreateTextureFromFileInMemoryEx(aboutDevice,bytes,size,info.Width,info.Height,
-                    1,0,D3DFMT_A8R8G8B8,D3DPOOL_MANAGED,D3DX_FILTER_LINEAR,D3DX_FILTER_LINEAR,0,nullptr,nullptr,&aboutLogo)))
-                    aboutLogoAspect = float(info.Width)/info.Height;
-            }
-        }
         static const LauncherBuildInfo info;
-        const float imageWidth = ImMin(410.f*dpi,ImGui::GetContentRegionAvail().x);
-        ImGui::SetCursorPosX((ImGui::GetWindowWidth()-imageWidth)*.5f);
-        if (aboutLogo) ImGui::Image(aboutLogo,ImVec2(imageWidth,imageWidth/aboutLogoAspect));
+        const unsigned imageWidth = ImMax(1u,unsigned(ImMin(410.f*dpi,ImGui::GetContentRegionAvail().x)+.5f));
+        PrepareAboutLogo(imageWidth);
+        const ImVec2 windowPos = ImGui::GetWindowPos();
+        ImGui::SetCursorScreenPos(ImVec2(std::floor(windowPos.x+(ImGui::GetWindowWidth()-imageWidth)*.5f),
+            std::floor(ImGui::GetCursorScreenPos().y)));
+        if (aboutLogo) ImGui::Image(aboutLogo,ImVec2(float(aboutLogoWidth),float(aboutLogoHeight)));
         else { ImGui::TextUnformatted("X-RAY SDK / FARKASHED EDITION"); ImGui::Dummy(ImVec2(0,130.f*dpi)); }
         ImGui::Spacing();
         if (ImGui::BeginTable("About information",2,ImGuiTableFlags_SizingStretchProp))
@@ -274,6 +331,123 @@ namespace
         for (ImDrawList* draw : temporary) IM_DELETE(draw);
     }
 
+    struct SmoothIconDraw
+    {
+        ImDrawList* draw;
+        ImDrawListFlags saved;
+        explicit SmoothIconDraw(ImDrawList* value) : draw(value), saved(value->Flags)
+        { draw->Flags |= ImDrawListFlags_AntiAliasedLines | ImDrawListFlags_AntiAliasedFill; }
+        ~SmoothIconDraw() { draw->Flags = saved; }
+    };
+
+    void DrawSmoothIconRect(ImDrawList* draw, const ImVec2& min, const ImVec2& max, ImU32 color)
+    {
+        // AddRectFilled's square fast path has no AA fringe; use a clockwise convex path.
+        draw->PathRect(min,max,0.f);
+        draw->PathFillConvex(color);
+    }
+
+    void DrawMediaPlayer(const ImVec2& origin, float width, float captionEnd)
+    {
+        mediaControlsRect = {};
+        const float left = captionEnd + 24.f*uiScale;
+        const float right = origin.x + width - 112.f*uiScale;
+        const float available = right-left;
+        if (available < 220.f*uiScale) return;
+        const SDKMedia::State state = SDKMedia::Snapshot();
+        const std::string label = state.selected ?
+            (state.title.empty() ? "Unknown track" : state.title) + (state.artist.empty() ? "" : " - " + state.artist) : "Music | Choose player...";
+        const float buttonWidth = 28.f*uiScale;
+        // Fit the actual rendered text, keeping transport controls inside the free title area.
+        const float desiredWidth = ImGui::CalcTextSize(label.c_str()).x + 18.f*uiScale + 4.f*buttonWidth;
+        const float panelWidth = ImClamp(desiredWidth,220.f*uiScale,available);
+        const float x = floorf(left + (available-panelWidth)*.5f);
+        const float y = origin.y+3.f*uiScale;
+        POINT first = { LONG(x), LONG(y) }, last = { LONG(x+panelWidth), LONG(y+28.f*uiScale) };
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        { ScreenToClient(editorWindow, &first); ScreenToClient(editorWindow, &last); }
+        mediaControlsRect = {first.x, first.y, last.x, last.y};
+        ImGui::PushID("Title media player");
+        ImDrawList* draw = ImGui::GetWindowDrawList();
+        const SmoothIconDraw smooth(draw);
+        draw->AddRectFilled(ImVec2(x,y),ImVec2(x+panelWidth,y+28.f*uiScale),
+            ImGui::GetColorU32(ImGuiCol_FrameBg),6.f*uiScale);
+        const float labelWidth = panelWidth-4.f*buttonWidth;
+        ImGui::SetCursorScreenPos(ImVec2(x,y));
+        if (ImGui::InvisibleButton("Choose music source",ImVec2(labelWidth,28.f*uiScale)))
+            ImGui::OpenPopup("Music sources");
+        draw->PushClipRect(ImVec2(x+9.f*uiScale,y),ImVec2(x+labelWidth-8.f*uiScale,y+28.f*uiScale),true);
+        draw->AddText(ImVec2(x+9.f*uiScale,y+(28.f*uiScale-ImGui::GetFontSize())*.5f),
+            ImGui::GetColorU32(state.playing ? ImGuiCol_CheckMark : ImGuiCol_Text),label.c_str());
+        draw->PopClipRect();
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted(label.c_str());
+            if (!state.source.empty()) ImGui::TextDisabled("%s",state.source.c_str());
+            if (!state.message.empty()) ImGui::TextWrapped("%s",state.message.c_str());
+            ImGui::TextDisabled("Click to choose a player");
+            ImGui::EndTooltip();
+        }
+        const bool enabled[] = {state.previous,state.toggle,state.stop,state.next};
+        const SDKMedia::Action actions[] = {SDKMedia::Action::Previous,SDKMedia::Action::Toggle,SDKMedia::Action::Stop,SDKMedia::Action::Next};
+        const char* tips[] = {"Previous track",state.playing ? "Pause" : "Play","Stop","Next track"};
+        for (int i=0;i<4;++i)
+        {
+            ImGui::PushID(i);
+            ImGui::SetCursorScreenPos(ImVec2(x+labelWidth+i*buttonWidth,y));
+            ImGui::BeginDisabled(!enabled[i]);
+            const bool clicked = ImGui::InvisibleButton("Media control",ImVec2(buttonWidth,28.f*uiScale));
+            const ImVec2 p = ImGui::GetItemRectMin(), end = ImGui::GetItemRectMax();
+            if (ImGui::IsItemHovered()) draw->AddRectFilled(p,end,ImGui::GetColorU32(ImGuiCol_ButtonHovered),4.f*uiScale);
+            const ImU32 ink = ImGui::GetColorU32(enabled[i] ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+            const ImVec2 c(p.x+14.f*uiScale,p.y+14.f*uiScale);
+            const float r = 4.f*uiScale;
+            if (i == 2) DrawSmoothIconRect(draw,ImVec2(c.x-r,c.y-r),ImVec2(c.x+r,c.y+r),ink);
+            else if (i == 1 && state.playing)
+            {
+                DrawSmoothIconRect(draw,ImVec2(c.x-r,c.y-5.f*uiScale),ImVec2(c.x-uiScale,c.y+5.f*uiScale),ink);
+                DrawSmoothIconRect(draw,ImVec2(c.x+uiScale,c.y-5.f*uiScale),ImVec2(c.x+r,c.y+5.f*uiScale),ink);
+            }
+            else
+            {
+                const float direction = i == 0 ? -1.f : 1.f;
+                // Both directions need clockwise vertices for outward edge smoothing.
+                draw->AddTriangleFilled(ImVec2(c.x-direction*r,c.y-5.f*uiScale),
+                    i == 0 ? ImVec2(c.x-direction*r,c.y+5.f*uiScale) : ImVec2(c.x+direction*r,c.y),
+                    i == 0 ? ImVec2(c.x+direction*r,c.y) : ImVec2(c.x-direction*r,c.y+5.f*uiScale),ink);
+                if (i != 1) draw->AddLine(ImVec2(c.x+direction*6.f*uiScale,c.y-5.f*uiScale),
+                    ImVec2(c.x+direction*6.f*uiScale,c.y+5.f*uiScale),ink,1.5f*uiScale);
+            }
+            ImGui::EndDisabled();
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("%s%s",tips[i],enabled[i] ? "" : " (unavailable in this player)");
+            if (clicked) SDKMedia::Send(state.selected,actions[i]);
+            ImGui::PopID();
+        }
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(12.f*uiScale,8.f*uiScale));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(8.f*uiScale,4.f*uiScale));
+        if (ImGui::BeginPopup("Music sources"))
+        {
+            if (ImGui::Selectable("Auto (Windows current player)")) SDKMedia::Select(0);
+            for (const auto& source : state.sources)
+            {
+                ImGui::PushID(static_cast<int>(source.id));
+                if (ImGui::Selectable(source.name.c_str(),source.id == state.selected)) SDKMedia::Select(source.id);
+                ImGui::PopID();
+            }
+            ImGui::Separator();
+            if (!state.message.empty()) ImGui::TextWrapped("%s",state.message.c_str());
+            ImGui::TextDisabled("Start playback in an app or browser first.");
+            ImGui::TextDisabled("Web players must expose a Windows media session.");
+            if (ImGui::MenuItem("Open Spotify")) ShellExecuteW(nullptr,L"open",L"https://open.spotify.com",nullptr,nullptr,SW_SHOWNORMAL);
+            if (ImGui::MenuItem("Open SoundCloud")) ShellExecuteW(nullptr,L"open",L"https://soundcloud.com",nullptr,nullptr,SW_SHOWNORMAL);
+            if (ImGui::MenuItem("Open YouTube Music")) ShellExecuteW(nullptr,L"open",L"https://music.youtube.com",nullptr,nullptr,SW_SHOWNORMAL);
+            ImGui::EndPopup();
+        }
+        ImGui::PopStyleVar(2);
+        ImGui::PopID();
+    }
+
     void DrawWindowTitleBar()
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -297,6 +471,8 @@ namespace
             const float labelX = origin.x + 28.f*uiScale + ImGui::CalcTextSize("X-RAY SDK").x;
             draw->AddText(ImVec2(labelX,textY), ImGui::GetColorU32(ImGuiCol_TextDisabled), name.c_str());
             draw->PopClipRect();
+            DrawMediaPlayer(origin,width,labelX+ImGui::CalcTextSize(name.c_str()).x);
+            const SmoothIconDraw smooth(draw);
             for (int i = 0; i < 3; ++i)
             {
                 ImGui::PushID(i);
@@ -311,21 +487,23 @@ namespace
                 const ImU32 ink = ImGui::GetColorU32(ModernUI::Mix(ImGui::GetStyle().Colors[ImGuiCol_Text],
                     ImGui::GetStyle().Colors[ImGuiCol_CheckMark],fade*.35f));
                 const ImVec2 c(p.x+14.f*uiScale,p.y+14.f*uiScale);
-                if (i == 0) draw->AddLine(ImVec2(c.x-5,c.y+3),ImVec2(c.x+5,c.y+3),ink,1.5f);
+                const auto iconPoint = [&](float x, float y) { return ImVec2(c.x+x*uiScale,c.y+y*uiScale); };
+                const float stroke = 1.5f*uiScale;
+                if (i == 0) draw->AddLine(iconPoint(-5,3),iconPoint(5,3),ink,stroke);
                 else if (i == 1)
                 {
                     if (IsZoomed(editorWindow))
                     {
-                        draw->AddRect(ImVec2(c.x-3,c.y-5),ImVec2(c.x+5,c.y+3),ink,0.f,0,1.5f);
-                        draw->AddRectFilled(ImVec2(c.x-5,c.y-3),ImVec2(c.x+3,c.y+5),ImGui::GetColorU32(ImGuiCol_WindowBg));
-                        draw->AddRect(ImVec2(c.x-5,c.y-3),ImVec2(c.x+3,c.y+5),ink,0.f,0,1.5f);
+                        draw->AddRect(iconPoint(-3,-5),iconPoint(5,3),ink,0.f,0,stroke);
+                        DrawSmoothIconRect(draw,iconPoint(-5,-3),iconPoint(3,5),ImGui::GetColorU32(ImGuiCol_WindowBg));
+                        draw->AddRect(iconPoint(-5,-3),iconPoint(3,5),ink,0.f,0,stroke);
                     }
-                    else draw->AddRect(ImVec2(c.x-5,c.y-5),ImVec2(c.x+5,c.y+5),ink,0.f,0,1.5f);
+                    else draw->AddRect(iconPoint(-5,-5),iconPoint(5,5),ink,0.f,0,stroke);
                 }
                 else
                 {
-                    draw->AddLine(ImVec2(c.x-4,c.y-4),ImVec2(c.x+4,c.y+4),ink,1.5f);
-                    draw->AddLine(ImVec2(c.x+4,c.y-4),ImVec2(c.x-4,c.y+4),ink,1.5f);
+                    draw->AddLine(iconPoint(-4,-4),iconPoint(4,4),ink,stroke);
+                    draw->AddLine(iconPoint(4,-4),iconPoint(-4,4),ink,stroke);
                 }
                 if (hover) ImGui::SetTooltip("%s", i == 0 ? "Minimize" : i == 1 ?
                     (IsZoomed(editorWindow) ? "Restore" : "Maximize") : "Close");
@@ -651,10 +829,14 @@ void XrUIManager::Initialize(HWND hWnd, IDirect3DDevice9* device, const char* in
 
 void XrUIManager::Destroy()
 {
+    SDKMedia::Shutdown();
+    mediaControlsRect = {};
     SDKDialogs::Shutdown();
     windowVisuals.clear();
     if (aboutLogo) aboutLogo->Release();
     aboutLogo = nullptr;
+    aboutLogoPixels.clear();
+    aboutSourceWidth = aboutSourceHeight = aboutLogoWidth = aboutLogoHeight = 0;
     aboutDevice = nullptr;
     effectsDirty = true;
     UpdateBackdrop();
@@ -840,7 +1022,8 @@ bool XrUIManager::HandleWindowFrame(HWND hwnd, UINT message, WPARAM wParam, LPAR
         }
     }
     // Keep the controls in the client area so ImGui receives their clicks.
-    result = point.y < GetTitleBarHeight() && point.x < client.right-100*uiScale ? HTCAPTION : HTCLIENT;
+    const bool mediaControl = PtInRect(&mediaControlsRect,point) != FALSE;
+    result = point.y < GetTitleBarHeight() && point.x < client.right-100*uiScale && !mediaControl ? HTCAPTION : HTCLIENT;
     return true;
 }
 

@@ -21,6 +21,8 @@
 *.aps
 *.TMP
 *.ps1
+!/SDKRuntime/OrganizeSettings.ps1
+!/SDKRuntime/Scripting/InstallScripting.ps1
 
 # Виндовские кеши
 Thumbs.db
@@ -28,3 +30,5 @@ ehthumbs.db
 
 # Тоже кеш
 Desktop.ini
+__pycache__/
+*.pyc

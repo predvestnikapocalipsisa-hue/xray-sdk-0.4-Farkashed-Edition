@@ -1,0 +1,9 @@
+{
+  "id": "scene_tools",
+  "name": "Scene Tools",
+  "version": "1.0.0",
+  "api_version": 1,
+  "entry": "__init__.xpy",
+  "editors": ["level"],
+  "description": "Example operators, a panel, preferences, selection events and .xpy imports."
+}

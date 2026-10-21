@@ -6,9 +6,11 @@
 UIMainForm* MainForm = nullptr;
 void PollOGSRPreview();
 bool DrawOGSRPreviewViewport();
+void RegisterSDKScriptScene();
 
 UIMainForm::UIMainForm()
 {
+    RegisterSDKScriptScene();
     EnableReceiveCommands();
     if (!ExecCommand(COMMAND_INITIALIZE, (u32)0, (u32)0))
     {

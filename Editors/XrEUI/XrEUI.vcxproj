@@ -38,6 +38,10 @@
     <ClCompile Include="spectrum.cpp" />
     <ClCompile Include="XrUI.cpp" />
     <ClCompile Include="XrUIManager.cpp" />
+    <ClCompile Include="MediaPlayer.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="SDKMessageBox.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -57,6 +61,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="XrUI.h" />
     <ClInclude Include="ModernUI.h" />
+    <ClInclude Include="MediaPlayer.h" />
     <ClInclude Include="XrUIManager.h" />
     <ClInclude Include="SDKMessageBox.h" />
     <ClInclude Include="SDKProgressBar.h" />

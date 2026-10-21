@@ -27,6 +27,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Editor\SDKScriptHost.cpp" />
+    <ClCompile Include="Editor\SDKScriptLua.cpp" />
     <ClCompile Include="..\..\XrCPU_Pipe\xrSkin2W.cpp" />
     <ClCompile Include="..\..\XrEngine\defines.cpp" />
     <ClCompile Include="..\..\XrEngine\Envelope.cpp" />

@@ -16,6 +16,7 @@
 #include "UIMinimapEditorForm.h"
 #include "..\XrETools\ETools.h"
 #include "UILogForm.h"
+#include "SDKScriptHost.h"
 #include "gamefont.h"
 #include <exception>
 #include <new>
@@ -569,6 +570,7 @@ void TUI::OnFrame()
     if (m_Flags.is(flUpdateScene))
         RealUpdateScene();
     Tools->OnFrame();
+    SDKScript::Tick();
     // show hint
     ShowObjectHint();
     ResetBreak();
@@ -836,6 +838,7 @@ void TUI::OnDrawUI()
     UIMinimapEditorForm::Update();
     UILogForm::Update();
     EDevice.seqDrawUI.Process(rp_DrawUI);
+    SDKScript::Draw();
 }
 
 void TUI::RealResetUI()
