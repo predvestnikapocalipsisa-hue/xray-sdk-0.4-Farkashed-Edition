@@ -75,6 +75,7 @@ class CLevelMain : public TUI
 {
     typedef TUI inherited;
     CInGameMode* m_InGame = nullptr;
+    void StartLocalInGame();
 
     virtual void RealUpdateScene();
 
@@ -86,8 +87,12 @@ public:
     virtual ~CLevelMain();
     bool IsInGame() const { return m_InGame != nullptr; }
     void StartInGame();
+    void StartOGSRPreview();
+    void StopOGSRPreview();
     void StopInGame();
     void DrawInGame();
+    void ValidateOGSRBridge();
+    static bool& AutoRepairOGSRNavigation();
 
     virtual LPSTR GetCaption();
 

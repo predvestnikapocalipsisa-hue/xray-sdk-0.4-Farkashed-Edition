@@ -90,18 +90,21 @@ CDetailManager::~CDetailManager()
     xr_mfree(cache_level1);
 }
 
-void CDetailManager::Load()
+void CDetailManager::Load(IReader* preview)
 {
     // Open file stream
-    if (!FS.exist(fsgame::level, fsgame::level_files::level_details))
+    if (!preview && !FS.exist(fsgame::level, fsgame::level_files::level_details))
     {
         dtFS = nullptr;
         return;
     }
 
     string_path fn;
-    FS.update_path(fn, fsgame::level, fsgame::level_files::level_details);
-    dtFS = FS.r_open(fn);
+    if (preview) dtFS = preview;
+    else {
+        FS.update_path(fn, fsgame::level, fsgame::level_files::level_details);
+        dtFS = FS.r_open(fn);
+    }
 
     // Header
     dtFS->r_chunk_safe(0, &dtH, sizeof(dtH));

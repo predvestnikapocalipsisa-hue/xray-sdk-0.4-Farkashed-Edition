@@ -90,6 +90,7 @@
     </ClCompile>
     <ClCompile Include="Kernel\UI_LevelMain.cpp" />
     <ClCompile Include="Kernel\InGameMode.cpp" />
+    <ClCompile Include="Kernel\OGSRSceneBridge.cpp" />
     <ClCompile Include="Kernel\UI_LevelTools.cpp" />
     <ClCompile Include="Scene\LEPhysics.cpp" />
     <ClCompile Include="Scene\scene.cpp" />
@@ -208,6 +209,7 @@
     <ClInclude Include="Entry\WayPoint\WayPoint.h" />
     <ClInclude Include="Kernel\stdafx.h" />
     <ClInclude Include="Kernel\UI_LevelMain.h" />
+    <ClInclude Include="Kernel\OGSRPreviewGeometry.h" />
     <ClInclude Include="Kernel\UI_LevelTools.h" />
     <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Scene\LEPhysics.h" />

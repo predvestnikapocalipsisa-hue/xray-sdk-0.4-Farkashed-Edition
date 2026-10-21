@@ -11,6 +11,7 @@
 #include "PhysicsCommon.h"
 #include "level_sounds.h"
 #include "GamePersistent.h"
+#include "../xr_3da/SDKPreview.h"
 
 BOOL CLevel::Load_GameSpecific_Before()
 {
@@ -24,6 +25,14 @@ BOOL CLevel::Load_GameSpecific_Before()
 
 BOOL CLevel::Load_GameSpecific_After()
 {
+    if (SDKPlayRequested())
+    {
+        // Bootstrap navigation belongs to the stock level; its particles,
+        // ambient emitters and acoustic geometry do not belong to this scene.
+        g_pGamePersistent->Environment().SetGameTime(GetEnvironmentGameDayTimeSec(), game->GetEnvironmentGameTimeFactor());
+        g_pGamePersistent->Environment().Invalidate();
+        return TRUE;
+    }
     // loading static particles
     string_path fn_game;
 

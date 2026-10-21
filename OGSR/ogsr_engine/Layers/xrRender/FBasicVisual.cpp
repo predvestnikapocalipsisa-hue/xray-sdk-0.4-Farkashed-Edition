@@ -164,6 +164,17 @@ void dxRender_Visual::Load(const char* N, IReader* data, u32)
         string256 fnT, fnS;
         data->r_stringZ(fnT, sizeof(fnT));
         data->r_stringZ(fnS, sizeof(fnS));
+        // SDK OGF previews have no baked lightmaps. Use the dynamic model
+        // material path; its lighting is supplied by the preview CObject.
+        if (N && strncmp(N, "sdk_preview_mesh_", 17) == 0)
+        {
+            // SDK vegetation uses tree/def_trans materials as well as aref.
+            // Losing alpha testing turns every leaf card into an opaque quad.
+            const bool cutout = strstr(fnS, "aref") || strstr(fnS, "tree") ||
+                strstr(fnS, "flora") || strstr(fnS, "def_trans") ||
+                strstr(fnT, "trees\\") || strstr(fnT, "flora\\") || strstr(fnT, "grass\\");
+            xr_strcpy(fnS, cutout ? "models\\model_aref" : "models\\model");
+        }
         if (replaceShaders(N, fnS, sizeof fnS)) {
             //Msg("~~[%s] replaced shaders for [%s]: %s", __FUNCTION__, N, fnS);
         }

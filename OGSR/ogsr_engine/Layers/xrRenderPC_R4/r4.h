@@ -244,6 +244,7 @@ public:
     virtual void reset_end();
 
     virtual void level_Load(IReader*);
+    void level_LoadPreview(const Fbox& bounds) override;
     virtual void level_Unload();
 
     static ID3DBaseTexture* texture_load(LPCSTR fRName, u32& ret_msize);

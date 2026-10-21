@@ -6,7 +6,9 @@
 
 #include "../xrRender/QueryHelper.h"
 
+#ifndef OGSR_NO_FSR3
 #include "FidelityFX/host/ffx_fsr3.h"
+#endif
 
 IC bool pred_sp_sort(ISpatial* _1, ISpatial* _2)
 {
@@ -292,8 +294,22 @@ void CRender::Render()
 
     if (ps_pnv_mode < 2 && (ps_r_pp_aa_mode == DLSS || ps_r_pp_aa_mode == FSR3 || ps_r_pp_aa_mode == TAA || ps_r2_ls_flags.test(R2FLAG_DBG_TAA_JITTER_ENABLE)))
     {
+#ifndef OGSR_NO_FSR3
         auto jitterPhaseCount = ffxFsr3UpscalerGetJitterPhaseCount(static_cast<int32_t>(Device.dwWidth), static_cast<int32_t>(Device.dwWidth));
         ffxFsr3UpscalerGetJitterOffset(&ps_r_taa_jitter_full.x, &ps_r_taa_jitter_full.y, Device.dwFrame, jitterPhaseCount);
+#else
+        // Native-resolution temporal jitter without the optional upscaler SDK.
+        const int jitterPhaseCount = 8;
+        const auto halton = [](unsigned index, unsigned base)
+        {
+            float value = 0.f, factor = 1.f;
+            while (index) { factor /= float(base); value += factor * float(index % base); index /= base; }
+            return value - .5f;
+        };
+        const unsigned sample = Device.dwFrame % jitterPhaseCount + 1;
+        ps_r_taa_jitter_full.x = halton(sample, 2);
+        ps_r_taa_jitter_full.y = halton(sample, 3);
+#endif
 
         ps_r_taa_jitter.x = 2.0f * ps_r_taa_jitter_full.x / Device.dwWidth;
         ps_r_taa_jitter.y = -2.0f * ps_r_taa_jitter_full.y / Device.dwHeight;

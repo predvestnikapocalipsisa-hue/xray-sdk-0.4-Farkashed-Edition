@@ -211,6 +211,8 @@ struct _SoundRender : public pureFrame
 
 void CRenderDevice::on_idle()
 {
+    if (GetParent(m_hWnd) && strstr(Core.Params, "-sdk-preview "))
+        b_is_Active = IsWindowVisible(m_hWnd) && !IsIconic(GetAncestor(m_hWnd, GA_ROOT));
     is_editor_active = CImGuiEditor::Get().IsEditorShouldOpen();
 
     if (!b_is_Ready)
@@ -409,7 +411,7 @@ void CRenderDevice::message_loop()
 void CRenderDevice::ShowMainWindow() const
 {
     ShowWindow(m_hWnd, SW_SHOWNORMAL);
-    SetForegroundWindow(m_hWnd);
+    if (!GetParent(m_hWnd)) SetForegroundWindow(m_hWnd);
 }
 
 void CRenderDevice::Run()

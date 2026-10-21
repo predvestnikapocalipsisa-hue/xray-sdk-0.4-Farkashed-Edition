@@ -1,6 +1,11 @@
-.vs/
-output/
+/.vs
+/output
 /BuildedSDK/
+/OGSR/3rd_party
+/OGSR/3rd_party
+/OGSR/ogsr_engine
+/OGSR/ogsr_engine
+/OGSR/bin*
 
 # Мусор от компилятора
 *.pch*
@@ -15,6 +20,7 @@ output/
 *.exp
 *.aps
 *.TMP
+*.ps1
 
 # Виндовские кеши
 Thumbs.db

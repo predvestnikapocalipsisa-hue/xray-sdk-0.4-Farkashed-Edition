@@ -161,8 +161,50 @@ CSector *CPortalUtils::FindSector(CSceneObject *o, CEditableMesh *m)
     return 0;
 }
 
-bool CPortalUtils::Validate(bool bMsg)
+bool CPortalUtils::RepairUnassociatedMeshes()
 {
+    CSector* unused = xr_new<CSector>((LPVOID)0, DEFAULT_SECTOR_NAME);
+    unused->CaptureAllUnusedMeshes();
+    if (unused->IsEmpty())
+    {
+        xr_delete(unused);
+        return false;
+    }
+    CSector* target = nullptr;
+    for (CCustomObject* object : Scene->ListObj(OBJCLASS_SECTOR))
+        if (((CSector*)object)->IsDefault())
+        {
+            target = (CSector*)object;
+            break;
+        }
+    if (!target)
+    {
+        if (Scene->FindObjectByName(DEFAULT_SECTOR_NAME, (CCustomObject*)nullptr))
+        {
+            xr_delete(unused);
+            ELog.Msg(mtError, "Cannot repair: default sector name is already in use.");
+            return false;
+        }
+        unused->m_bDefault = true;
+        unused->sector_color.set(1, 0, 0, 0);
+        Scene->AppendObject(unused, false);
+    }
+    else
+    {
+        for (SItemIt it = unused->sector_items.begin(); it != unused->sector_items.end(); ++it)
+            target->AddMesh(it->object, it->mesh);
+        xr_delete(unused);
+    }
+    Scene->Modified();
+    Scene->UndoSave();
+    UI->UpdateScene();
+    ELog.DlgMsg(mtInformation, "Assigned unassociated meshes to the default sector. Undo is available.");
+    return true;
+}
+
+bool CPortalUtils::Validate(bool bMsg, bool ignoreUnassociated, bool* hasUnassociated)
+{
+    if (hasUnassociated) *hasUnassociated = false;
     Fbox box;
     bool bResult = false;
     if (Scene->GetBox(box, OBJCLASS_SCENEOBJECT))
@@ -174,13 +216,17 @@ bool CPortalUtils::Validate(bool bMsg)
         sector_def->GetCounts(0, 0, &f_cnt);
         if (f_cnt != 0)
         {
+            if (hasUnassociated) *hasUnassociated = true;
             if (bMsg)
             {
-                ELog.DlgMsg(mtError, "*ERROR: Scene has '%d' non associated face!", f_cnt);
+                if (ignoreUnassociated)
+                    ELog.DlgMsg(mtInformation, "BYPASSED: %d faces have no sector. Geometry was not repaired.", f_cnt);
+                else
+                    ELog.DlgMsg(mtError, "*ERROR: Scene has '%d' non associated face!", f_cnt);
                 for (SItemIt it = sector_def->sector_items.begin(); it != sector_def->sector_items.end(); it++)
                     Msg("! - scene object: '%s' [O:'%s', M:'%s']", it->object->GetName(), it->object->RefName(), it->mesh->Name().c_str());
             }
-            bResult = false;
+            bResult = ignoreUnassociated;
         }
         xr_delete(sector_def);
 

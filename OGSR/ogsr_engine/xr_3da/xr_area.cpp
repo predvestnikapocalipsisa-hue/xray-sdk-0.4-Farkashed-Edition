@@ -187,6 +187,19 @@ int CObjectSpace::GetNearest(xr_vector<CObject*>& q_nearest, ICollisionForm* obj
 //----------------------------------------------------------------------
 static void build_callback(Fvector* V, const size_t Vcnt, CDB::TRI* T, const size_t Tcnt, void* params) { g_pGameLevel->Load_GameSpecific_CFORM(T, Tcnt); }
 
+void CObjectSpace::LoadPreview(const Fvector* vertices, size_t vertexCount, const CDB::TRI* triangles, size_t triangleCount)
+{
+    m_BoundingVolume.invalidate();
+    for (size_t i = 0; i < vertexCount; ++i) m_BoundingVolume.modify(vertices[i]);
+    // Include space above/below flat editor scenes and outside their edges.
+    m_BoundingVolume.grow(100.f);
+    Static.build(vertices, vertexCount, triangles, triangleCount);
+    g_SpatialSpace->initialize(m_BoundingVolume);
+    g_SpatialSpacePhysic->initialize(m_BoundingVolume);
+    Sound->set_geometry_occ(&Static);
+    Sound->set_handler(_sound_event);
+}
+
 void CObjectSpace::Load()
 {
     static IReader* F{};

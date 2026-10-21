@@ -20,6 +20,7 @@
 #include "../xr_3da/x_ray.h"
 #include "string_table.h"
 #include "HUDManager.h"
+#include "../xr_3da/SDKPreview.h"
 #include "..\xr_3da\DiscordRPC.hpp"
 
 #ifndef MASTER_GOLD
@@ -106,6 +107,15 @@ void CGamePersistent::RegisterModel(IRenderVisual* V)
             CBoneData& bd = K->LL_GetData(k);
             if (*(bd.game_mtl_name))
             {
+                // SDK models can reference materials absent from the mounted game library.
+                // GetMaterialIdx returns 0 for an unknown name, which may be static.
+                if (SDKPlayRequested() && GMLib.GetMaterialID(*bd.game_mtl_name) == GAMEMTL_NONE_ID)
+                {
+                    Msg("! [SDK play] Bone [%s]: game material [%s] is missing; using dynamic [default_object]",
+                        *bd.name, *bd.game_mtl_name);
+                    bd.game_mtl_idx = def_idx;
+                    continue;
+                }
                 bd.game_mtl_idx = GMLib.GetMaterialIdx(*bd.game_mtl_name);
                 R_ASSERT2(GMLib.GetMaterialByIdx(bd.game_mtl_idx)->Flags.is(SGameMtl::flDynamic), "Required dynamic game material");
             }
@@ -130,10 +140,12 @@ void CGamePersistent::OnAppStart()
     __super::OnAppStart();
     m_pUI_core = xr_new<ui_core>();
     m_pMainMenu = xr_new<CMainMenu>();
+    if (SDKPlayRequested()) SDKGameplayStart();
 }
 
 void CGamePersistent::OnAppEnd()
 {
+    if (SDKPlayRequested()) SDKGameplayStop();
     if (m_pMainMenu->IsActive())
         m_pMainMenu->Activate(false);
 
@@ -457,6 +469,7 @@ void CGamePersistent::WeathersUpdate()
 
 void CGamePersistent::start_logo_intro()
 {
+    if (SDKPlayRequested()) { m_intro_event = 0; return; }
     if (!strstr(Core.Params, "-intro"))
     {
         m_intro_event = 0;
@@ -489,6 +502,7 @@ void CGamePersistent::update_logo_intro()
 
 void CGamePersistent::start_game_intro()
 {
+    if (SDKPlayRequested()) { m_intro_event = 0; return; }
     if (g_pGameLevel && g_pGameLevel->bReady && Device.dwPrecacheFrame <= 2)
     {
         m_intro_event.bind(this, &CGamePersistent::update_game_intro);
@@ -685,6 +699,7 @@ static BOOL bEntryFlag = TRUE;
 
 void CGamePersistent::OnAppActivate()
 {
+    if (SDKPlayRequested()) return; // child view has no top-level activation lifecycle
     Device.Pause(FALSE, !bRestorePause, TRUE, "CGP::OnAppActivate");
 
     bEntryFlag = TRUE;
@@ -692,6 +707,7 @@ void CGamePersistent::OnAppActivate()
 
 void CGamePersistent::OnAppDeactivate()
 {
+    if (SDKPlayRequested()) return;
     if (!bEntryFlag)
         return;
 

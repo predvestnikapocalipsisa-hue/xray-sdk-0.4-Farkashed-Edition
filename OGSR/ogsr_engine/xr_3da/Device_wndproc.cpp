@@ -4,6 +4,9 @@ bool CRenderDevice::on_message(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 {
     switch (uMsg)
     {
+    case WM_LBUTTONDOWN:
+        if (GetParent(hWnd) && strstr(Core.Params, "-sdk-preview ")) SetFocus(hWnd);
+        return false;
     case WM_SYSKEYDOWN: {
         return true;
     }
@@ -27,6 +30,7 @@ bool CRenderDevice::on_message(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
         return (false);
     }
     case WM_CLOSE: {
+        if (strstr(Core.Params, "-sdk-preview ")) Engine.Event.Defer("KERNEL:quit");
         result = 0;
         return (true);
     }

@@ -6,6 +6,7 @@
 //	AlexMX		- Alexander Maksimchuk
 //-----------------------------------------------------------------------------
 #include "stdafx.h"
+#include "SDKPreview.h"
 #include "igame_level.h"
 #include "igame_persistent.h"
 #include "xr_input.h"
@@ -222,7 +223,7 @@ void Startup()
     Device.Create();
     LALib.OnCreate();
     pApp = xr_new<CApplication>();
-    g_pGamePersistent = (IGame_Persistent*)NEW_INSTANCE(CLSID_GAME_PERSISTANT);
+    g_pGamePersistent = SDKPreviewRequested() && !SDKPlayRequested() ? SDKCreatePreviewPersistent() : (IGame_Persistent*)NEW_INSTANCE(CLSID_GAME_PERSISTANT);
     g_SpatialSpace = xr_new<ISpatial_DB>();
     g_SpatialSpacePhysic = xr_new<ISpatial_DB>();
 

@@ -5,6 +5,7 @@
 
 CInput* pInput = nullptr;
 IInputReceiver dummyController;
+namespace { HWND previewInputWindow = nullptr; }
 
 ENGINE_API float psMouseSens = 0.1f;
 ENGINE_API float psMouseSensScale = 1.f;
@@ -15,7 +16,7 @@ ENGINE_API Flags32 psMouseInvert = {FALSE};
 
 CInput::CInput(bool bExclusive, int deviceForInit)
 {
-    is_exclusive_mode = bExclusive;
+    is_exclusive_mode = bExclusive && !(GetParent(Device.m_hWnd) && strstr(Core.Params, "-sdk-preview "));
 
     Log("Starting INPUT device...");
 
@@ -63,6 +64,7 @@ CInput::~CInput(void)
 
     _SHOW_REF("Input: ", pDI);
     _RELEASE(pDI);
+    if (previewInputWindow) { DestroyWindow(previewInputWindow); previewInputWindow = nullptr; }
 }
 
 //-----------------------------------------------------------------------------
@@ -71,6 +73,16 @@ CInput::~CInput(void)
 //-----------------------------------------------------------------------------
 HRESULT CInput::CreateInputDevice(LPDIRECTINPUTDEVICE8* device, GUID guidDevice, const DIDATAFORMAT* pdidDataFormat, u32 dwFlags, u32 buf_size) const
 {
+    HWND cooperativeWindow = Device.m_hWnd;
+    if (GetParent(Device.m_hWnd) && strstr(Core.Params, "-sdk-preview "))
+    {
+        dwFlags = DISCL_NONEXCLUSIVE | DISCL_BACKGROUND;
+        // DirectInput requires a top-level HWND owned by this process, even
+        // for background input. The render HWND is a child in another process.
+        if (!previewInputWindow) previewInputWindow = CreateWindowExA(0, "STATIC", "SDK preview input", WS_POPUP, 0, 0, 1, 1, nullptr, nullptr, GetModuleHandle(nullptr), nullptr);
+        R_ASSERT(previewInputWindow);
+        cooperativeWindow = previewInputWindow;
+    }
     // Obtain an interface to the input device
     //.	CHK_DX( pDI->CreateDeviceEx( guidDevice, IID_IDirectInputDevice8, (void**)device, NULL ) );
     CHK_DX(pDI->CreateDevice(guidDevice, /*IID_IDirectInputDevice8,*/ device, NULL));
@@ -82,7 +94,7 @@ HRESULT CInput::CreateInputDevice(LPDIRECTINPUTDEVICE8* device, GUID guidDevice,
 
     // Set the cooperativity level to let DirectInput know how this device
     // should interact with the system and with other DirectInput applications.
-    HRESULT _hr = (*device)->SetCooperativeLevel(Device.m_hWnd, dwFlags);
+    HRESULT _hr = (*device)->SetCooperativeLevel(cooperativeWindow, dwFlags);
     if (FAILED(_hr) && (_hr == E_NOTIMPL))
         Msg("! INPUT: Can't set coop level. Emulation???");
     else
@@ -113,6 +125,11 @@ void CInput::SetAllAcquire(BOOL bAcquire) const
 
 void CInput::exclusive_mode(const bool exclusive)
 {
+    if (GetParent(Device.m_hWnd) && strstr(Core.Params, "-sdk-preview "))
+    {
+        is_exclusive_mode = false;
+        return;
+    }
     is_exclusive_mode = exclusive;
 
     pKeyboard->Unacquire();
@@ -451,6 +468,24 @@ void CInput::OnAppDeactivate(void)
 void CInput::OnFrame(void)
 {
     ZoneScoped;
+    if (GetParent(Device.m_hWnd) && strstr(Core.Params, "-sdk-preview "))
+    {
+        static int focused = -1;
+        const bool nowFocused = GetFocus() == Device.m_hWnd &&
+            GetForegroundWindow() == GetAncestor(Device.m_hWnd, GA_ROOT);
+        if (int(nowFocused) != focused) {
+            focused = nowFocused;
+            if (focused) {
+                OnAppActivate();
+                // Discard events buffered before the viewport gained focus.
+                DWORD count = INFINITE;
+                if (pKeyboard) pKeyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), nullptr, &count, 0);
+                count = INFINITE;
+                if (pMouse) pMouse->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), nullptr, &count, 0);
+            } else OnAppDeactivate();
+        }
+        if (!focused) return;
+    }
 
     Device.Statistic->Input.Begin();
     dwCurTime = Device.TimerAsync_MMT();

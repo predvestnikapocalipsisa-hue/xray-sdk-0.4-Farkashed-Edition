@@ -774,6 +774,12 @@ public:
 
 
 	bool Validate(bool bNeedOkMsg, bool bTestPortal, bool bTestHOM, bool bTestGlow, bool bTestShaderCompatible, bool bFullTest);
+    static bool& AutoRepairValidation();
+    static bool& BypassUnassociatedValidation();
+private:
+    bool ValidateChecks(bool bTestPortal, bool bTestHOM, bool bTestGlow, bool bTestShaderCompatible, bool bFullTest, bool& hasUnassociated);
+public:
+
 
 	void OnObjectsUpdate();
 

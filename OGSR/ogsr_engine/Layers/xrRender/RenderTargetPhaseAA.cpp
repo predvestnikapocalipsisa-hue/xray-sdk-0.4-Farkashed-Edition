@@ -323,6 +323,7 @@ void CRenderTarget::ProcessCAS(CBackend& cmd_list)
 }
 
 //*****************************************************************************************************
+#ifndef OGSR_NO_FSR3
 #include "FidelityFX/host/ffx_fsr3.h"
 #include "FidelityFX/host/backends/dx11/ffx_dx11.h"
 
@@ -540,6 +541,12 @@ bool CRenderTarget::ProcessFSR_3DSS(const bool need_reset)
 
     return true;
 }
+#else
+void CRenderTarget::InitFSR() { if (ps_r_pp_aa_mode == FSR3) ps_r_pp_aa_mode = TAA; }
+void CRenderTarget::DestroyFSR() {}
+bool CRenderTarget::ProcessFSR() const { return false; }
+bool CRenderTarget::ProcessFSR_3DSS(const bool) { return false; }
+#endif
 //*****************************************************************************************************
 
 void CRenderTarget::PhaseAA(CBackend& cmd_list)
@@ -574,6 +581,9 @@ void CRenderTarget::PhaseAA(CBackend& cmd_list)
 
 bool CRenderTarget::Phase3DSSUpscale(CBackend& cmd_list)
 {
+#ifdef OGSR_NO_FSR3
+    return false;
+#else
     if (ps_r_dlss_3dss_scale_factor <= 1.f)
         return false;
 
@@ -586,6 +596,7 @@ bool CRenderTarget::Phase3DSSUpscale(CBackend& cmd_list)
         need_reset = (Fsr3WrapperScope.saved_w != rt_Generic_combine_scope->dwWidth || Fsr3WrapperScope.saved_h != rt_Generic_combine_scope->dwHeight);
 
     return ProcessFSR_3DSS(need_reset);
+#endif
 }
 
 //*****************************************************************************************************

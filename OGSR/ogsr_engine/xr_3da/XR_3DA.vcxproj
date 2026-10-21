@@ -300,6 +300,7 @@
     <ClCompile Include="XR_IOConsole_control.cpp" />
     <ClCompile Include="XR_IOConsole_get.cpp" />
     <ClCompile Include="x_ray.cpp" />
+    <ClCompile Include="SDKPreview.cpp" />
     <ClCompile Include="IInputReceiver.cpp" />
     <ClCompile Include="Xr_input.cpp" />
     <ClCompile Include="ISheduled.cpp" />
@@ -401,6 +402,12 @@
     <Image Include="ui_splash3.png" />
     <Image Include="stalker.ico" />
   </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(OgsrInGameBuild)'=='true' and '$(Configuration)'=='Release'">
+    <Link>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LinkTimeCodeGenerationObjectFile>$(IntDir)xrEngine.iobj</LinkTimeCodeGenerationObjectFile>
+    </Link>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="PostBuildStep1" AfterTargets="Build">
     <Exec Command='copy /Y "$(WindowsSDKDir)Debuggers\$(PlatformShortName)\dbghelp.dll" "$(OutDir)dbghelp.dll"' />

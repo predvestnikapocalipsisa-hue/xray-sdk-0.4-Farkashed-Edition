@@ -1,0 +1,27 @@
+-- Called only by the explicit native -sdk-spawn-test diagnostic.
+function verify()
+    assert(db.actor and db.storage[db.actor:id()], "SDK actor script context missing")
+    local found = {}
+    for id, st in pairs(db.storage) do
+        local obj = level.object_by_id(id)
+        if obj then found[obj:name()] = st end
+    end
+    assert(found.sdk_fixture_stalker and found.sdk_fixture_stalker.active_scheme == "walker", "NPC walker not bound")
+    assert(found.sdk_fixture_boar_weak and found.sdk_fixture_boar_weak.active_scheme == "mob_walker", "Monster walker not bound")
+    assert(found.sdk_fixture_space_restrictor and found.sdk_fixture_space_restrictor.active_section == "sr_idle@done", "Restrictor timer did not transition")
+    assert(patrol("sdk_fixture_walk"):count() == 2, "NPC Way points missing")
+    assert(patrol("sdk_fixture_mob_walk"):count() == 2, "Monster Way points missing")
+    assert(found.sdk_fixture_flesh_weak, "Flesh script storage missing")
+    for id, st in pairs(db.storage) do
+        local obj = level.object_by_id(id)
+        if obj and obj:name() == "sdk_fixture_flesh_weak" then
+            local server = alife():object(id)
+            -- Reproduce the reported stack through the real ALife brain:
+            -- select_task -> register_npc -> xr_gulag -> xr_logic.
+            server:brain():update()
+            assert(server:smart_terrain_id() ~= 65535, "Smart terrain did not assign a job")
+            assert(st.active_scheme == "mob_camp", "Smart terrain did not configure client logic")
+        end
+    end
+    return true
+end

@@ -220,6 +220,7 @@ public:
 	int AddNode(const Fvector &pos, bool bIgnoreConstraints, bool bAutoLink, int cnt);
 
 	AINodeVec &Nodes() { return m_Nodes; }
+	float NavigationCellSize() const { return m_Params.fPatchSize; }
 
 	void MakeLinks(u8 side_flag, EMode mode, bool bIgnoreConstraints);
 	void RemoveLinks();

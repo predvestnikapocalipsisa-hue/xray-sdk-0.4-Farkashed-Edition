@@ -18,6 +18,38 @@
 
 #include "../xrRenderDX10/3DFluid/dx103DFluidVolume.h"
 
+// Editor snapshots have no compiled sectors, lightmaps, HOM or detail cache.
+// A single outdoor sector lets ordinary dynamic OGF instances use R4's normal
+// render passes, including sun lighting and shadows.
+void CRender::level_LoadPreview(const Fbox& bounds)
+{
+    R_ASSERT(g_pGameLevel && !b_loaded);
+    Wallmarks = xr_new<CWallmarksEngine>();
+    Details = xr_new<CDetailManager>();
+    extern IReader* SDKPreviewDetails();
+    if (auto* details = SDKPreviewDetails()) Details->Load(details);
+    auto* root = xr_new<FHierrarhyVisual>();
+    root->Type = MT_HIERRARHY;
+    root->getVisData().box = bounds;
+    bounds.getsphere(root->getVisData().sphere.P, root->getVisData().sphere.R);
+    Visuals.push_back(root);
+    xr_vector<CSector::level_sector_data_t> sectors(1);
+    sectors[0].root_id = 0;
+    xr_vector<CPortal::level_portal_data_t> portals;
+    for (auto& context : contexts_pool) { context.reset(); context.load(sectors, portals); }
+    ZeroMemory(&contexts_used, sizeof contexts_used);
+    sector_portals_structure.load(sectors, portals);
+    last_sector_id = largest_sector_id = 0;
+    auto* sun = Lights.Create();
+    sun->flags.bStatic = true;
+    sun->set_type(IRender_Light::DIRECT);
+    sun->set_shadow(false);
+    sun->set_rotation(Fvector{0.f, -1.f, 0.f}, Fvector{1.f, 0.f, 0.f});
+    Lights.sun_adapted = sun;
+    current_level_puddles.clear();
+    b_loaded = TRUE;
+}
+
 void CRender::level_Load(IReader* fs)
 {
     R_ASSERT(0 != g_pGameLevel);

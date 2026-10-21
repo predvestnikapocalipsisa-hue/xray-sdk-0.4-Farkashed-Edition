@@ -56,7 +56,8 @@ public:
 	CSector *FindSector(CSceneObject *o, CEditableMesh *m);
 
 	//	void CreateDebugCollection();
-	bool Validate(bool bMsg);
+	bool Validate(bool bMsg, bool ignoreUnassociated = false, bool* hasUnassociated = nullptr);
+    bool RepairUnassociatedMeshes();
 
 	CSector *GetSelectedSector();
 };

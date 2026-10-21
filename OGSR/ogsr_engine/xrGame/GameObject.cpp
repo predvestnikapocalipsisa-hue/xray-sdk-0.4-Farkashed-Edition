@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../xr_3da/SDKPreview.h"
 #include "GameObject.h"
 #include "PhysicsShell.h"
 #include "ai_space.h"
@@ -683,7 +684,7 @@ void CGameObject::OnRender()
 }
 #endif
 
-BOOL CGameObject::UsedAI_Locations() { return (m_server_flags.test(CSE_ALifeObject::flUsedAI_Locations)); }
+BOOL CGameObject::UsedAI_Locations() { return (!SDKPlayRequested() || SDKHasNavigation()) && m_server_flags.test(CSE_ALifeObject::flUsedAI_Locations); }
 
 void CGameObject::SetUseAI_Locations(bool _use) { m_server_flags.set(CSE_ALifeObject::flUsedAI_Locations, _use); }
 

@@ -19,6 +19,7 @@
 #include "embedded_editor_debug_rt.h"
 #include "embedded_editor_game.h"
 #include "embedded_editor_settings.h"
+#include "../../xr_3da/SDKPreview.h"
 
 #include "../Layers/xrRender/Debug/dxPixEvents.h"
 
@@ -38,6 +39,14 @@ CImGuiEditor::CImGuiEditor() {
     CImGuiDebugRTWnd* rt_debug = xr_new<CImGuiDebugRTWnd>();
     rt_debug->m_Name = "RT debug";
     m_Windows.push_back(rt_debug);
+
+    if (SDKPreviewRequested() && !SDKPlayRequested())
+    {
+        // Actor/ALife tools require a CLevel and are unavailable in a scene
+        // snapshot. Keep the native game view, render-target debugger and settings.
+        m_Windows.push_back(xr_new<CImGuiSettingsWnd>());
+        return;
+    }
 
     CImGuiWeatherWnd* weather_wnd = xr_new<CImGuiWeatherWnd>();
     weather_wnd->m_Name = "Weather###Weather";

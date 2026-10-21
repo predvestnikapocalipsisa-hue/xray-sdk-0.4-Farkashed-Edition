@@ -35,6 +35,7 @@ public:
     ~CObjectSpace();
 
     void Load();
+    void LoadPreview(const Fvector* vertices, size_t vertexCount, const CDB::TRI* triangles, size_t triangleCount);
 
     // Occluded/No
     BOOL RayTest(const Fvector& start, const Fvector& dir, float range, collide::rq_target tgt, collide::ray_cache* cache, const CObject* ignore_object);

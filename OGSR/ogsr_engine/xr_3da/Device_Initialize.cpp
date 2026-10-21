@@ -67,9 +67,13 @@ void CRenderDevice::Initialize()
         AdjustWindowRect(&rc, m_dwWindowStyle, FALSE);
 
         // Create the render window
-        m_hWnd = CreateWindowEx(WS_EX_TOPMOST,
+        const char* parentOption = strstr(Core.Params, "-sdk-preview-parent ");
+        HWND parent = parentOption ? reinterpret_cast<HWND>(_strtoui64(parentOption + strlen("-sdk-preview-parent "), nullptr, 10)) : nullptr;
+        if (parent && !IsWindow(parent)) FATAL("SDK preview parent window is no longer available");
+        if (parent) m_dwWindowStyle = WS_CHILD | WS_CLIPSIBLINGS;
+        m_hWnd = CreateWindowEx(parent ? 0 : WS_EX_TOPMOST,
             wndclass, "OGSR Engine", m_dwWindowStyle,
-            /*rc.left, rc.top, */ CW_USEDEFAULT, CW_USEDEFAULT, (rc.right - rc.left), (rc.bottom - rc.top), 0L, 0, hInstance, 0L);
+            parent ? 0 : CW_USEDEFAULT, parent ? 0 : CW_USEDEFAULT, (rc.right - rc.left), (rc.bottom - rc.top), parent, 0, hInstance, 0L);
         gGameWindow = m_hWnd;
 
         TracySetProgramName("OGSR Engine");

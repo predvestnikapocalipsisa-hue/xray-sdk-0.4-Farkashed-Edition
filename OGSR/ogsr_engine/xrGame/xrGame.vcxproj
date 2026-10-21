@@ -1957,6 +1957,8 @@
     <ClCompile Include="Level_SLS_Load.cpp" />
     <ClCompile Include="Level_SLS_Save.cpp" />
     <ClCompile Include="Level_start.cpp" />
+    <ClCompile Include="SDKGameplay.cpp" />
+    <ClCompile Include="SDKSceneSpawns.cpp" />
     <ClCompile Include="Level_Bullet_Manager.cpp" />
     <ClCompile Include="Level_bullet_manager_firetrace.cpp" />
     <ClCompile Include="Tracer.cpp" />

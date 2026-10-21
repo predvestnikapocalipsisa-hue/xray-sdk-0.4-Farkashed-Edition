@@ -162,7 +162,7 @@ public:
 
     void StartCalculationAsync();
 
-    void Load();
+    void Load(IReader* preview = nullptr);
     void Unload();
     void Render(CBackend& cmd_list, bool shadows = false, light* L = nullptr);
     void Clear();

@@ -13,8 +13,10 @@
 #include "xrServer_Objects_ALife.h"
 #include "script_binder_object.h"
 #include "script_game_object.h"
+#include "../xr_3da/SDKPreview.h"
 #include "gameobject.h"
 #include "level.h"
+#include "Actor.h"
 
 CScriptBinder::CScriptBinder() { init(); }
 
@@ -46,11 +48,13 @@ void CScriptBinder::Load(LPCSTR section) {}
 void CScriptBinder::reload(LPCSTR section)
 {
     VERIFY(!m_object);
-
     if (!pSettings->line_exist(section, "script_binding"))
         return;
 
     auto script_func_name = pSettings->r_string(section, "script_binding");
+    // NPCs, monsters and restrictors use their normal game binders. The actor
+    // needs db.actor and script storage without the campaign introduction.
+    if (SDKPlayRequested() && smart_cast<CActor*>(this)) script_func_name = "sdk_actor.bind";
     luabind::functor<void> lua_function;
     if (!ai().script_engine().functor(script_func_name, lua_function))
     {

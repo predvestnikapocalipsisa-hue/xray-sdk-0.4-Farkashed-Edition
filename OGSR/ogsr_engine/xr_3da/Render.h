@@ -159,6 +159,7 @@ public:
     virtual void reset_end() = 0;
 
     virtual void level_Load(IReader*) = 0;
+    virtual void level_LoadPreview(const Fbox& bounds) = 0;
     virtual void level_Unload() = 0;
 
     void shader_option_skinning(s32 mode);

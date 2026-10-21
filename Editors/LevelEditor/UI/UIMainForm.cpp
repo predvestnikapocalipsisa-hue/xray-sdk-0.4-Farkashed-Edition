@@ -4,6 +4,8 @@
 #include "UIWorkspace.h"
 
 UIMainForm* MainForm = nullptr;
+void PollOGSRPreview();
+bool DrawOGSRPreviewViewport();
 
 UIMainForm::UIMainForm()
 {
@@ -71,11 +73,12 @@ void UIMainForm::Draw()
     }
     ImGui::End();
 
-    m_Render->Draw();
+    if (!DrawOGSRPreviewViewport()) m_Render->Draw();
 }
 
 bool UIMainForm::Frame()
 {
+    PollOGSRPreview();
     if (UI)
         return UI->Idle();
     return false;

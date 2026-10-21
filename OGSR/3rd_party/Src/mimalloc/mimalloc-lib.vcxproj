@@ -145,6 +145,8 @@
     <ClCompile Include="mimalloc\src\random.c" />
     <ClCompile Include="mimalloc\src\os.c" />
     <ClCompile Include="mimalloc\src\stats.c" />
+    <ClCompile Include="mimalloc\src\sample-profile.c" />
+    <ClCompile Include="mimalloc\src\sample-guarded.c" />
     <ClCompile Include="mimalloc\src\theap.c" />
     <ClCompile Include="mimalloc\src\threadlocal.c" />
   </ItemGroup>

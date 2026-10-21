@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../xr_3da/SDKPreview.h"
 #include <dinput.h>
 #include "HUDmanager.h"
 #include "..\xr_3da\XR_IOConsole.h"
@@ -110,6 +111,7 @@ extern bool g_block_all_except_movement;
 
 void CLevel::IR_OnKeyboardPress(int key)
 {
+    if (SDKPlayRequested() && key == DIK_F5) { Engine.Event.Defer("KERNEL:quit"); return; }
     if (CImGuiEditor::Get().Editor_KeyPress(key))
         return;
 

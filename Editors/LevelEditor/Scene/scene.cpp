@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../../XrEUI/SDKMessageBox.h"
 
 EScene *Scene;
 
@@ -380,7 +381,46 @@ bool EScene::ExportGame(SExportStreams *F)
 }
 //------------------------------------------------------------------------------
 
+bool& EScene::AutoRepairValidation() { static bool enabled = false; return enabled; }
+bool& EScene::BypassUnassociatedValidation() { static bool enabled = false; return enabled; }
+
 bool EScene::Validate(bool bNeedOkMsg, bool bTestPortal, bool bTestHOM, bool bTestGlow, bool bTestShaderCompatible, bool bFullTest)
+{
+    const bool canRepair = !locked() && UI->GetEState() == esEditScene;
+    bool repair = AutoRepairValidation() && canRepair;
+    for (;;)
+    {
+        bool result, hasUnassociated = false;
+        xr_string report;
+        {
+            CLogDialogBatch batch;
+            if (repair && bTestPortal && (ObjCount(OBJCLASS_SECTOR) || ObjCount(OBJCLASS_PORTAL)))
+                PortalUtils.RepairUnassociatedMeshes();
+            result = ValidateChecks(bTestPortal, bTestHOM, bTestGlow, bTestShaderCompatible, bFullTest, hasUnassociated);
+            report = batch.Report();
+        }
+        const bool hasDiagnostics = !report.empty();
+        report.insert(0, result ? "Validation OK!\n\n" : "Validation FAILED!\n\n");
+        if (hasUnassociated && !BypassUnassociatedValidation() && !canRepair)
+            report += "\nTo repair unassociated meshes with Undo, run Scene > Validate while editing.\n";
+        if (!result && hasUnassociated && !BypassUnassociatedValidation() && !repair && canRepair)
+        {
+            report += "\nFix unassociated meshes: assign them to the default sector and validate again.\nOther errors require manual correction. Undo is available.\n";
+            const char* captions[5] = { "Fix and recheck", "Close", nullptr, nullptr, nullptr };
+            // No legacy 4 KB DlgMsg formatting buffer for the combined report.
+            if (SDKDialogs::Show(nullptr, report.c_str(), "Scene validation", MB_YESNO | MB_ICONWARNING, captions) == IDYES)
+            {
+                repair = true;
+                continue;
+            }
+        }
+        else if (!result || bNeedOkMsg || hasDiagnostics)
+            SDKDialogs::Show(nullptr, report.c_str(), "Scene validation", MB_OK | (result ? MB_ICONINFORMATION : MB_ICONERROR));
+        return result;
+    }
+}
+
+bool EScene::ValidateChecks(bool bTestPortal, bool bTestHOM, bool bTestGlow, bool bTestShaderCompatible, bool bFullTest, bool& hasUnassociated)
 {
     bool bRes = true;
     SceneToolsMapPairIt t_it = m_SceneTools.begin();
@@ -400,8 +440,10 @@ bool EScene::Validate(bool bNeedOkMsg, bool bTestPortal, bool bTestHOM, bool bTe
     if (bTestPortal)
     {
         if (Scene->ObjCount(OBJCLASS_SECTOR) || Scene->ObjCount(OBJCLASS_PORTAL))
-            if (!PortalUtils.Validate(true))
+            if (!PortalUtils.Validate(true, BypassUnassociatedValidation(), &hasUnassociated))
+            {
                 bRes = false;
+            }
     }
     if (bTestHOM)
     {
@@ -502,15 +544,7 @@ bool EScene::Validate(bool bNeedOkMsg, bool bTestPortal, bool bTestHOM, bool bTe
         }
     }
 
-    if (bRes)
-    {
-        if (bNeedOkMsg)
-            ELog.DlgMsg(mtInformation, "Validation OK!");
-    }
-    else
-    {
-        ELog.DlgMsg(mtInformation, "Validation FAILED!");
-    }
+    ELog.Msg(mtInformation, bRes ? "Validation OK!" : "Validation FAILED!");
     return bRes;
 }
 

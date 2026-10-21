@@ -1,0 +1,23 @@
+; Launch the OGSR runtime from this directory with -use-work-dir.
+; Vanilla SoC 1.0006 gamedata.db* archives belong beside this file.
+$app_data_root$ = true| false| $fs_root$| _appdata_\
+$game_data$ = false| true| $fs_root$| gamedata\
+$game_ai$ = true| false| $game_data$| ai\
+$game_spawn$ = true| false| $game_data$| spawns\
+$game_anims$ = true| true| $game_data$| anims\
+$game_levels$ = true| false| $game_data$| levels\
+$game_meshes$ = true| true| $game_data$| meshes\
+$game_shaders$ = true| true| $game_data$| shaders\
+$game_sounds$ = true| true| $game_data$| sounds\
+$game_textures$ = true| true| $game_data$| textures\
+$game_scripts$ = true| false| $game_data$| scripts\
+$game_config$ = true| false| $game_data$| config\
+$game_particles$ = true| false| $game_data$| particles\
+; SoC weather is read from system.ltx. Defining $game_weathers$ would
+; switch OGSR to the incompatible CoP environment configuration format.
+$level$ = false| false| $game_levels$|
+$game_saves$ = true| false| $app_data_root$| savedgames\
+$screenshots$ = true| false| $app_data_root$| screenshots\
+$logs$ = true| false| $app_data_root$| logs\
+$mod_dir$ = true| false| $fs_root$| mods\
+$localization$ = true| false| $game_config$| text\

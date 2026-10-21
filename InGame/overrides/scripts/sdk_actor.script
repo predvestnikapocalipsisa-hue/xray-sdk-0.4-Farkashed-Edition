@@ -1,0 +1,36 @@
+-- Editor actor: provide the shared script context without starting the
+-- original campaign, changing position or issuing its introductory tasks.
+function bind(obj)
+    obj:bind_object(sdk_actor_binder(obj))
+end
+
+class "sdk_actor_binder" (object_binder)
+
+function sdk_actor_binder:__init(obj) super(obj)
+end
+
+function sdk_actor_binder:reinit()
+    object_binder.reinit(self)
+    db.storage[self.object:id()] = {}
+end
+
+function sdk_actor_binder:net_spawn(data)
+    if not object_binder.net_spawn(self, data) then return false end
+    db.add_actor(self.object)
+    death_manager.init_drop_settings()
+    level.show_indicators()
+    return true
+end
+
+function sdk_actor_binder:update(delta)
+    object_binder.update(self, delta)
+    xr_sound.update_actor()
+    -- Vanilla restrictors are driven by the actor, rather than their own
+    -- scheduled update. This also initializes their xr_logic storage.
+    bind_restrictor.actor_update(delta)
+end
+
+function sdk_actor_binder:net_destroy()
+    db.del_actor()
+    object_binder.net_destroy(self)
+end

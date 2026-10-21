@@ -7,6 +7,11 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "../xr_3da/SDKPreview.h"
+#include "alife_simulator.h"
+#include "alife_graph_registry.h"
+#include "alife_object_registry.h"
+#include "xrServer_Objects_ALife_Monsters.h"
 #include "game_graph.h"
 #include "game_level_cross_table.h"
 #include "level_graph.h"
@@ -91,6 +96,18 @@ void CAI_Space::load(LPCSTR level_name)
 
     m_level_graph = xr_new<CLevelGraph>(file_name);
     game_graph().set_current_level(current_level.id());
+    if (SDKHasNavigation())
+    {
+        const auto root = alife().graph().actor()->m_tGraphID;
+        game_graph().PrepareSDKNavigation(level_graph(), root);
+        for (const auto& entry : alife().objects().objects())
+        {
+            auto* object = entry.second;
+            object->m_tNodeID = level_graph().nearest_vertex_id(object->o_Position);
+            object->m_tGraphID = cross_table().vertex(object->m_tNodeID).game_vertex_id();
+            if (smart_cast<CSE_ALifeCreatureActor*>(object)) object->used_ai_locations(true);
+        }
+    }
     auto& crossHeader = cross_table().header();
     auto& levelHeader = level_graph().header();
     auto& gameHeader = game_graph().header();

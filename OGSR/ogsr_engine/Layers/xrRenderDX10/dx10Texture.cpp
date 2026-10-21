@@ -97,7 +97,12 @@ ID3DBaseTexture* CRender::texture_load(LPCSTR fRName, u32& ret_msize)
     xr_strcpy(fname, fRName);
     fix_texture_name(fname);
 
-    if (strstr(fname, "_bump") && !FS.exist(fn, "$game_textures$", fname, ".dds"))
+    const bool sdkTexture = FS.path_exist("$sdk_preview_textures$") && FS.exist(fn, "$sdk_preview_textures$", fname, ".dds");
+    if (sdkTexture)
+    {
+        // The live editor texture wins over the game's archived version.
+    }
+    else if (strstr(fname, "_bump") && !FS.exist(fn, "$game_textures$", fname, ".dds"))
     {
         Msg("! Fallback to default bump map: [%s]", fname);
 

@@ -474,13 +474,16 @@
     <ProjectReference Include="..\..\..\3rd_party\Src\DirectXTex\DirectXTex.vcxproj">
       <Project>{286CC988-2191-467A-9F6D-ABB7954D4F78}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\3rd_party\Src\FidelityFX-SDK\ffx_backend_dx11_x64.vcxproj">
+    <ProjectReference Include="..\..\..\3rd_party\Src\FidelityFX-SDK\ffx_backend_dx11_x64.vcxproj" Condition="'$(OgsrDisableFSR3)'!='true'">
       <Project>{2573F943-895F-3EB6-B3A2-EC66C5BD3507}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\3rd_party\Src\FidelityFX-SDK\ffx_fsr3upscaler_x64.vcxproj">
+    <ProjectReference Include="..\..\..\3rd_party\Src\FidelityFX-SDK\ffx_fsr3upscaler_x64.vcxproj" Condition="'$(OgsrDisableFSR3)'!='true'">
       <Project>{900D55FB-392E-3485-AC4A-5F66868F6252}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(OgsrDisableFSR3)'=='true'">
+    <ClCompile><PreprocessorDefinitions>OGSR_NO_FSR3;%(PreprocessorDefinitions)</PreprocessorDefinitions></ClCompile>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

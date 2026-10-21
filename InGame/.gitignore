@@ -1,0 +1,7 @@
+/bin/
+/gamedata/
+/_appdata_/
+/mods/
+/*.db*
+/*.xdb*
+/fsgame.runtime.ltx

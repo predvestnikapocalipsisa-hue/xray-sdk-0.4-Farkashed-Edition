@@ -10,6 +10,7 @@
 #include "xrLevel.h"
 #include "CameraManager.h"
 #include "xr_object.h"
+#include "SDKPreview.h"
 
 ENGINE_API IGame_Level* g_pGameLevel = NULL;
 
@@ -31,6 +32,7 @@ IGame_Level::~IGame_Level()
     xr_delete(pLevel);
 
     // Render-level unload
+    if (SDKPlayRequested()) SDKClearPlayWorld();
     Render->level_Unload();
     xr_delete(m_pCameras);
 
@@ -80,6 +82,19 @@ BOOL IGame_Level::Load(u32 dwNum)
     if (!FS.exist(temp, fsgame::level, fsgame::level_files::level_ltx))
         FATAL("Can't find level configuration file '%s'.", temp);
     pLevel = xr_new<CInifile>(temp);
+
+    if (SDKPlayRequested())
+    {
+        SDKLoadPlayWorld(*this);
+        if (!g_hud) g_hud = (CCustomHUD*)NEW_INSTANCE(CLSID_HUDMANAGER);
+        R_ASSERT(Load_GameSpecific_Before());
+        Objects.Load();
+        bReady = true;
+        IR_Capture();
+        Device.seqRender.Add(this);
+        Device.seqFrame.Add(this);
+        return TRUE;
+    }
 
     // Open
     g_pGamePersistent->LoadTitle("st_opening_stream");

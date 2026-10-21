@@ -126,6 +126,11 @@ public:
 
 void CLevelMain::StartInGame()
 {
+    StartOGSRPreview();
+}
+
+void CLevelMain::StartLocalInGame()
+{
     if (IsInGame() || GetEState() != esEditScene || Scene->locked() ||
         IsMouseCaptured() || IsMouseInUse() || EDevice.m_Camera.IsMoving()) return;
 
@@ -197,6 +202,7 @@ void CLevelMain::StartInGame()
 
 void CLevelMain::StopInGame()
 {
+    StopOGSRPreview();
     if (!m_InGame) return;
     CInGameMode* mode = m_InGame;
     m_InGame = nullptr;

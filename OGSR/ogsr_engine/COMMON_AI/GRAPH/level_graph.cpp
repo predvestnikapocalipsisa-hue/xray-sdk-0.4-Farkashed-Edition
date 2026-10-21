@@ -8,6 +8,7 @@
 
 #include "stdafx.h"
 #include "level_graph.h"
+#include "../xr_3da/SDKPreview.h"
 
 
 CLevelGraph::CLevelGraph(LPCSTR fName)
@@ -15,6 +16,12 @@ CLevelGraph::CLevelGraph(LPCSTR fName)
     sh_debug->create("editor\\wire"); // sh_debug->create("debug\\ai_nodes", "$null");
 
     m_reader = FS.r_open(fName);
+    if (SDKHasNavigation())
+    {
+        const auto guid = reinterpret_cast<const hdrNODES*>(m_reader->pointer())->guid;
+        FS.r_close(m_reader);
+        m_reader = SDKCreateNavigation(guid);
+    }
 
     // m_header & data
     m_header = (CHeader*)m_reader->pointer();

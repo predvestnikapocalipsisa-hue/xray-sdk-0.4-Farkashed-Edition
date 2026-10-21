@@ -117,7 +117,60 @@ void Fvisual::Load(const char* N, IReader* data, u32 dwFlags)
                 const u32 vStride = FVF::ComputeVertexSize(fvf);
 
                 VERIFY(NULL == p_rm_Vertices);
-                R_CHK(dx10BufferUtils::CreateVertexBuffer(&p_rm_Vertices, data->pointer(), vCount * vStride));
+                if (N && strncmp(N, "sdk_preview_mesh_", 17) == 0 && fvf == 0x112)
+                {
+                    // The SDK exports XYZ/NORMAL/UV; modern deferred model
+                    // shaders also require a tangent basis. Build it in memory.
+                    struct Source { Fvector p, n; Fvector2 uv; };
+                    struct Vertex { Fvector p, n, t, b; Fvector2 uv; };
+                    static_assert(sizeof(Source) == 32 && sizeof(Vertex) == 56);
+                    R_ASSERT(vCount <= data->elapsed() / sizeof(Source));
+                    const auto* source = reinterpret_cast<const Source*>(data->pointer());
+                    xr_vector<Vertex> vertices(vCount);
+                    for (u32 i = 0; i < vCount; ++i)
+                    {
+                        vertices[i] = {source[i].p, source[i].n, Fvector{}, Fvector{}, source[i].uv};
+                    }
+                    IReader* indices = data->open_chunk(OGF_INDICES);
+                    R_ASSERT(indices);
+                    const u32 count = indices->r_u32();
+                    R_ASSERT(count % 3 == 0 && count <= indices->elapsed() / sizeof(u16));
+                    for (u32 i = 0; i < count; i += 3)
+                    {
+                        const u16 a = indices->r_u16(), b = indices->r_u16(), c = indices->r_u16();
+                        R_ASSERT(a < vCount && b < vCount && c < vCount);
+                        Fvector e1, e2, tangent, bitangent;
+                        e1.sub(source[b].p, source[a].p); e2.sub(source[c].p, source[a].p);
+                        const float u1 = source[b].uv.x - source[a].uv.x, v1 = source[b].uv.y - source[a].uv.y;
+                        const float u2 = source[c].uv.x - source[a].uv.x, v2 = source[c].uv.y - source[a].uv.y;
+                        const float determinant = u1 * v2 - v1 * u2;
+                        if (_abs(determinant) < EPS_S) continue;
+                        tangent.mul(e1, v2).mad(e2, -v1).div(determinant);
+                        bitangent.mul(e2, u1).mad(e1, -u2).div(determinant);
+                        for (const u16 index : {a,b,c}) { vertices[index].t.add(tangent); vertices[index].b.add(bitangent); }
+                    }
+                    indices->close();
+                    for (auto& v : vertices)
+                    {
+                        v.n.normalize_safe(Fvector{0,1,0});
+                        v.t.mad(v.n, -v.t.dotproduct(v.n));
+                        if (v.t.square_magnitude() < EPS_S)
+                            v.t.crossproduct(_abs(v.n.y) < .9f ? Fvector{0,1,0} : Fvector{1,0,0}, v.n);
+                        v.t.normalize_safe();
+                        Fvector bitangent; bitangent.crossproduct(v.n, v.t);
+                        if (bitangent.dotproduct(v.b) < 0.f) bitangent.invert();
+                        v.b = bitangent;
+                    }
+                    dcl = {{0,0,D3DDECLTYPE_FLOAT3,0,D3DDECLUSAGE_POSITION,0},
+                        {0,12,D3DDECLTYPE_FLOAT3,0,D3DDECLUSAGE_NORMAL,0},
+                        {0,24,D3DDECLTYPE_FLOAT3,0,D3DDECLUSAGE_TANGENT,0},
+                        {0,36,D3DDECLTYPE_FLOAT3,0,D3DDECLUSAGE_BINORMAL,0},
+                        {0,48,D3DDECLTYPE_FLOAT2,0,D3DDECLUSAGE_TEXCOORD,0}, D3DDECL_END()};
+                    vFormat = dcl.data();
+                    R_CHK(dx10BufferUtils::CreateVertexBuffer(&p_rm_Vertices, vertices.data(), vCount * sizeof(Vertex)));
+                }
+                else
+                    R_CHK(dx10BufferUtils::CreateVertexBuffer(&p_rm_Vertices, data->pointer(), vCount * vStride));
                 DXUT_SetDebugName(p_rm_Vertices, "Fvisual VB");
                 HW.stats_manager.increment_stats_vb(p_rm_Vertices);
             }

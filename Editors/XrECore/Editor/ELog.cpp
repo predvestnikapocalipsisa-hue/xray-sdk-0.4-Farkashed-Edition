@@ -6,6 +6,30 @@
 #pragma hdrstop
 
 #include "ELog.h"
+
+CLogDialogBatch* CLogDialogBatch::active = nullptr;
+CLogDialogBatch::CLogDialogBatch() : parent(active) { active = this; }
+CLogDialogBatch::~CLogDialogBatch() { active = parent; }
+void CLogDialogBatch::Add(TMsgDlgType type, LPCSTR text)
+{
+    if (!active || type == mtConfirmation) return;
+    // Per-mesh details can contain hundreds of thousands of lines. Keep them in
+    // the Log so the combined window has room for all validation categories.
+    if (strstr(text, " - scene object:") == text) return;
+    if (active->messages.size() + strlen(text) > 48000)
+    {
+        ++active->omitted;
+        return;
+    }
+    active->messages += text;
+    active->messages += "\n";
+}
+xr_string CLogDialogBatch::Report() const
+{
+    xr_string result = messages;
+    if (omitted) result += "\nMore diagnostics omitted; see the full Log.\n";
+    return result;
+}
 #ifdef _EDITOR
 #include "UILogForm.h"
 #include "ui_main.h"
@@ -20,10 +44,11 @@ void ELogCallback(LPCSTR txt)
 		txt++;
 	if (('!' == txt[0]) || ('#' == txt[0]))
 		txt++;
-	if (bDlg)
-		UILogForm::AddDlgMessage(mt, txt);
-	else
-		UILogForm::AddMessage(mt, txt);
+    if (bDlg && !CLogDialogBatch::IsActive())
+        UILogForm::AddDlgMessage(mt, txt);
+    else
+        UILogForm::AddMessage(mt, txt);
+    if (mt == mtError || bDlg) CLogDialogBatch::Add(mt, txt);
 }
 #endif
 #ifdef _LW_EXPORT
@@ -117,6 +142,11 @@ static LRESULT CALLBACK DlgMsgCBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 //----------------------------------------------------
 inline TMsgDlgButtons MessageDlg(const char* text, TMsgDlgType mt, int btn)
 {
+    if (CLogDialogBatch::IsActive() && mt != mtConfirmation && (btn == mbOK || btn == mbYes))
+    {
+        if (mt != mtError) CLogDialogBatch::Add(mt, text);
+        return mrOK;
+    }
     if (Core.DebugMode && mt != mtConfirmation)
     {
         ::Msg("! [SDK DEBUG] Dialog suppressed: %s", text);
@@ -290,7 +320,7 @@ int CLog::DlgMsg(TMsgDlgType mt, int btn, LPCSTR _Format, ...)
 	}
 #endif
 
-	Msg(mt, buf);
+	Msg(mt, "%s", buf);
 
 	in_use = false;
 
@@ -375,7 +405,7 @@ int CLog::DlgMsg(TMsgDlgType mt, LPCSTR _Format, ...)
 	}
 #endif
 
-	Msg(mt, buf);
+	Msg(mt, "%s", buf);
 
 	in_use = false;
 
@@ -390,6 +420,7 @@ void CLog::Msg(TMsgDlgType mt, LPCSTR _Format, ...)
 	vsnprintf(buf, sizeof(buf) - 32, _Format, l);
     buf[sizeof(buf) - 33] = 0;
     va_end(l);
+    if (mt == mtError) CLogDialogBatch::Add(mt, buf);
 
 #ifdef _EDITOR
 	UILogForm::AddMessage(mt, xr_string(buf));
@@ -407,7 +438,7 @@ void CLog::Msg(TMsgDlgType mt, LPCSTR _Format, ...)
 #endif
 
 	::LogExecCB = FALSE;
-	::Msg(buf);
+	::Msg("%s", buf);
 	::LogExecCB = TRUE;
 }
 //----------------------------------------------------

@@ -65,6 +65,7 @@ public:
     IC void set_current_level(const u32& level_id);
     IC const _GRAPH_ID& current_level_vertex() const;
     IC CGameLevelCrossTable* find_cross_table_for_level(const u32& level_id);
+    void PrepareSDKNavigation(const class CLevelGraph& level, _GRAPH_ID root);
     DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 add_to_type_list(CGameGraph)

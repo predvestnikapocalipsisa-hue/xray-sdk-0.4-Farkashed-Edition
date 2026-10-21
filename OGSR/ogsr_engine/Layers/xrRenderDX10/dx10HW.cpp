@@ -427,6 +427,8 @@ void CHW::DumpVideoMemoryUsage() const
 
 void CHW::UpdateWindowProps(HWND m_hWnd) const
 {
+    // The SDK owns the child window's placement and client size.
+    if (GetParent(m_hWnd) && strstr(Core.Params, "-sdk-preview")) return;
     LONG_PTR dwWindowStyle{};
 
     // Set window properties depending on what mode were in.

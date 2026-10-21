@@ -109,6 +109,23 @@ void UIMainMenuForm::Draw()
             {
                 ExecCommand(COMMAND_VALIDATE_SCENE);
             }
+            if (ImGui::BeginMenu("Validation options"))
+            {
+                ImGui::MenuItem("Auto-fix unassociated meshes", nullptr, &EScene::AutoRepairValidation());
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Assign free meshes to the default sector before validation. Undo is available.");
+                ImGui::MenuItem("Bypass unassociated faces check", nullptr, &EScene::BypassUnassociatedValidation());
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Session only. Leaves geometry unchanged; other validation errors still fail.");
+                ImGui::MenuItem("Auto-fix OGSR navigation snapshot", nullptr, &CLevelMain::AutoRepairOGSRNavigation());
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Session only. Normalize export normals, omit invalid nodes and disconnect their links. Original AI Map is unchanged.");
+                ImGui::EndMenu();
+            }
+            if (ImGui::MenuItem("Validate OGSR scene bridge"))
+                LUI->ValidateOGSRBridge();
+            if (ImGui::MenuItem("Start OGSR InGame"))
+                LUI->StartOGSRPreview();
             ImGui::Separator();
             if (ImGui::MenuItem("Summary Info", ""))
             {
