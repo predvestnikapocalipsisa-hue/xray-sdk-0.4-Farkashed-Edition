@@ -1,8 +1,6 @@
 # X-Ray SDK Farkashed Edition: полный справочник API скриптов и аддонов
 
-**Версия контракта: API 1. Формат пользовательского исходного кода: `.xpy`.**  
 **Язык: Python. Встроенная среда поставки: CPython 3.13.17, Windows x64.**  
-**Документ сверен с текущей реализацией 21 октября 2026 года.**
 
 Этот справочник описывает реализованную систему расширения SDK: создание аддонов,
 управление их жизненным циклом, операторы, панели, команды редакторов, объекты
@@ -79,10 +77,10 @@ Python и вызывает проверяемый нативный мост из
 
 ## 02. Устройство среды и расположение файлов
 
-Для установленного SDK корневая папка — `E:\X-Ray SDK`:
+Для установленного SDK корневая папка — `X-Ray SDK`:
 
 ```text
-E:\X-Ray SDK\
+X-Ray SDK\
 ├── addons\                          Пользовательские расширения
 │   ├── hello_sdk.xpy                 Однофайловый пример
 │   └── scene_tools\                 Пакетный пример
@@ -137,7 +135,7 @@ Python, архив стандартной библиотеки и `bins/scriptin
 
 ## 03. Быстрый запуск
 
-1. Создайте `E:\X-Ray SDK\addons\first_addon.xpy` в кодировке UTF-8.
+1. Создайте `X-Ray SDK\addons\first_addon.xpy` в кодировке UTF-8.
 2. Вставьте код ниже.
 3. Откройте **Scripts → Add-on Manager**.
 4. Нажмите **Refresh**, затем **Enable** у «Мой первый аддон».
@@ -2650,8 +2648,8 @@ Python-исходника, а не всех файлов архива.
 и выключенные примеры. Для установленного SDK используется команда:
 
 ```powershell
-& 'C:\xray-sdk-0.4-Farkashed-Edition\SDKRuntime\Scripting\InstallScripting.ps1' `
-    -SdkRoot 'E:\X-Ray SDK'
+& '...\xray-sdk-0.4-Farkashed-Edition\SDKRuntime\Scripting\InstallScripting.ps1' `
+    -SdkRoot '...\X-Ray SDK'
 ```
 
 Можно передать `-RuntimeArchive` с локальным архивом. Установщик
@@ -2675,7 +2673,7 @@ VS Code-подобного редактора:
     "*.xpy": "python"
   },
   "python.analysis.extraPaths": [
-    "E:/X-Ray SDK/bins/scripting"
+    ".../X-Ray SDK/bins/scripting"
   ]
 }
 ```
