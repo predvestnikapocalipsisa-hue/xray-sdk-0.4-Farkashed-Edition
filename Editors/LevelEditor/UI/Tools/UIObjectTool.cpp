@@ -263,7 +263,7 @@ void UIObjectTool::Draw()
         {
             if (ImGui::Button("Select ...", ImVec2(-1, 0)))
             {
-                UIChooseForm::SelectItem(smObject, 1, m_Current, 0, 0, 0, 0, 0);
+                UIChooseForm::SelectItem(smObject, 1, Current(), 0, 0, 0, 0, 0);
                 m_Selection = true;
             }
             if (ImGui::Button("Refresh List", ImVec2(-1, 0)))
@@ -308,6 +308,8 @@ void UIObjectTool::Draw()
 
 void UIObjectTool::RefreshList()
 {
+    // Refresh invalidates the previous placement selection.
+    m_Current = nullptr;
     ListItemsVec items;
     FS_FileSet lst;
     if (Lib.GetObjects(lst))
@@ -425,10 +427,10 @@ void UIObjectTool::OnItemFocused(ListItem* item)
     if (item)
     {
         m_Current = item->Key();
-        if (m_Current)
+        if (Current())
         {
-            decltype(ImageLib.CreateThumbnail(m_Current, EImageThumbnail::ETObject)) m_Thm = nullptr;
-            bool ok = SafeCreateThumbnail(m_Current, EImageThumbnail::ETObject, &m_Thm);
+            decltype(ImageLib.CreateThumbnail(Current(), EImageThumbnail::ETObject)) m_Thm = nullptr;
+            bool ok = SafeCreateThumbnail(Current(), EImageThumbnail::ETObject, &m_Thm);
             if (m_Thm)
             {
                 m_Thm->Update(m_RealTexture);
@@ -438,7 +440,7 @@ void UIObjectTool::OnItemFocused(ListItem* item)
             }
             else if (!ok)
             {
-                ELog.Msg(mtError, "OnItemFocused: не удалось создать превью для '%s' (перехвачено), пропуск.", m_Current);
+                ELog.Msg(mtError, "OnItemFocused: не удалось создать превью для '%s' (перехвачено), пропуск.", Current());
             }
         }
     }

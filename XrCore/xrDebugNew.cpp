@@ -3,6 +3,7 @@
 
 #include "xrdebug.h"
 #include "os_clipboard.h"
+#include "../SDKRuntime/Diagnostics/CrashReport.h"
 #include <sal.h>
 #include "DxErr.h"
 
@@ -639,6 +640,7 @@ void format_message(LPSTR buffer, const u32 &buffer_size)
 
 LONG WINAPI UnhandledFilter(_EXCEPTION_POINTERS *pExceptionInfo)
 {
+    if (!IsDebuggerPresent()) SDKCrashReport::Write(pExceptionInfo);
 	string256 error_message;
 	format_message(error_message, sizeof(error_message));
 
@@ -919,6 +921,7 @@ void debug_on_thread_spawn()
 void xrDebug::_initialize(const bool &dedicated)
 {
 	static bool is_dedicated = dedicated;
+	SDKCrashReport::Initialize();
 
 	*g_bug_report_file = 0;
 

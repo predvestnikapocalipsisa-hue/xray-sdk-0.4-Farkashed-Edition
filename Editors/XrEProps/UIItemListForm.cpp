@@ -31,6 +31,7 @@ void UIItemListForm::Draw()
 
 void UIItemListForm::ClearList()
 {
+	m_edit_node = nullptr;
 	m_GeneralNode = Node();
 	m_SelectionAnchor = nullptr;
 
@@ -158,11 +159,11 @@ void UIItemListForm::AssignItems(ListItemsVec &items, const char *name_selection
 	{
 		Node *N = SelectObject(&m_GeneralNode, name_selection);
 		ClearSelectedItems();
-		if (m_Flags.test(fMultiSelect))
+		if (N && N->Object && m_Flags.test(fMultiSelect))
 		{
 			N->Object->selected = true;
 		}
-		if (N)
+		if (N && N->Object)
 			m_SelectedItems.push_back(N->Object);
 	}
 	if (save_selected)
@@ -170,7 +171,7 @@ void UIItemListForm::AssignItems(ListItemsVec &items, const char *name_selection
 		for (shared_str &name : selection_items)
 		{
 			Node *N = Find(&m_GeneralNode, name.c_str());
-			if (N)
+			if (N && N->Object)
 			{
 				if (m_Flags.test(fMultiSelect))
 				{

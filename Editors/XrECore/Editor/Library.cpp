@@ -293,8 +293,10 @@ void ELibrary::UnloadEditObject(LPCSTR full_name)
             ELog.DlgMsg(mtError, "Object '%s' still referenced.", it->first.c_str());
             THROW;
         }
+        // Erasing the map node invalidates it, including its second field.
+        CEditableObject* object = it->second;
         m_EditObjects.erase(it);
-        xr_delete(it->second);
+        xr_delete(object);
     }
 }
 //---------------------------------------------------------------------------

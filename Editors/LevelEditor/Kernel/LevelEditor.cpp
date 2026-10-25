@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../UI/UISceneTabBar.h"
+#include "../../../SDKRuntime/Diagnostics/CrashReport.h"
 
 namespace
 {
@@ -126,6 +127,7 @@ namespace
 
     int CrashFilter(EXCEPTION_POINTERS* info)
     {
+        if (!IsDebuggerPresent()) SDKCrashReport::Write(info);
         const DWORD code = info->ExceptionRecord->ExceptionCode;
         // Do not serialize with an exhausted stack or corrupt heap.
         if (IsDebuggerPresent() || code == EXCEPTION_STACK_OVERFLOW ||
@@ -160,6 +162,7 @@ namespace
 
     int RunEditor()
     {
+        SDKCrashReport::Initialize();
         if (!IsDebuggerPresent())
             Debug._initialize(false);
         Core.InitCore("level", ELogCallback);

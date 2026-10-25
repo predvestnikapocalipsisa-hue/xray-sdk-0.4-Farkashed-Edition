@@ -26,15 +26,15 @@ public:
 	inline ~FolderHelper() {}
 	inline Node *SelectObject(Node *N, const char *path)
 	{
-		VERIFY(N);
-		VERIFY(N->IsFolder());
+		if (!N || !N->IsFolder() || !path || !*path)
+			return nullptr;
 		if (strchr(path, '\\'))
 		{
 			string_path name;
 			xr_strcpy(name, path);
 			strchr(name, '\\')[0] = 0;
 			N = FindFolder(N, name);
-			VERIFY(N);
+			if (!N) return nullptr;
 			N->Selected = true;
 			return SelectObject(N, strchr(path, '\\') + 1);
 		}
@@ -57,7 +57,6 @@ public:
 				}
 			}
 		}
-		VERIFY(false);
 		return nullptr;
 	}
 	inline Node *FindObject(Node *N, const char *path)

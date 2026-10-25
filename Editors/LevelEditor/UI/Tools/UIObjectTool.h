@@ -7,7 +7,7 @@ public:
 	virtual ~UIObjectTool();
 	virtual void Draw();
 	void RefreshList();
-	IC const char *Current() { return m_Current; }
+	IC const char *Current() { return m_Current.c_str(); }
 	virtual void OnDrawUI();
 	ESceneObjectTool *ParentTools;
 
@@ -24,7 +24,7 @@ private:
 	void MultiSelByRefObject(bool flag);
 	void ClearSurface(bool selected);
 	void GenerateLODs(bool bOnlyMissing, int quality);
-	const char *m_Current;
+	shared_str m_Current;
 	UIItemListForm *m_ObjectList;
 	bool m_MultiAppend;
 	bool m_PropRandom;
