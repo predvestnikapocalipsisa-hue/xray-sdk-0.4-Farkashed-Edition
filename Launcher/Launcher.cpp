@@ -499,6 +499,7 @@ namespace
             auto* draw = ImGui::GetWindowDrawList();
             const auto root = SDKResources::ResourceRoot(sdkDirectory);
             CenteredText(draw, 106.f, "SDK: " + Utf8(root), 0.5f, 11.f);
+            CenteredText(draw, 88.f, "TEMP: " + Utf8(resourceDownload.TempDirectory()), 0.5f, 11.f);
             const bool started = resourceDownload.Started();
             resourceTransition = Approach(resourceTransition, started && !resourceDescriptionPreview ? 1.f : 0.f, 8.f);
             const float descriptionAlpha = (std::max)(0.f, 1.f - resourceTransition * 2.f);
@@ -573,8 +574,28 @@ namespace
             if (AnimatedButton("ChooseResourceSDK", 294.f, 344.f, 200.f, 27.f,
                 "Choose SDK folder...", nullptr, !resourceDownload.Running() && !resourceCheckPending))
                 pendingAction = [this] { ChooseResourceSDK(); };
-            if (resourceDownload.TestMode() && started && !resourceDescriptionPreview &&
-                AnimatedButton("ResourceDescription", 188.f, 379.f, 200.f, 27.f, "Back to description", nullptr, !resourceCheckPending))
+            const bool showBack = resourceDownload.TestMode() && started && !resourceDescriptionPreview;
+            if (AnimatedButton("ChooseResourceTemp", showBack ? 82.f : 188.f, 379.f, 200.f, 27.f,
+                "Choose TEMP folder...", nullptr, !resourceDownload.Running() && !resourceCheckPending))
+                pendingAction = [this]
+                {
+                    const auto selected = platform.PickSDKDirectory(L"Select a TEMP folder for downloading the resource archive");
+                    if (!selected.empty())
+                        resourceCheckMessage = resourceDownload.SetTempDirectory(selected) ?
+                            "TEMP folder saved. Cached data will move when you resume." : resourceDownload.TempError();
+                };
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            {
+                ULARGE_INTEGER free = {};
+                if (GetDiskFreeSpaceExW(resourceDownload.TempDirectory().c_str(), &free, nullptr, nullptr))
+                    ImGui::SetTooltip("TEMP: %s\nFree space: %.2f GiB\nPause the download before changing this folder.",
+                        Utf8(resourceDownload.TempDirectory()).c_str(), double(free.QuadPart) / (1024. * 1024. * 1024.));
+                else
+                    ImGui::SetTooltip("TEMP: %s\nPause the download before changing this folder.",
+                        Utf8(resourceDownload.TempDirectory()).c_str());
+            }
+            if (showBack &&
+                AnimatedButton("ResourceDescription", 294.f, 379.f, 200.f, 27.f, "Back to description", nullptr, !resourceCheckPending))
                 pendingAction = [this]
                 {
                     resourceDownload.Pause();

@@ -60,13 +60,42 @@ The question fades out before the progress interface fades in; folder names are
 omitted from the screen. This transition follows the Reduce animation setting.
 Download progress shows actual bytes, total size, speed and percentage. The worker
 handles Drive's large-file confirmation page and rejects HTML/error responses.
+Fresh downloads use a normal GET without a Range header, like the direct browser
+link with `authuser=0`. Size and data come from the same response; there is no
+separate byte-zero size probe. Confirmation requests share cookies. Confirmation
+forms are processed again on download/resume if Drive reissues or expires a token.
+Parsing supports reordered attributes, single/double quotes and HTML entities;
+the file ID and confirmation target remain pinned to the configured Drive source.
+Repeated confirmations have a bounded retry count. Quota/access pages are reported
+as errors rather than saved as archive bytes; the bounded HTML response is kept as
+`drive-response.html` in the worker cache for diagnosis.
 It resumes `archive.part` using HTTP ranges and an ETag/Last-Modified validator;
 an unexpected full response replaces the partial instead of appending it.
+If Drive rejects a resume request with an HTML page or HTTP 416, the worker tries
+an ordinary full GET once. A changed resume validator also falls back to a full
+GET. Partial bytes are untouched until a valid binary response arrives. A full
+restart truncates the partial before committing its new validator, avoiding mixed
+archive versions after a crash.
 Changing server metadata restarts the download. A network error leaves the partial
 available for `Resume`. The worker stops when its launcher exits.
 
 The cache and atomic status snapshots are separate for each normalized SDK path:
 `%LOCALAPPDATA%\FarkashedSDK\ResourceDownloads\drive-v1-<hash>\`.
+`Choose TEMP folder...` selects another disk/folder for the archive while the
+worker is stopped. The actual cache is a dedicated
+`FarkashedSDK-Resources\drive-v1-<hash>` subfolder of the selected folder. Its path
+appears on screen and the button tooltip shows free disk space. The selection is
+saved per SDK root in the launcher settings; worker scripts/status/locks remain
+in LocalAppData. FAT/FAT32 destinations are rejected because the ZIP exceeds 4 GiB.
+
+Changing TEMP preserves a started download: on the next `Resume`, the worker moves
+the partial/completed archive and its metadata in the background before continuing.
+The old copy is retained until the new copy is committed. The copy itself can be
+paused and resumed across launcher restarts. If the destination already has a
+cache, that cache is retained. Extraction staging stays on the SDK disk, and disk
+space checks independently account for the TEMP and SDK volumes (including mounted
+volumes). Merely choosing TEMP does not start a download or relocate the cache.
+
 `Pause` cooperatively stops the worker; `Resume` starts it again. Reopening always
 leaves the job paused. An interrupted extraction resumes using fully extracted,
 CRC-checked staging files; the current partial entry is extracted again.

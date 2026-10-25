@@ -14,27 +14,49 @@ using System.Text.RegularExpressions;
 public sealed class SDKResourceWorker
 {
     public const string FileId = "137YxJG65oJrJb1kwUPaxoyCpn9XDn-2n";
+    const string SourceUrl = "https://drive.usercontent.google.com/download?id=" + FileId + "&export=download&authuser=0";
     const long KnownArchiveSize = 11450714965L;
     const long KnownResourceSize = 2998494318L;
     const long Reserve = 64L * 1024 * 1024;
     static readonly string[] ResourceFolders = { "rawdata", "groups", "maps", "settings", "gamedata" };
     static readonly Encoding Utf8 = new UTF8Encoding(false, true);
-    string target, work, stage, phase = "checking", message = "";
+    string target, work, cache, previousCache, stage, phase = "checking", message = "";
     int parentId;
     long parentStart, downloaded, total = KnownArchiveSize, extracted, extractTotal;
     double rate;
     readonly Stopwatch clock = Stopwatch.StartNew();
+    readonly CookieContainer cookies = new CookieContainer();
     double lastReport;
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     static extern bool MoveFileEx(string source, string destination, int flags);
 
-    sealed class Paused : Exception { }
-    sealed class Remote
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool GetDiskFreeSpaceEx(string directory, out ulong available, out ulong total, out ulong free);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool GetVolumePathName(string path, StringBuilder volume, int length);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool GetVolumeNameForVolumeMountPoint(string mount, StringBuilder name, int length);
+
+    static long FreeSpace(string path)
     {
-        public string Url, Validator;
-        public long Size;
+        ulong available, total, free;
+        if (!GetDiskFreeSpaceEx(path, out available, out total, out free)) throw new IOException("Cannot check free disk space.");
+        return available > Int64.MaxValue ? Int64.MaxValue : (long)available;
     }
+
+    static string Volume(string path)
+    {
+        var volume = new StringBuilder(32768);
+        if (!GetVolumePathName(path, volume, volume.Capacity)) throw new IOException("Cannot identify the resource disk.");
+        var name = new StringBuilder(1024);
+        if (GetVolumeNameForVolumeMountPoint(volume.ToString(), name, name.Capacity)) return name.ToString();
+        return volume.ToString();
+    }
+
+    sealed class Paused : Exception { }
     public sealed class ResourceEntry
     {
         public ZipArchiveEntry Entry;
@@ -227,7 +249,7 @@ public sealed class SDKResourceWorker
         lastReport = clock.Elapsed.TotalSeconds;
     }
 
-    static HttpWebResponse Request(string url, long start, bool probe, string validator)
+    HttpWebResponse Request(string url, long start, string validator)
     {
         var request = (HttpWebRequest)WebRequest.Create(url);
         request.UserAgent = "X-Ray-SDK-Resources/1.0";
@@ -235,10 +257,31 @@ public sealed class SDKResourceWorker
         request.ReadWriteTimeout = 5000;
         request.AllowAutoRedirect = true;
         request.MaximumAutomaticRedirections = 8;
-        if (probe) request.AddRange(start, start);
-        else request.AddRange(start);
+        // Confirmation and subsequent range requests must share the Drive session.
+        request.CookieContainer = cookies;
+        request.Accept = "*/*";
+        request.Referer = "https://drive.google.com/file/d/" + FileId + "/view";
+        // A fresh download is a normal browser-style GET, without Range: bytes=0-0
+        // or bytes=0-. Use ranges only for an actual saved partial download.
+        if (start > 0) request.AddRange(start);
         if (!String.IsNullOrEmpty(validator)) request.Headers["If-Range"] = validator;
-        var response = (HttpWebResponse)request.GetResponse();
+        HttpWebResponse response;
+        try { response = (HttpWebResponse)request.GetResponse(); }
+        catch (WebException failure)
+        {
+            response = failure.Response as HttpWebResponse;
+            if (response != null && response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable && start > 0)
+            {
+                response.Dispose();
+                return Request(url, 0, null);
+            }
+            // Quota/access errors often arrive as an HTML body with HTTP 403.
+            if (response == null || !Html(response))
+            {
+                if (response != null) response.Dispose();
+                throw;
+            }
+        }
         string host = response.ResponseUri.Host;
         if (response.ResponseUri.Scheme != "https" || !(host == "google.com" || host.EndsWith(".google.com") ||
             host == "googleusercontent.com" || host.EndsWith(".googleusercontent.com")))
@@ -251,60 +294,188 @@ public sealed class SDKResourceWorker
         return (response.ContentType ?? "").StartsWith("text/html", StringComparison.OrdinalIgnoreCase);
     }
 
-    Remote Probe()
+    static string HtmlAttribute(string tag, string name)
     {
-        string url = "https://drive.usercontent.google.com/download?id=" + FileId + "&export=download";
-        for (int attempt = 0; attempt < 3; ++attempt)
+        var match = Regex.Match(tag, @"(?:^|\s)" + Regex.Escape(name) +
+            @"\s*=\s*(?:""([^""]*)""|'([^']*)'|([^\s>]+))", RegexOptions.IgnoreCase);
+        if (!match.Success) return "";
+        for (int i = 1; i <= 3; ++i)
+            if (match.Groups[i].Success) return WebUtility.HtmlDecode(match.Groups[i].Value);
+        return "";
+    }
+
+    public static string ConfirmationUrl(string html)
+    {
+        foreach (Match form in Regex.Matches(html, @"<form\b[^>]*>.*?</form\s*>", RegexOptions.IgnoreCase | RegexOptions.Singleline))
+        {
+            string opening = form.Value.Substring(0, form.Value.IndexOf('>') + 1);
+            if (HtmlAttribute(opening, "id") != "download-form") continue;
+            string action = HtmlAttribute(opening, "action");
+            Uri actionUri;
+            if (!String.IsNullOrEmpty(action) && action[0] != '/' &&
+                (!Uri.TryCreate(action, UriKind.Absolute, out actionUri) || actionUri.Scheme != "https" ||
+                    actionUri.Host != "drive.usercontent.google.com" || actionUri.AbsolutePath != "/download"))
+                throw new IOException("Unexpected Google Drive confirmation target.");
+            string id = "", confirm = "", uuid = "";
+            foreach (Match input in Regex.Matches(form.Value, @"<input\b[^>]*>", RegexOptions.IgnoreCase))
+            {
+                string name = HtmlAttribute(input.Value, "name"), value = HtmlAttribute(input.Value, "value");
+                if (name == "id") id = value;
+                else if (name == "confirm") confirm = value;
+                else if (name == "uuid") uuid = value;
+            }
+            if ((!String.IsNullOrEmpty(id) && id != FileId) || String.IsNullOrEmpty(confirm))
+                throw new IOException("Invalid Google Drive download confirmation.");
+            return "https://drive.usercontent.google.com/download?id=" + FileId + "&export=download&confirm=" +
+                Uri.EscapeDataString(confirm) + (String.IsNullOrEmpty(uuid) ? "" : "&uuid=" + Uri.EscapeDataString(uuid)) + "&authuser=0";
+        }
+        if (Regex.IsMatch(html, "too many users|download quota|quota exceeded", RegexOptions.IgnoreCase))
+            throw new IOException("Google Drive quota exceeded for this request. Try again later.");
+        throw new IOException("Google Drive denied the download. See drive-response.html in the cache.");
+    }
+
+    HttpWebResponse OpenArchive(string url, long start, string validator)
+    {
+        // Handle the same confirmation form as the browser, including expired tokens.
+        for (int attempt = 0; attempt < 5; ++attempt)
         {
             CheckPause();
-            using (var response = Request(url, 0, true, null))
+            var response = Request(url, start, validator);
+            if (!Html(response)) return response;
+            string html;
+            using (response)
+            using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
             {
-                if (Html(response))
-                {
-                    string html;
-                    using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
-                    {
-                        var chars = new char[65536];
-                        int count = reader.ReadBlock(chars, 0, chars.Length);
-                        html = new String(chars, 0, count);
-                    }
-                    var uuid = Regex.Match(html, "name=\"uuid\"\\s+value=\"([^\"]+)\"");
-                    if (!html.Contains("id=\"download-form\"") || !uuid.Success)
-                        throw new IOException("Google Drive denied the download. Check sharing or download quota.");
-                    url = "https://drive.usercontent.google.com/download?id=" + FileId +
-                        "&export=download&confirm=t&uuid=" + Uri.EscapeDataString(WebUtility.HtmlDecode(uuid.Groups[1].Value));
-                    continue;
-                }
-                long size = 0;
-                if (response.StatusCode == HttpStatusCode.PartialContent)
-                {
-                    var range = Regex.Match(response.Headers["Content-Range"] ?? "", @"^bytes 0-0/(\d+)$");
-                    if (!range.Success || !Int64.TryParse(range.Groups[1].Value, out size))
-                        throw new IOException("Invalid resource size response.");
-                }
-                else if (response.StatusCode == HttpStatusCode.OK) size = response.ContentLength;
-                else throw new IOException("Google Drive returned an unexpected response.");
-                if (size <= 0) throw new IOException("The resource archive size is unknown.");
-                return new Remote { Url = url, Size = size, Validator = response.Headers["ETag"] ?? response.Headers["Last-Modified"] ?? "" };
+                var chars = new char[65536];
+                int count = reader.ReadBlock(chars, 0, chars.Length);
+                html = new String(chars, 0, count);
+            }
+            File.WriteAllText(System.IO.Path.Combine(work, "drive-response.html"), html, Utf8);
+            try { url = ConfirmationUrl(html); }
+            catch (IOException)
+            {
+                // Drive can reject a range request while serving an ordinary GET.
+                // Try that once; keep the old partial untouched until a valid body arrives.
+                if (start <= 0) throw;
+                start = 0;
+                validator = null;
+                url = SourceUrl;
             }
         }
-        throw new IOException("Google Drive download confirmation failed.");
+        throw new IOException("Google Drive keeps requesting confirmation. Try Resume later.");
+    }
+
+    public static long ResponseSize(int status, string contentRange, long contentLength)
+    {
+        long size = 0;
+        if (status == 206)
+        {
+            var range = Regex.Match(contentRange ?? "", @"^bytes \d+-\d+/(\d+)$");
+            if (!range.Success || !Int64.TryParse(range.Groups[1].Value, out size))
+                throw new IOException("Invalid resource size response.");
+        }
+        else if (status == 200) size = contentLength;
+        else throw new IOException("Google Drive returned an unexpected response.");
+        if (size <= 0) throw new IOException("The resource archive size is unknown.");
+        return size;
     }
 
     void Space(long archiveRemaining, long extractionRemaining)
     {
-        string cacheVolume = System.IO.Path.GetPathRoot(work), sdkVolume = System.IO.Path.GetPathRoot(target);
+        string cacheVolume = Volume(cache), sdkVolume = Volume(target);
         if (String.Equals(cacheVolume, sdkVolume, StringComparison.OrdinalIgnoreCase))
         {
-            if (new DriveInfo(cacheVolume).AvailableFreeSpace < archiveRemaining + extractionRemaining + Reserve)
+            if (FreeSpace(cache) < archiveRemaining + extractionRemaining + Reserve)
                 throw new IOException("Not enough disk space for the archive and resources.");
         }
         else
         {
-            if (new DriveInfo(cacheVolume).AvailableFreeSpace < archiveRemaining + Reserve ||
-                new DriveInfo(sdkVolume).AvailableFreeSpace < extractionRemaining + Reserve)
-                throw new IOException("Not enough disk space for the archive and resources.");
+            if (FreeSpace(cache) < archiveRemaining + Reserve)
+                throw new IOException("Not enough space in TEMP. Choose another TEMP folder.");
+            if (FreeSpace(target) < extractionRemaining + Reserve)
+                throw new IOException("Not enough space on the SDK disk to install resources.");
         }
+    }
+
+    void RelocateArchive()
+    {
+        if (String.IsNullOrEmpty(previousCache) || String.Equals(previousCache, cache, StringComparison.OrdinalIgnoreCase) ||
+            !Directory.Exists(previousCache)) return;
+        NoLinks(previousCache, previousCache);
+        string name = File.Exists(Under(previousCache, "archive.zip")) ? "archive.zip" : "archive.part";
+        string source = Under(previousCache, name), sourceMeta = Under(previousCache, "archive.meta");
+        if (!File.Exists(source) || !File.Exists(sourceMeta)) return;
+        string metadata = File.ReadAllText(sourceMeta, Utf8);
+        if (!metadata.StartsWith(FileId + "\n", StringComparison.Ordinal)) return;
+        var info = new FileInfo(source);
+        long size = info.Length;
+        string fingerprint = source + "\n" + size.ToString(CultureInfo.InvariantCulture) + "\n" +
+            info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture) + "\n" + metadata;
+        string marker = Under(cache, "transfer.meta"), transfer = Under(cache, "archive.transfer");
+        string destination = Under(cache, name), destinationMeta = Under(cache, "archive.meta");
+        bool sameTransfer = File.Exists(marker) && File.ReadAllText(marker, Utf8) == fingerprint;
+        if (File.Exists(destination))
+        {
+            // A previous copy may have finished just before the launcher closed.
+            if (!sameTransfer || new FileInfo(destination).Length != size || !File.Exists(destinationMeta) ||
+                File.ReadAllText(destinationMeta, Utf8) != metadata) return;
+        }
+        else
+        {
+            // Keep a valid cache at the chosen destination instead of replacing it.
+            string other = Under(cache, name == "archive.zip" ? "archive.part" : "archive.zip");
+            if (File.Exists(other)) return;
+            long copied = sameTransfer && File.Exists(transfer) ? new FileInfo(transfer).Length : 0;
+            if (!sameTransfer || copied > size)
+            {
+                if (File.Exists(transfer)) File.Delete(transfer);
+                copied = 0;
+            }
+            if (FreeSpace(cache) < size - copied + Reserve)
+                throw new IOException("Not enough space to move the archive into the selected TEMP folder.");
+            AtomicText(destinationMeta, metadata);
+            AtomicText(marker, fingerprint);
+            phase = "moving";
+            downloaded = size;
+            string[] sourceDescription = metadata.Split('\n');
+            long sourceSize;
+            if (sourceDescription.Length == 3 && Int64.TryParse(sourceDescription[1], out sourceSize) && sourceSize >= size)
+                total = sourceSize;
+            Report(true);
+            using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var output = new FileStream(transfer, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read))
+            {
+                input.Position = output.Position = copied;
+                var buffer = new byte[262144];
+                double sampleTime = clock.Elapsed.TotalSeconds;
+                long sampleBytes = copied;
+                while (copied < size)
+                {
+                    CheckPause();
+                    int read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, size - copied));
+                    if (read == 0) throw new EndOfStreamException("Cached archive changed while moving TEMP.");
+                    output.Write(buffer, 0, read);
+                    copied += read;
+                    double now = clock.Elapsed.TotalSeconds;
+                    if (now - sampleTime >= .2)
+                    {
+                        rate = (copied - sampleBytes) / (now - sampleTime);
+                        output.Flush(true);
+                        Report(true);
+                        sampleBytes = copied; sampleTime = now;
+                    }
+                }
+                output.Flush(true);
+            }
+            CheckPause();
+            if (!MoveFileEx(transfer, destination, 8)) throw new IOException("Cannot finish moving the cached archive.");
+        }
+        // The original is retained until a complete destination copy is committed.
+        CheckPause();
+        File.Delete(source);
+        if (!File.Exists(Under(previousCache, "archive.part")) && !File.Exists(Under(previousCache, "archive.zip"))) File.Delete(sourceMeta);
+        File.Delete(marker);
+        rate = 0;
     }
 
     long TreeSize(string root)
@@ -360,54 +531,71 @@ public sealed class SDKResourceWorker
     string Download()
     {
         phase = "checking";
-        string partial = System.IO.Path.Combine(work, "archive.part"), archive = System.IO.Path.Combine(work, "archive.zip");
-        string metaPath = System.IO.Path.Combine(work, "archive.meta");
+        string partial = Under(cache, "archive.part"), archive = Under(cache, "archive.zip");
+        string metaPath = Under(cache, "archive.meta");
         downloaded = File.Exists(archive) ? new FileInfo(archive).Length : File.Exists(partial) ? new FileInfo(partial).Length : 0;
-        // A completed cache can be extracted offline. Partial downloads still need
-        // a fresh remote validator before any bytes may be appended.
-        if (File.Exists(archive) && File.Exists(metaPath))
+        string[] cached = File.Exists(metaPath) ? File.ReadAllText(metaPath, Utf8).Split('\n') : new string[0];
+        long cachedSize = 0;
+        bool validMetadata = cached.Length == 3 && cached[0] == FileId &&
+            Int64.TryParse(cached[1], out cachedSize) && cachedSize > 0;
+        // Completed caches, including a fully flushed partial left by a pause just
+        // before the final rename, can be extracted without contacting Drive again.
+        if (validMetadata)
         {
-            string[] cached = File.ReadAllText(metaPath, Utf8).Split('\n');
-            long cachedSize;
-            if (cached.Length == 3 && cached[0] == FileId && Int64.TryParse(cached[1], out cachedSize) &&
-                cachedSize > 0 && downloaded == cachedSize)
+            string complete = File.Exists(archive) && new FileInfo(archive).Length == cachedSize ? archive :
+                File.Exists(partial) && new FileInfo(partial).Length == cachedSize ? partial : null;
+            if (complete != null)
             {
                 total = cachedSize;
+                downloaded = total;
                 CheckPause();
+                if (complete == partial)
+                {
+                    if (File.Exists(archive)) File.Delete(archive);
+                    File.Move(partial, archive);
+                }
                 Report(true);
                 return archive;
             }
         }
         Report(true);
-        var remote = Probe();
-        total = remote.Size;
-        string metadata = FileId + "\n" + remote.Size.ToString(CultureInfo.InvariantCulture) + "\n" + remote.Validator;
-        bool same = File.Exists(metaPath) && File.ReadAllText(metaPath, Utf8) == metadata && !String.IsNullOrEmpty(remote.Validator);
-        if (same && File.Exists(archive) && new FileInfo(archive).Length == total)
-        { downloaded = total; return archive; }
-        if (File.Exists(archive)) File.Delete(archive);
-        downloaded = File.Exists(partial) ? new FileInfo(partial).Length : 0;
-        if (!same || downloaded > total)
-        {
-            if (File.Exists(partial)) File.Delete(partial);
-            downloaded = 0;
-        }
-        // The observed public archive expands to about 2.8 GiB of selected resources.
-        // Recheck the exact ZIP manifest before extraction; this is an early preflight.
-        Space(total - downloaded, KnownResourceSize - ExistingResourceBytes());
-        AtomicText(metaPath, metadata);
-        if (downloaded < total)
+        long partialSize = File.Exists(partial) ? new FileInfo(partial).Length : 0;
+        long offset = validMetadata && !String.IsNullOrEmpty(cached[2]) && partialSize < cachedSize ? partialSize : 0;
+        string validator = offset > 0 ? cached[2] : null;
+        // Obtain size, identity and data from one response. A separate byte-zero
+        // probe needlessly consumes a Drive request/confirmation and may be denied
+        // even when the normal browser download works.
+        for (int attempt = 0; attempt < 2; ++attempt)
         {
             CheckPause();
-            using (var response = Request(remote.Url, downloaded, false, downloaded > 0 ? remote.Validator : null))
+            using (var response = OpenArchive(SourceUrl, offset, validator))
             {
-                if (Html(response)) throw new IOException("Google Drive returned a web page instead of the archive.");
-                if (!ValidateResume((int)response.StatusCode, response.Headers["Content-Range"], response.ContentLength, downloaded, total))
-                    downloaded = 0;
+                long size = ResponseSize((int)response.StatusCode, response.Headers["Content-Range"], response.ContentLength);
+                string identity = response.Headers["ETag"] ?? response.Headers["Last-Modified"] ?? "";
+                bool ranged = ValidateResume((int)response.StatusCode, response.Headers["Content-Range"], response.ContentLength, offset, size);
+                if (ranged && offset > 0 && (size != cachedSize || String.IsNullOrEmpty(identity) || identity != validator))
+                {
+                    // Do not append changed remote data, even if a server ignored If-Range.
+                    offset = 0;
+                    validator = null;
+                    continue;
+                }
+                long writeOffset = ranged ? offset : 0;
+                Space(Math.Max(0, size - writeOffset - (writeOffset == 0 ? partialSize : 0)),
+                    KnownResourceSize - ExistingResourceBytes());
+                CheckPause();
+                // Only modify the old cache once the response is a validated archive
+                // body. HTML quota/confirmation errors leave partial data intact.
+                if (File.Exists(archive)) File.Delete(archive);
+                total = size;
+                downloaded = writeOffset;
                 using (var input = response.GetResponseStream())
-                using (var output = new FileStream(partial, downloaded == 0 ? FileMode.Create : FileMode.Open,
+                using (var output = new FileStream(partial, writeOffset == 0 ? FileMode.Create : FileMode.Open,
                     FileAccess.Write, FileShare.Read, 262144, FileOptions.SequentialScan))
                 {
+                    // Truncate a restarted partial before committing its new identity;
+                    // a crash must never associate old bytes with a new remote validator.
+                    AtomicText(metaPath, FileId + "\n" + size.ToString(CultureInfo.InvariantCulture) + "\n" + identity);
                     output.Position = downloaded;
                     var buffer = new byte[262144];
                     double sampleTime = clock.Elapsed.TotalSeconds;
@@ -433,12 +621,13 @@ public sealed class SDKResourceWorker
                     output.Flush(true);
                 }
             }
+            CheckPause();
+            if (new FileInfo(partial).Length != total) throw new IOException("Archive download is incomplete.");
+            File.Move(partial, archive);
+            rate = 0;
+            return archive;
         }
-        CheckPause();
-        if (new FileInfo(partial).Length != total) throw new IOException("Archive download is incomplete.");
-        File.Move(partial, archive);
-        rate = 0;
-        return archive;
+        throw new IOException("The resource archive changed. Resume to retry.");
     }
 
     static readonly uint[] CrcTable = MakeCrcTable();
@@ -582,8 +771,8 @@ public sealed class SDKResourceWorker
         try
         {
             DeleteStage(stage);
-            File.Delete(System.IO.Path.Combine(work, "archive.zip"));
-            File.Delete(System.IO.Path.Combine(work, "archive.meta"));
+            File.Delete(Under(cache, "archive.zip"));
+            File.Delete(Under(cache, "archive.meta"));
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
@@ -600,8 +789,14 @@ public sealed class SDKResourceWorker
 
     public static int Run(string target, string work, int parentId, long parentStart)
     {
+        return Run(target, work, work, "", parentId, parentStart);
+    }
+
+    public static int Run(string target, string work, string archiveDirectory, string previousArchiveDirectory, int parentId, long parentStart)
+    {
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-        var worker = new SDKResourceWorker { target = Root(target), work = Root(work), parentId = parentId, parentStart = parentStart };
+        var worker = new SDKResourceWorker { target = Root(target), work = Root(work), cache = Root(archiveDirectory),
+            previousCache = String.IsNullOrEmpty(previousArchiveDirectory) ? "" : Root(previousArchiveDirectory), parentId = parentId, parentStart = parentStart };
         worker.stage = System.IO.Path.Combine(worker.target, ".sdk-resource-stage-" + FileId);
         // A second launcher must not write into an active worker's cache/staging.
         FileStream installationLock;
@@ -614,6 +809,9 @@ public sealed class SDKResourceWorker
                 NoLinks(worker.work, worker.work);
                 NoLinks(worker.target, worker.stage);
                 worker.CheckPause();
+                Directory.CreateDirectory(worker.cache);
+                NoLinks(worker.cache, worker.cache);
+                worker.RelocateArchive();
                 string archive = worker.Download();
                 worker.Extract(archive);
                 return 0;
@@ -643,8 +841,8 @@ public sealed class SDKResourceWorker
                     // and checked against the next archive before reuse.
                     try
                     {
-                        File.Delete(System.IO.Path.Combine(worker.work, "archive.zip"));
-                        File.Delete(System.IO.Path.Combine(worker.work, "archive.meta"));
+                        File.Delete(Under(worker.cache, "archive.zip"));
+                        File.Delete(Under(worker.cache, "archive.meta"));
                     }
                     catch (IOException) { }
                     catch (UnauthorizedAccessException) { }

@@ -32,7 +32,22 @@ function Inspect([IO.Stream]$stream) {
     finally { $zip.Dispose() }
 }
 
+$confirmation = '<form method="get" action="https://drive.usercontent.google.com/download" id="download-form"><input value="137YxJG65oJrJb1kwUPaxoyCpn9XDn-2n" name="id"><input name="confirm" value="fresh-token"><input value="token&amp;value" name="uuid"></form>'
+$confirmedUrl = [SDKResourceWorker]::ConfirmationUrl($confirmation)
+Assert ($confirmedUrl.Contains('confirm=fresh-token')) 'confirmation token ignored'
+Assert ($confirmedUrl.Contains('uuid=token%26value')) 'HTML attribute decoding failed'
+$singleQuotes = "<form id='download-form' action='/download'><input value='t' name='confirm'></form>"
+Assert (([SDKResourceWorker]::ConfirmationUrl($singleQuotes)).Contains('confirm=t')) 'single-quoted confirmation unsupported'
+Assert (([SDKResourceWorker]::ConfirmationUrl($singleQuotes)).EndsWith('authuser=0')) 'default account selector omitted'
+Reject { [SDKResourceWorker]::ConfirmationUrl($confirmation.Replace('137YxJG65oJrJb1kwUPaxoyCpn9XDn-2n', 'another-file')) } 'wrong Drive file accepted'
+Reject { [SDKResourceWorker]::ConfirmationUrl($confirmation.Replace('https://drive.usercontent.google.com/download', 'https://example.com/download')) } 'external confirmation target accepted'
+Reject { [SDKResourceWorker]::ConfirmationUrl('<html>Download quota exceeded</html>') } 'quota page treated as archive'
+
 Assert ([SDKResourceWorker]::ValidateResume(206, 'bytes 100-999/1000', 900, 100, 1000)) 'valid range'
+Assert (([SDKResourceWorker]::ResponseSize(200, '', 11450714965)) -eq 11450714965) 'full download size must come from Content-Length'
+Assert (([SDKResourceWorker]::ResponseSize(206, 'bytes 100-999/1000', 900)) -eq 1000) 'resume size must come from Content-Range'
+Reject { [SDKResourceWorker]::ResponseSize(200, '', -1) } 'unknown body size accepted'
+Reject { [SDKResourceWorker]::ResponseSize(206, 'bytes */1000', 0) } 'invalid range size accepted'
 Assert (-not [SDKResourceWorker]::ValidateResume(200, '', 1000, 100, 1000)) 'full response must restart'
 Reject { [SDKResourceWorker]::ValidateResume(206, 'bytes 0-999/1000', 1000, 100, 1000) } 'wrong offset accepted'
 Reject { [SDKResourceWorker]::ValidateResume(206, 'bytes 100-999/2000', 900, 100, 1000) } 'wrong total accepted'
@@ -71,4 +86,4 @@ try {
     $writer.Flush(); $zip64.Position = 0
     Assert (([SDKResourceWorker]::ReadCrcs($zip64)).Count -eq 0) 'ZIP64 directory lookup failed'
 } finally { $writer.Dispose() }
-Write-Output 'PASS: ranges, safe paths, resource selection, wrapper roots, duplicates, CRC and ZIP64'
+Write-Output 'PASS: Drive confirmation, ranges, safe paths, resource selection, wrapper roots, duplicates, CRC and ZIP64'
