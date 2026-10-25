@@ -46,7 +46,7 @@ public:
     std::unique_ptr<Texture> LoadTexture(unsigned resourceId, unsigned targetWidth, unsigned targetHeight = 0);
     void SetBlur(bool enabled);
     std::wstring PickFile();
-    std::wstring PickSDKDirectory();
+    std::wstring PickSDKDirectory(const wchar_t* title = L"Select the folder containing Launcher.exe and the SDK modules");
     bool StartEditor(const std::wstring& executable, const std::wstring& file, std::wstring& error);
     void RevealFile(const std::wstring& file);
 

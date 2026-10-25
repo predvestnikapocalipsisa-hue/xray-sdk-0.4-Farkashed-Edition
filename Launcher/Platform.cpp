@@ -402,13 +402,13 @@ std::wstring LauncherPlatform::PickFile()
     return selected;
 }
 
-std::wstring LauncherPlatform::PickSDKDirectory()
+std::wstring LauncherPlatform::PickSDKDirectory(const wchar_t* title)
 {
     IFileOpenDialog* dialog = nullptr;
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog))))
         return {};
     dialog->SetOptions(FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
-    dialog->SetTitle(L"Select the folder containing Launcher.exe and the SDK modules");
+    dialog->SetTitle(title);
     std::wstring selected;
     if (SUCCEEDED(dialog->Show(window)))
     {

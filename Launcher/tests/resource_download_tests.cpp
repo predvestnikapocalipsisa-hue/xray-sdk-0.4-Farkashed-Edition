@@ -65,6 +65,14 @@ int wmain()
         Check(SDKResources::Missing(sdk), "gamedata missing");
         workspace.Add(sdk + L"\\gamedata");
         Check(!SDKResources::Missing(sdk), "both folders exist");
+        workspace.Add(sdk + L"\\bins");
+        Check(SDKResources::ResourceRoot(sdk + L"\\bins") == sdk, "resource root is above bins");
+        Check(!SDKResources::Missing(sdk + L"\\bins"), "resources next to bins are detected");
+        const auto fresh = workspace.root + L"\\fresh-sdk";
+        workspace.Add(fresh);
+        workspace.Add(fresh + L"\\bins");
+        Check(SDKResources::ResourceRoot(fresh + L"\\bins") == fresh, "install outside empty bins");
+        Check(SDKResources::Missing(fresh + L"\\bins"), "fresh SDK still requires resources");
         Check(!SDKResources::DirectoryExists(states + L"\\absent"), "absent directory");
 
         using Demo = SDKResources::DemoDownload;

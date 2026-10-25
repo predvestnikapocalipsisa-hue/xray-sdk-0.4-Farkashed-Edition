@@ -30,7 +30,7 @@ launch is optional.
 
 ### Resource download and installation
 
-When either `settings` or `gamedata` is missing from the selected SDK directory,
+When either `settings` or `gamedata` is missing from the SDK resource root,
 the launcher replaces editor buttons, recent files, settings and updates with:
 "Currently X-Ray SDK is missing resources. Do you want to download and install it?"
 `Download` fetches the public Google Drive archive with file ID
@@ -40,6 +40,20 @@ is required. Windows PowerShell 5.1 and .NET Framework compile/run the embedded
 resource worker in a hidden child process.
 `Cancel` saves progress and closes the launcher. Window close and Escape also
 preserve progress. Title-bar minimize and close remain available.
+`Check resources` rechecks `settings` and `gamedata` when resources have been
+copied into the SDK manually. If both folders exist, it pauses the worker, waits
+for it to exit, rechecks the folders and returns to the normal launcher. Partial
+downloads remain cached. If either folder is absent, the resource screen shows
+a message and keeps the current download state. This also exits the test screen
+when actual resources are present.
+The root is discovered above the selected binaries folder using the resource
+folders / `settings/fs.ltx` / `fs.ltx`, matching the engine's parent search. A
+fresh `SDK/bins` or `SDK/bin` layout installs resources into `SDK`, not its binary
+subdirectory. Flat layouts continue using the binaries directory as their root.
+The checked root appears on screen; the Check resources tooltip reports both
+folder states. `Choose SDK folder...` accepts a full SDK root or its `bins`/`bin`
+directory while the worker is stopped. It also makes switching installations
+available when the ordinary Settings button is hidden.
 The resource screen hides the logo and centers its text and controls. The initial
 question disappears once the download starts, leaving the progress interface.
 The question fades out before the progress interface fades in; folder names are
@@ -57,7 +71,7 @@ The cache and atomic status snapshots are separate for each normalized SDK path:
 leaves the job paused. An interrupted extraction resumes using fully extracted,
 CRC-checked staging files; the current partial entry is extracted again.
 
-ZIP64 archives are supported. The worker strips the archive's wrapper directory
+ZIP64 archives are supported. The worker strips the archive's `xray sdk 4.8/` wrapper directory
 and installs only `settings`, `gamedata`, `rawdata`, `groups` and `maps`. Legacy
 `bins`, `game`, `.git` and `logs` are excluded. Every new file is checked against
 its ZIP CRC-32. Traversal paths, links/reparse points, Windows device names and

@@ -17,9 +17,38 @@ namespace SDKResources
         return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY);
     }
 
+    inline bool HasResources(const std::wstring& root)
+    {
+        return DirectoryExists(root + L"\\settings") && DirectoryExists(root + L"\\gamedata");
+    }
+
+    inline std::wstring ParentDirectory(std::wstring path)
+    {
+        while (path.size() > 3 && (path.back() == L'\\' || path.back() == L'/')) path.pop_back();
+        const auto slash = path.find_last_of(L"\\/");
+        if (slash == std::wstring::npos || path.size() <= 3) return {};
+        return path.substr(0, slash == 2 && path[1] == L':' ? 3 : slash);
+    }
+
+    inline std::wstring ResourceRoot(const std::wstring& sdk)
+    {
+        const auto directory = FarkashedLauncher::FullPath(sdk);
+        // Match the engine's search for fs.ltx, including resources next to bins.
+        for (auto candidate = directory; !candidate.empty(); candidate = ParentDirectory(candidate))
+            if (HasResources(candidate) || FarkashedLauncher::FileExists(candidate + L"\\settings\\fs.ltx") ||
+                FarkashedLauncher::FileExists(candidate + L"\\fs.ltx")) return candidate;
+        for (auto candidate = directory; !candidate.empty(); candidate = ParentDirectory(candidate))
+            if (DirectoryExists(candidate + L"\\settings") || DirectoryExists(candidate + L"\\gamedata")) return candidate;
+        const auto slash = directory.find_last_of(L"\\/");
+        const auto name = directory.substr(slash == std::wstring::npos ? 0 : slash + 1);
+        const auto parent = ParentDirectory(directory);
+        if (!parent.empty() && (_wcsicmp(name.c_str(), L"bins") == 0 || _wcsicmp(name.c_str(), L"bin") == 0)) return parent;
+        return directory;
+    }
+
     inline bool Missing(const std::wstring& sdk)
     {
-        return !DirectoryExists(sdk + L"\\settings") || !DirectoryExists(sdk + L"\\gamedata");
+        return !HasResources(ResourceRoot(sdk));
     }
 
     class DemoDownload

@@ -141,6 +141,8 @@ namespace
         std::wstring resourceTarget;
         bool forceResourceDemo = false;
         bool resourceDescriptionPreview = false;
+        bool resourceCheckPending = false;
+        std::string resourceCheckMessage;
         bool updateMode = false;
         bool showError = false;
         bool showSettings = false;
@@ -464,12 +466,39 @@ namespace
 
         bool ResourceScreen() const
         {
-            return !updateMode && (forceResourceDemo || SDKResources::Missing(sdkDirectory) || resourceDownload.Running());
+            return !updateMode && (forceResourceDemo || SDKResources::Missing(sdkDirectory) || resourceDownload.Running() || resourceCheckPending);
+        }
+
+        void ChooseResourceSDK()
+        {
+            const auto selected = platform.PickSDKDirectory(L"Select the SDK root or the folder containing Launcher.exe");
+            if (selected.empty()) return;
+            for (const auto& candidate : { selected, selected + L"\\bins", selected + L"\\bin" })
+            {
+                bool containsEditor = false;
+                for (const auto& editor : Editors)
+                    containsEditor = containsEditor || FarkashedLauncher::FileExists(candidate + L"\\" + editor.executable);
+                if (!containsEditor || !FarkashedLauncher::FileExists(candidate + L"\\Launcher.exe") ||
+                    !FarkashedLauncher::FileExists(candidate + L"\\SDKRuntime.dll")) continue;
+                if (!FarkashedLauncher::SetSetting(L"SDKDirectory", candidate))
+                {
+                    resourceCheckMessage = "Cannot save the selected SDK folder.";
+                    return;
+                }
+                sdkDirectory = candidate;
+                forceResourceDemo = false;
+                ImportLegacyHistory(candidate);
+                historyDirty = true;
+                return;
+            }
+            resourceCheckMessage = "Select an SDK with Launcher.exe, SDKRuntime.dll and editor modules.";
         }
 
         void DrawResourceDownload()
         {
             auto* draw = ImGui::GetWindowDrawList();
+            const auto root = SDKResources::ResourceRoot(sdkDirectory);
+            CenteredText(draw, 106.f, "SDK: " + Utf8(root), 0.5f, 11.f);
             const bool started = resourceDownload.Started();
             resourceTransition = Approach(resourceTransition, started && !resourceDescriptionPreview ? 1.f : 0.f, 8.f);
             const float descriptionAlpha = (std::max)(0.f, 1.f - resourceTransition * 2.f);
@@ -504,10 +533,12 @@ namespace
             const char* primary = resourceDownload.Stopping() ? "Pausing..." : resourceDownload.Complete() ?
                 (resourceDownload.TestMode() ? "Restart test" : "Download") :
                 resourceDownload.Running() ? "Pause" : resourceDownload.Started() ? "Resume" : "Download";
-            if (AnimatedButton("ResourcePrimary", 150.f, 274.f, 132.f, 27.f, primary, nullptr, !resourceDownload.Stopping()))
+            if (AnimatedButton("ResourcePrimary", 150.f, 274.f, 132.f, 27.f, primary, nullptr,
+                !resourceDownload.Stopping() && !resourceCheckPending))
                 pendingAction = [this]
                 {
                     resourceDescriptionPreview = false;
+                    resourceCheckMessage.clear();
                     if (resourceDownload.Running()) resourceDownload.Pause();
                     else resourceDownload.Start();
                 };
@@ -517,10 +548,33 @@ namespace
                 platform.closeRequested = true;
             }
             const auto& saveError = resourceDownload.Error();
-            CenteredText(draw, 315.f, saveError.empty() ? "Progress is saved. You can close and resume later." : saveError,
-                saveError.empty() ? 0.45f : 1.f, 11.f);
+            const std::string hint = !saveError.empty() ? saveError : !resourceCheckMessage.empty() ?
+                resourceCheckMessage : "Progress is saved. You can close and resume later.";
+            CenteredText(draw, 315.f, hint, saveError.empty() && resourceCheckMessage.empty() ? 0.45f : 1.f, 11.f);
+            if (AnimatedButton("CheckResources", 82.f, 344.f, 200.f, 27.f,
+                resourceCheckPending ? "Checking..." : "Check resources", nullptr, !resourceCheckPending))
+                pendingAction = [this]
+                {
+                    if (SDKResources::Missing(sdkDirectory))
+                    {
+                        resourceCheckMessage = "Required resource folders are still missing.";
+                        return;
+                    }
+                    // Wait for the worker to stop before letting editors use files
+                    // that the user has just installed manually.
+                    resourceCheckPending = true;
+                    resourceCheckMessage = "Stopping the download before opening the launcher...";
+                    resourceDownload.Pause();
+                };
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                ImGui::SetTooltip("Checking: %s\nsettings: %s\ngamedata: %s", Utf8(root).c_str(),
+                    SDKResources::DirectoryExists(root + L"\\settings") ? "found" : "missing",
+                    SDKResources::DirectoryExists(root + L"\\gamedata") ? "found" : "missing");
+            if (AnimatedButton("ChooseResourceSDK", 294.f, 344.f, 200.f, 27.f,
+                "Choose SDK folder...", nullptr, !resourceDownload.Running() && !resourceCheckPending))
+                pendingAction = [this] { ChooseResourceSDK(); };
             if (resourceDownload.TestMode() && started && !resourceDescriptionPreview &&
-                AnimatedButton("ResourceDescription", 188.f, 344.f, 200.f, 27.f, "Back to description"))
+                AnimatedButton("ResourceDescription", 188.f, 379.f, 200.f, 27.f, "Back to description", nullptr, !resourceCheckPending))
                 pendingAction = [this]
                 {
                     resourceDownload.Pause();
@@ -652,18 +706,35 @@ namespace
 
         void TickResources()
         {
-            if (resourceTarget != sdkDirectory)
+            const auto root = SDKResources::ResourceRoot(sdkDirectory);
+            if (!resourceDownload.Running() && (resourceTarget != root || resourceDownload.TestMode() != forceResourceDemo))
             {
-                resourceDownload.Initialize(sdkDirectory, forceResourceDemo);
+                resourceDownload.Initialize(root, forceResourceDemo);
                 resourceTransition = 0.f;
                 resourceDescriptionPreview = false;
-                resourceTarget = sdkDirectory;
+                resourceCheckMessage.clear();
+                resourceTarget = root;
             }
             if (platform.closeRequested || !ResourceScreen())
             {
                 if (resourceDownload.Running()) resourceDownload.Pause();
             }
             resourceDownload.Poll();
+            if (resourceCheckPending && !resourceDownload.Running())
+            {
+                resourceCheckPending = false;
+                // Recheck after stopping: files may have changed while waiting.
+                if (SDKResources::Missing(sdkDirectory))
+                    resourceCheckMessage = "Required resource folders are still missing.";
+                else
+                {
+                    forceResourceDemo = false;
+                    resourceCheckMessage.clear();
+                    historyDirty = true;
+                    status = "Resources found.";
+                    statusExpires = ImGui::GetTime() + 5.;
+                }
+            }
         }
 
         void Draw()
