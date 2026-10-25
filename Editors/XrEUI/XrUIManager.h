@@ -30,6 +30,7 @@ public:
     static bool IsBackgroundBlurAvailable();
     static void SetUIScale(float scale);
     static float GetUIScale();
+    static void SetMediaPlayerVisible(bool visible);
     static float GetToolBarHeight();
     static float GetTitleBarHeight();
     static void ShowAbout();

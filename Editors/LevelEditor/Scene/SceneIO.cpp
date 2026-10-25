@@ -1173,9 +1173,13 @@ void EScene::SaveSelection(ObjClassID classfilter, LPCSTR fname)
 //----------------------------------------------------
 bool EScene::OnLoadSelectionAppendObject(CCustomObject* obj)
 {
-    string256 buf;
-    GenObjectName(obj->FClassID, buf, obj->GetName());
-    obj->SetName(buf);
+    // Preserve imported names unless they collide with an object already in the scene.
+    if (FindObjectByName(obj->GetName(), OBJCLASS_DUMMY))
+    {
+        string256 buf;
+        GenObjectName(obj->FClassID, buf, obj->GetName());
+        obj->SetName(buf);
+    }
     AppendObject(obj, false);
     obj->Select(true);
     return true;

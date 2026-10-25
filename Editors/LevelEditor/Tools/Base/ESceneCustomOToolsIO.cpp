@@ -8,9 +8,13 @@ static const u32 CHUNK_FLAGS = 0x0004;
 
 bool ESceneCustomOTool::OnLoadSelectionAppendObject(CCustomObject *obj)
 {
-    string256 buf;
-    Scene->GenObjectName(obj->FClassID, buf, obj->GetName());
-    obj->SetName(buf);
+    // Preserve imported names unless they collide with an object already in the scene.
+    if (Scene->FindObjectByName(obj->GetName(), OBJCLASS_DUMMY))
+    {
+        string256 buf;
+        Scene->GenObjectName(obj->FClassID, buf, obj->GetName());
+        obj->SetName(buf);
+    }
     Scene->AppendObject(obj, false);
     return true;
 }

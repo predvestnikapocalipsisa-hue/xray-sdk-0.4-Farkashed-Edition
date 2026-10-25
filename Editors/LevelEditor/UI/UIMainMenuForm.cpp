@@ -2,7 +2,6 @@
 #include "../LevelEditor/color_editor.h"
 #include "UISceneTabBar.h"
 #include "UIContentBrowser.h" 
-#include "converter_menu.h"
 #include "UIWorkspace.h"
 #include "../Recovery/UILevelRecovery.h"
 
@@ -11,7 +10,6 @@ UIMainMenuForm::UIMainMenuForm()
     Colors::LoadSettings();
     Colors::UpdateImGuiStyle();
 
-    ConverterMenu::Close();
 
     m_ContentBrowser = xr_new<UIContentBrowser>();
 }
@@ -454,7 +452,6 @@ void UIMainMenuForm::Draw()
             ImGui::EndMenu();
         }
         Colors::Render();
-        ConverterMenu::Draw();
         Colors::UpdateImGuiStyle();
         if (ImGui::BeginMenu("Windows"))
         {
@@ -476,17 +473,6 @@ void UIMainMenuForm::Draw()
                         Colors::Enable();
                     else
                         Colors::Disable();
-                }
-            }
-
-            {
-                bool selected = ConverterMenu::IsOpen();
-                if (ImGui::MenuItem("Converter", "", &selected))
-                {
-                    if (selected)
-                        ConverterMenu::Open();
-                    else
-                        ConverterMenu::Close();
                 }
             }
 

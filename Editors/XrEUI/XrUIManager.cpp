@@ -29,6 +29,7 @@ namespace
     bool effectsDirty = true;
     bool customFrame = false;
     RECT mediaControlsRect = {};
+    bool mediaPlayerVisible = true;
     float uiScale = 1.f, requestedUIScale = 1.f;
     bool aboutRequested = false;
     IDirect3DTexture9* aboutLogo = nullptr;
@@ -350,6 +351,7 @@ namespace
     void DrawMediaPlayer(const ImVec2& origin, float width, float captionEnd)
     {
         mediaControlsRect = {};
+        if (!mediaPlayerVisible) return;
         const float left = captionEnd + 24.f*uiScale;
         const float right = origin.x + width - 112.f*uiScale;
         const float available = right-left;
@@ -970,6 +972,11 @@ void XrUIManager::SetUIScale(float scale)
     requestedUIScale = std::isfinite(scale) ? (scale < .75f ? .75f : scale > 2.f ? 2.f : scale) : 1.f;
 }
 float XrUIManager::GetUIScale() { return uiScale; }
+void XrUIManager::SetMediaPlayerVisible(bool visible)
+{
+    mediaPlayerVisible = visible;
+    if (!visible) mediaControlsRect = {};
+}
 float XrUIManager::GetToolBarHeight() { return UIToolBarSize*uiScale; }
 float XrUIManager::GetTitleBarHeight() { return UITitleBarSize*uiScale; }
 

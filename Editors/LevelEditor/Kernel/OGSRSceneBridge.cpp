@@ -8,6 +8,7 @@
 #include "Entry/WayPoint/WayPoint.h"
 #include <memory>
 #include "../../../SDKRuntime/InGame/NavigationPreparation.h"
+#include "../../../SDKRuntime/InGame/RuntimeSetup.h"
 #include "../../XrEUI/SDKMessageBox.h"
 
 bool& CLevelMain::AutoRepairOGSRNavigation() { static bool enabled = false; return enabled; }
@@ -339,8 +340,14 @@ void CLevelMain::StartOGSRPreview()
     if (IsInGame() || GetEState() != esEditScene || Scene->locked() || IsMouseCaptured() || IsMouseInUse()) return;
     const HWND parent = GetActiveWindow();
     SetWindowLongPtr(parent, GWL_STYLE, GetWindowLongPtr(parent, GWL_STYLE) | WS_CLIPCHILDREN);
-    std::wstring host = FindBridgeHost();
-    if (host.empty()) { ELog.DlgMsg(mtError, "OGSR InGame is missing. Run Build-InGame.ps1 -SDKRoot <SDK folder>."); return; }
+    std::wstring setupError;
+    const auto sdk = SDKInGameSetup::ModuleDirectory();
+    if (!SDKInGameSetup::Ensure(sdk, parent, setupError))
+    {
+        if (!setupError.empty()) MessageBoxW(parent, setupError.c_str(), L"InGame setup", MB_OK | MB_ICONERROR);
+        return;
+    }
+    std::wstring host = sdk + L"\\InGame\\bin\\SDKSceneHost.exe";
     const std::wstring bin = host.substr(0, host.find_last_of(L"\\/"));
     const std::wstring runtime = bin.substr(0, bin.find_last_of(L"\\/"));
     const std::wstring engine = bin + L"\\xrEngine.exe";

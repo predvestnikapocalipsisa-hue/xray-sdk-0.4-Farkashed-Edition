@@ -42,6 +42,7 @@ static float s_windowPad   = 10.0f;
 static float s_borderSize  = 1.0f;
 static float s_alpha       = 1.00f;
 static float s_dpiScale    = 1.f;
+static bool s_showMediaPlayer = true;
 static bool s_glowEnabled = false;
 static float s_glowColor[4] = { .82f, .16f, .20f, 1.f };
 static float s_glowWidth = 0.f;
@@ -146,6 +147,7 @@ static inline ImVec4 Mix(const ImVec4& a, const ImVec4& b, float t)
 inline void UpdateImGuiStyle()
 {
     XrUIManager::SetUIScale(s_dpiScale);
+    XrUIManager::SetMediaPlayerVisible(s_showMediaPlayer);
     XrUIManager::SetWindowEffects(s_glowColor, s_glowWidth, s_glowStrength,
         s_glowEnabled, s_backgroundBlur, s_backgroundOpacity);
     ImGuiStyle& st = ImGui::GetStyle();
@@ -335,7 +337,7 @@ static inline void ApplyTheme(int idx)
 inline std::string SerializeSettings()
 {
     std::ostringstream f;
-    f << "v5\n";
+    f << "v6\n";
     auto w4 = [&](const float c[4]) { f << c[0] << " " << c[1] << " " << c[2] << " " << c[3] << "\n"; };
     w4(s_windowBg); w4(s_childBg); w4(s_popupBg);
     w4(s_accent); w4(s_text); w4(s_textDisabled); w4(s_border); w4(s_scrollbar);
@@ -346,6 +348,7 @@ inline std::string SerializeSettings()
     f << s_glowEnabled << " " << s_glowWidth << " " << s_glowStrength << "\n"
       << s_backgroundBlur << " " << s_backgroundOpacity << "\n";
     f << s_dpiScale << "\n";
+    f << s_showMediaPlayer << "\n";
     return f.str();
 }
 inline void SaveSettings()
@@ -376,17 +379,17 @@ inline void LoadSettings()
     if (!f.is_open()) { ResetDefaults(); return; }
     const auto useDefaults = [&]() { f.close(); ResetDefaults(); };
     std::string tag; f >> tag;
-    if (tag != "v3" && tag != "v4" && tag != "v5") { useDefaults(); return; }
+    if (tag != "v3" && tag != "v4" && tag != "v5" && tag != "v6") { useDefaults(); return; }
     // Validate the complete file before changing the live palette.
     std::ostringstream contents; contents << f.rdbuf();
     std::istringstream check(contents.str());
-    const int fieldCount = tag == "v3" ? 39 : tag == "v4" ? 48 : 49;
+    const int fieldCount = tag == "v3" ? 39 : tag == "v4" ? 48 : tag == "v5" ? 49 : 50;
     for (int i = 0; i < fieldCount; ++i)
     {
         double value = 0;
         if (!(check >> value) || !std::isfinite(value)) { useDefaults(); return; }
         if (i == 38 && (value < -1 || value >= s_themeCount || value != std::floor(value))) { useDefaults(); return; }
-        if ((i == 43 || i == 46) && value != 0 && value != 1) { useDefaults(); return; }
+        if ((i == 43 || i == 46 || i == 49) && value != 0 && value != 1) { useDefaults(); return; }
     }
     f.clear(); f.seekg(0); f >> tag;
     auto r4 = [&](float c[4]) { f >> c[0] >> c[1] >> c[2] >> c[3]; };
@@ -394,14 +397,16 @@ inline void LoadSettings()
     r4(s_accent); r4(s_text); r4(s_textDisabled); r4(s_border); r4(s_scrollbar);
     f >> s_rounding >> s_framePad >> s_itemSpacing >> s_windowPad >> s_borderSize >> s_alpha;
     f >> s_activeTheme;
-    if (tag == "v4" || tag == "v5")
+    if (tag == "v4" || tag == "v5" || tag == "v6")
     {
         r4(s_glowColor);
         f >> s_glowEnabled >> s_glowWidth >> s_glowStrength >> s_backgroundBlur >> s_backgroundOpacity;
     }
     else for (int i = 0; i < 4; ++i) s_glowColor[i] = s_accent[i];
     s_dpiScale = 1.f;
-    if (tag == "v5") f >> s_dpiScale;
+    if (tag == "v5" || tag == "v6") f >> s_dpiScale;
+    s_showMediaPlayer = true;
+    if (tag == "v6") f >> s_showMediaPlayer;
     if (!std::isfinite(s_dpiScale)) s_dpiScale = 1.f;
     s_dpiScale = ClampF(s_dpiScale,.75f,2.f);
     s_glowEnabled = false;
@@ -418,6 +423,7 @@ inline void LoadSettings()
 
 inline void ResetDefaults()
 {
+    s_showMediaPlayer = true;
     s_dpiScale = 1.f;
     s_glowEnabled = false; s_glowWidth = 0.f; s_glowStrength = 0.f;
     s_backgroundBlur = false; s_backgroundOpacity = 1.f;
@@ -717,6 +723,10 @@ inline void Render()
         {
             ImGui::Spacing();
             bool changed = false;
+
+            SectionLabel("  Title Bar");
+            if (ImGui::Checkbox("Show media player", &s_showMediaPlayer)) changed = true;
+            ThinSeparator();
 
             SectionLabel("  DPI Scale");
             ImGui::SetNextItemWidth(-150.f*XrUIManager::GetUIScale());

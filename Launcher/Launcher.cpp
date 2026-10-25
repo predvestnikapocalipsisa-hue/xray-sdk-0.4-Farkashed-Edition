@@ -5,6 +5,7 @@
 #include "DiscordPresence.h"
 #include "../LauncherAssets/ResourceIds.h"
 #include "RecentFiles.h"
+#include "../SDKRuntime/InGame/RuntimeSetup.h"
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
@@ -398,6 +399,23 @@ namespace
                         FarkashedLauncher::SetSetting(L"SDKDirectory", selected);
                         ImportLegacyHistory(selected);
                         historyDirty = true;
+                    };
+                ImGui::Separator();
+                ImGui::TextUnformatted("InGame (OGSR)");
+                ImGui::TextWrapped("Choose the Shadow of Chernobyl 1.0006 game folder once. InGame starts with F5 in Level Editor.");
+                ImGui::TextDisabled("%s", SDKInGameSetup::Binaries(sdkDirectory + L"\\InGame") && SDKInGameSetup::Resources(sdkDirectory + L"\\InGame")
+                    ? "Runtime installed" : "Runtime will be installed during setup");
+                if (ImGui::Button("Set up InGame / change game folder..."))
+                    pendingAction = [this]
+                    {
+                        std::wstring setupError;
+                        if (SDKInGameSetup::Ensure(sdkDirectory, platform.window, setupError, true))
+                            MessageBoxW(platform.window, L"InGame is ready. Open a scene in Level Editor and press F5.", L"InGame", MB_OK | MB_ICONINFORMATION);
+                        else if (!setupError.empty())
+                        {
+                            error = Utf8(setupError);
+                            showError = true;
+                        }
                     };
                 ImGui::Separator();
                 if (ImGui::Checkbox("Procedural background blur", &useBlur))

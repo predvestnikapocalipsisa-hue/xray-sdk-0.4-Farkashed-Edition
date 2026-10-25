@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Ship a self-contained runtime beside Launcher.exe. User resources/configs
+       are created by native setup; builds only refresh the defaults directory. -->
+  <Target Name="PackageInGame" AfterTargets="Build">
+    <PropertyGroup>
+      <InGameSource>$(MSBuildThisFileDirectory)</InGameSource>
+      <InGameDestination>$(OutDir)InGame\</InGameDestination>
+    </PropertyGroup>
+    <ItemGroup>
+      <InGameBinary Include="$(InGameSource)bin\SDKSceneHost.exe;$(InGameSource)bin\xrEngine.exe;$(InGameSource)bin\OpenAL32.dll;$(InGameSource)bin\nvngx_dlss.dll;$(InGameSource)bin\dbghelp.dll" />
+      <InGameResource Include="$(InGameSource)..\OGSR\Game\Resources_SoC_1.0006\gamedata\**\*" />
+      <InGameOverride Include="$(InGameSource)overrides\**\*" />
+    </ItemGroup>
+    <Warning Condition="!Exists('$(InGameSource)bin\SDKSceneHost.exe') Or !Exists('$(InGameSource)bin\xrEngine.exe')"
+             Text="InGame runtime is not built. The SDK will offer to import a built InGame package on first use." />
+    <Copy SourceFiles="@(InGameBinary)" DestinationFolder="$(InGameDestination)bin\" SkipUnchangedFiles="true"
+          Condition="Exists('%(InGameBinary.Identity)')" />
+    <Copy SourceFiles="@(InGameResource)" DestinationFiles="@(InGameResource->'$(InGameDestination)defaults\gamedata\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(InGameOverride)" DestinationFiles="@(InGameOverride->'$(InGameDestination)defaults\gamedata\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(InGameSource)fsgame.ltx;$(InGameSource)preview.ltx" DestinationFolder="$(InGameDestination)defaults\" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

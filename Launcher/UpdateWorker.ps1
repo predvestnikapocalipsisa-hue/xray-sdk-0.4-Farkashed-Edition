@@ -30,6 +30,31 @@ function MachineOf([string]$path) {
         return $reader.ReadUInt16()
     } finally { $reader.Dispose() }
 }
+function InstallFiles([string]$packageRoot, [int]$sdkMachine) {
+    $rootFiles = @(Get-ChildItem -LiteralPath $packageRoot -File | Where-Object { $_.Extension -in '.dll','.exe' })
+    foreach ($file in $rootFiles) {
+        if ((MachineOf $file.FullName) -ne $sdkMachine) { throw "SDK binary architecture mismatch: $($file.Name)" }
+    }
+    $runtime = Join-Path $packageRoot 'InGame'
+    $runtimeFiles = @()
+    if (Test-Path -LiteralPath $runtime) {
+        foreach ($required in @('SDKSceneHost.exe','xrEngine.exe','OpenAL32.dll','nvngx_dlss.dll','dbghelp.dll')) {
+            if (-not (Test-Path -LiteralPath "$runtime\bin\$required" -PathType Leaf)) { throw "Incomplete InGame package: $required" }
+        }
+        foreach ($required in @('fsgame.ltx','preview.ltx','gamedata\config\external.ltx')) {
+            if (-not (Test-Path -LiteralPath "$runtime\defaults\$required" -PathType Leaf)) { throw "Incomplete InGame defaults: $required" }
+        }
+        $runtimeFiles = @(Get-ChildItem -LiteralPath "$runtime\bin" -File | Where-Object { $_.Extension -in '.dll','.exe' })
+        foreach ($file in $runtimeFiles) {
+            if ((MachineOf $file.FullName) -ne 0x8664) { throw "InGame requires x64 binaries: $($file.Name)" }
+        }
+        $runtimeFiles += @(Get-ChildItem -LiteralPath "$runtime\defaults" -File -Recurse)
+    }
+    # Never install gamedata, appdata or runtime configs over the user's files.
+    foreach ($file in @($rootFiles) + @($runtimeFiles)) {
+        [pscustomobject]@{ FullName=$file.FullName; Length=$file.Length; Name=$file.FullName.Substring($packageRoot.Length + 1) }
+    }
+}
 try {
     Report 'checking' 'Checking GitHub releases...'
     $repo = 'https://api.github.com/repos/predvestnikapocalipsisa-hue/xray-sdk-0.4-Farkashed-Edition'
@@ -98,11 +123,7 @@ try {
     foreach ($required in @('SDKRuntime.dll','LauncherAssets.dll','ActorEditor.dll','LevelEditor.dll','ParticleEditor.dll','ShaderEditor.dll')) {
         if (-not (Test-Path -LiteralPath (Join-Path $bin $required) -PathType Leaf)) { throw "Missing SDK binary: $required" }
     }
-    # Update binaries only, preserving projects, preferences and libraries.
-    $files = @(Get-ChildItem -LiteralPath $bin -File | Where-Object { $_.Extension -in '.dll','.exe' })
-    foreach ($file in $files) {
-        if ((MachineOf $file.FullName) -ne $machine) { throw "SDK binary architecture mismatch: $($file.Name)" }
-    }
+    $files = @(InstallFiles $bin $machine)
     $total = ($files | Measure-Object Length -Sum).Sum
     # EditorHost refuses new editor sessions while this lock is held.
     $installationLock = [IO.File]::Open((Join-Path $targetRoot '.sdk-update.lock'),'OpenOrCreate','ReadWrite','None')
@@ -124,13 +145,18 @@ try {
     $backup = Join-Path $work 'backup'; New-Item -ItemType Directory -Path $backup -Force | Out-Null
     foreach ($file in $files) {
         $dest = Join-Path $targetRoot $file.Name
-        if (Test-Path -LiteralPath $dest) { Copy-Item -LiteralPath $dest -Destination (Join-Path $backup $file.Name) }
+        if (Test-Path -LiteralPath $dest) {
+            $saved = Join-Path $backup $file.Name
+            New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($saved)) -Force | Out-Null
+            Copy-Item -LiteralPath $dest -Destination $saved
+        }
     }
     $written = New-Object 'Collections.Generic.List[string]'
     $clock.Restart(); $bytes=0L
     try {
         foreach ($file in $files) {
             $dest = Join-Path $targetRoot $file.Name
+            New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($dest)) -Force | Out-Null
             $written.Add($file.Name)
             Copy-Item -LiteralPath $file.FullName -Destination $dest -Force
             $bytes += $file.Length

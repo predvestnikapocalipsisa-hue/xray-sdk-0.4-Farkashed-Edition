@@ -28,6 +28,27 @@ launch is optional.
 
 ## Interface
 
+### InGame setup
+
+Press F5 in Level Editor to prepare InGame automatically, or use Settings >
+Set up InGame / change game folder in the launcher. Select the Shadow of
+Chernobyl 1.0006 folder containing `gamedata.db*` once. The saved archive path is
+reused; if the game folder moves, setup asks for its new location. Archives stay
+in the game installation. No command-line setup or manual file copying is needed.
+
+Building Launcher packages the already-built OGSR runtime from `InGame/bin`
+and the SoC resource overlay/compatibility overrides into the output SDK's
+`InGame/bin` and `InGame/defaults`. Distribute the entire output SDK directory.
+InGame binaries must be built first; missing binaries produce a build warning.
+On first use, development builds also discover an ancestor source tree's runtime.
+If the runtime is absent from an installed SDK, setup offers a folder chooser
+to import it from a complete built SDK package or source tree.
+
+Native setup installs missing resources and creates the preview configuration,
+preserving existing files in `InGame/gamedata` and `_appdata_`. It writes the
+archive alias to `InGame/fsgame.runtime.ltx`. Changing the game folder retains
+other runtime aliases. Canceling setup leaves the editor open.
+
 Settings contains `DEBUG mode (log errors and continue)`. The saved setting
 applies to newly launched editors through `-sdk_debug`, in any build configuration.
 Failed SDK checks and error dialogs are logged with an `[SDK DEBUG]` prefix without
@@ -115,4 +136,4 @@ The root `version.json` is the source for the SDK version string. Before resourc
 
 The launcher Check updates button and the editors' About > Check Updates open an ImGui updater using the latest stable GitHub release from `predvestnikapocalipsisa-hue/xray-sdk-0.4-Farkashed-Edition`. Installed versions come from the target Launcher's embedded build information. Numeric comparison prevents downgrades (4.7 FE stays installed when GitHub has v4.6).
 
-Download and install is an explicit action. The updater runs from a temporary copy, downloads the selected SDK release asset (not converter or source archives), displays progress and MB/s, validates archive paths, links, checksum when GitHub provides one, embedded version, required modules and architecture, then waits for editors and launchers to close. Windows `tar.exe` extracts ZIP/RAR/7z archives. Only EXE/DLL files beside the archived Launcher are installed; project files, libraries and settings are preserved. The worker backs up overwritten files and attempts rollback on installation failure, reporting the backup path if recovery is incomplete. New editor sessions are blocked during installation by `.sdk-update.lock`. Staging and backups remain in the temporary updater directory for recovery.
+Download and install is an explicit action. The updater runs from a temporary copy, downloads the selected SDK release asset (not converter or source archives), displays progress and MB/s, validates archive paths, links, checksum when GitHub provides one, embedded version, required modules and architecture, then waits for editors and launchers to close. Windows `tar.exe` extracts ZIP/RAR/7z archives. The updater installs SDK binaries plus InGame/bin and InGame/defaults when included in the release; project files, libraries, live InGame resources and settings are preserved. The worker backs up overwritten files and attempts rollback on installation failure, reporting the backup path if recovery is incomplete. New editor sessions are blocked during installation by `.sdk-update.lock`. Staging and backups remain in the temporary updater directory for recovery.

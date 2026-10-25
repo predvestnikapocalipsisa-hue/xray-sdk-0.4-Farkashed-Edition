@@ -95,4 +95,5 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="BuildInfo.targets" />
+  <Import Project="..\InGame\Packaging.targets" />
 </Project>
