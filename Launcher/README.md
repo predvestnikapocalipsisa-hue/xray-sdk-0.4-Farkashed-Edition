@@ -28,6 +28,68 @@ launch is optional.
 
 ## Interface
 
+### Resource download and installation
+
+When either `settings` or `gamedata` is missing from the selected SDK directory,
+the launcher replaces editor buttons, recent files, settings and updates with:
+"Currently X-Ray SDK is missing resources. Do you want to download and install it?"
+`Download` fetches the public Google Drive archive with file ID
+`137YxJG65oJrJb1kwUPaxoyCpn9XDn-2n` (currently `xray sdk 4.8.zip`,
+11,450,714,965 bytes). No Google account, API key, browser, or external archiver
+is required. Windows PowerShell 5.1 and .NET Framework compile/run the embedded
+resource worker in a hidden child process.
+`Cancel` saves progress and closes the launcher. Window close and Escape also
+preserve progress. Title-bar minimize and close remain available.
+The resource screen hides the logo and centers its text and controls. The initial
+question disappears once the download starts, leaving the progress interface.
+The question fades out before the progress interface fades in; folder names are
+omitted from the screen. This transition follows the Reduce animation setting.
+Download progress shows actual bytes, total size, speed and percentage. The worker
+handles Drive's large-file confirmation page and rejects HTML/error responses.
+It resumes `archive.part` using HTTP ranges and an ETag/Last-Modified validator;
+an unexpected full response replaces the partial instead of appending it.
+Changing server metadata restarts the download. A network error leaves the partial
+available for `Resume`. The worker stops when its launcher exits.
+
+The cache and atomic status snapshots are separate for each normalized SDK path:
+`%LOCALAPPDATA%\FarkashedSDK\ResourceDownloads\drive-v1-<hash>\`.
+`Pause` cooperatively stops the worker; `Resume` starts it again. Reopening always
+leaves the job paused. An interrupted extraction resumes using fully extracted,
+CRC-checked staging files; the current partial entry is extracted again.
+
+ZIP64 archives are supported. The worker strips the archive's wrapper directory
+and installs only `settings`, `gamedata`, `rawdata`, `groups` and `maps`. Legacy
+`bins`, `game`, `.git` and `logs` are excluded. Every new file is checked against
+its ZIP CRC-32. Traversal paths, links/reparse points, Windows device names and
+case-insensitive duplicates are rejected. Existing SDK files are preserved;
+missing files are added. Staging is under `.sdk-resource-stage-<file-id>` inside
+the SDK so the final moves stay on the same volume. An absent required folder
+is committed last. The normal launcher becomes available after the worker exits
+successfully and both required folders exist. No marker file substitutes for
+the `settings` / `gamedata` presence check.
+
+Free space is checked before the full download and again against the selected
+ZIP entries before extraction. The current archive plus selected resources takes
+about 13.46 GiB, plus a 64 MiB reserve. After success, the archive/staging cache is
+cleaned up. Errors remain visible; diagnostic details are in `worker-error.txt`
+inside the download cache. A known-invalid ZIP is discarded for a fresh retry.
+The explicit SDK updater command-line flow remains independent.
+
+Use `Launcher.exe --test-resource-download` for the offline simulation, including
+when both required folders already exist. Test progress has its own `demo-v1-*.ini`
+state, never downloads files, and never creates fake resource folders.
+`Back to description` pauses the test and smoothly returns to the initial question
+without discarding progress. `Resume` continues it; `Restart test` resets a
+completed simulation. These test controls are absent from real installation.
+
+Offline checks (no network or real resource changes):
+
+```powershell
+msbuild Launcher/tests/resource_download_tests.vcxproj /p:Configuration=Release /p:Platform=x64
+./output/Tests/ResourceDownload/resource_download_tests.exe
+powershell.exe -NoProfile -File Launcher/tests/resource_worker_tests.ps1
+```
+
 ### InGame setup
 
 Press F5 in Level Editor to prepare InGame automatically, or use Settings >

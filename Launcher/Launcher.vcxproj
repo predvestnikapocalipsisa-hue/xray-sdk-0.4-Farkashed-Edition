@@ -70,6 +70,8 @@
     <ClInclude Include="Updates.h" />
     <ClInclude Include="UpdateBridge.h" />
     <ClInclude Include="RecentFiles.h" />
+    <ClInclude Include="ResourceDownload.h" />
+    <ClInclude Include="ResourceInstaller.h" />
     <ClInclude Include="EditorHost.h" />
     <ClInclude Include="DiscordPresence.h" />
     <ResourceCompile Include="Launcher.rc" />
@@ -78,6 +80,8 @@
     <None Include="..\version.json" />
     <None Include="Generate-BuildInfo.ps1" />
     <None Include="UpdateWorker.ps1" />
+    <None Include="ResourceWorker.ps1" />
+    <None Include="ResourceWorker.cs" />
     <None Include="BuildInfo.targets" />
     <None Include="assets\gui\Launcher.pdn" />
     <None Include="assets\gui\font.otf" />

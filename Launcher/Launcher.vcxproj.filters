@@ -20,11 +20,15 @@
   <ItemGroup>
     <ClInclude Include="Platform.h"><Filter>Source</Filter></ClInclude>
     <ClInclude Include="RecentFiles.h"><Filter>Source</Filter></ClInclude>
+    <ClInclude Include="ResourceDownload.h"><Filter>Source</Filter></ClInclude>
+    <ClInclude Include="ResourceInstaller.h"><Filter>Source</Filter></ClInclude>
     <ClInclude Include="EditorHost.h"><Filter>Source</Filter></ClInclude>
     <ClInclude Include="DiscordPresence.h"><Filter>Source</Filter></ClInclude>
     <ResourceCompile Include="Launcher.rc"><Filter>Source</Filter></ResourceCompile>
     <None Include="Launcher.manifest"><Filter>Source</Filter></None>
     <None Include="README.md" />
+    <None Include="ResourceWorker.cs"><Filter>Source</Filter></None>
+    <None Include="ResourceWorker.ps1"><Filter>Source</Filter></None>
     <None Include="assets\gui\Launcher.pdn"><Filter>Assets</Filter></None>
     <None Include="assets\gui\font.otf"><Filter>Assets</Filter></None>
     <Image Include="assets\gui\*.png"><Filter>Assets</Filter></Image>

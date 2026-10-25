@@ -5,6 +5,7 @@
 #include "DiscordPresence.h"
 #include "../LauncherAssets/ResourceIds.h"
 #include "RecentFiles.h"
+#include "ResourceInstaller.h"
 #include "../SDKRuntime/InGame/RuntimeSetup.h"
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
@@ -14,6 +15,7 @@
 #include <cmath>
 #include <cwctype>
 #include <functional>
+#include <cstdio>
 #include <unordered_map>
 #include <utility>
 
@@ -135,6 +137,11 @@ namespace
         std::string error;
         std::string status;
         SDKUpdates::Panel updates;
+        SDKResources::Download resourceDownload;
+        std::wstring resourceTarget;
+        bool forceResourceDemo = false;
+        bool resourceDescriptionPreview = false;
+        bool updateMode = false;
         bool showError = false;
         bool showSettings = false;
         bool useBlur = true;
@@ -144,6 +151,7 @@ namespace
         bool historyDirty = true;
         bool assetWarning = false;
         float opacity = 0.f;
+        float resourceTransition = 0.f;
         float darkening = 0.76f;
         double nextRefresh = 0.;
         double statusExpires = 0.;
@@ -171,7 +179,7 @@ namespace
         }
 
         void Text(ImDrawList* draw, float x, float y, const std::string& value,
-            float alpha = 1.f, float size = 15.f, float maximumWidth = 1000.f) const
+            float alpha = 1.f, float size = 15.f, float maximumWidth = 1000.f, bool centered = false) const
         {
             const float fontSize = size * platform.dpiScale;
             std::string text = value;
@@ -188,7 +196,16 @@ namespace
                 }
                 text += "...";
             }
+            if (centered)
+                x = (ImGui::GetIO().DisplaySize.x - font->CalcTextSizeA(fontSize, FLT_MAX, 0, text.c_str()).x) /
+                    (2.f * platform.dpiScale);
             draw->AddText(font, fontSize, Position(x, y), Color(0.94f, 0.94f, 0.95f, alpha), text.c_str());
+        }
+
+        void CenteredText(ImDrawList* draw, float y, const std::string& value,
+            float alpha = 1.f, float size = 15.f) const
+        {
+            Text(draw, 0.f, y, value, alpha, size, 480.f, true);
         }
 
         bool AnimatedButton(const char* id, float x, float y, float width, float height,
@@ -264,6 +281,7 @@ namespace
 
         void Launch(const std::wstring& editorId, const std::wstring& file, const std::wstring& directory)
         {
+            if (ResourceScreen() || SDKResources::Missing(directory)) return;
             const Editor* editor = FindEditor(editorId);
             if (!editor)
                 return;
@@ -444,6 +462,72 @@ namespace
             }
         }
 
+        bool ResourceScreen() const
+        {
+            return !updateMode && (forceResourceDemo || SDKResources::Missing(sdkDirectory) || resourceDownload.Running());
+        }
+
+        void DrawResourceDownload()
+        {
+            auto* draw = ImGui::GetWindowDrawList();
+            const bool started = resourceDownload.Started();
+            resourceTransition = Approach(resourceTransition, started && !resourceDescriptionPreview ? 1.f : 0.f, 8.f);
+            const float descriptionAlpha = (std::max)(0.f, 1.f - resourceTransition * 2.f);
+            const float progressAlpha = (std::max)(0.f, resourceTransition * 2.f - 1.f);
+            if (descriptionAlpha > 0.001f)
+            {
+                CenteredText(draw, 151.f, "Currently X-Ray SDK is missing resources.", descriptionAlpha, 17.f);
+                CenteredText(draw, 175.f, "Do you want to download and install it?", 0.85f * descriptionAlpha, 17.f);
+            }
+            if (resourceDownload.TestMode())
+                CenteredText(draw, 125.f, "TEST MODE - simulated download and installation", 0.55f, 12.f);
+
+            if (started && progressAlpha > 0.001f)
+            {
+                CenteredText(draw, 181.f, resourceDownload.Status(), 0.8f * progressAlpha, 13.f);
+                const float progress = resourceDownload.Installing() || resourceDownload.Complete() ?
+                    resourceDownload.InstallProgress() : resourceDownload.Progress();
+                draw->AddRectFilled(Position(48.f, 215.f), Position(528.f, 223.f),
+                    Color(1, 1, 1, 0.12f * progressAlpha), 4.f * platform.dpiScale);
+                if (progress > 0.f)
+                    draw->AddRectFilled(Position(48.f, 215.f), Position(48.f + 480.f * progress, 223.f),
+                        Color(0.9f, 0.12f, 0.16f, progressAlpha), 4.f * platform.dpiScale);
+                char metrics[160] = {};
+                std::snprintf(metrics, sizeof(metrics), "%.1f / %.1f MiB   |   %.1f MiB/s   |   %s %.1f%%",
+                    double(resourceDownload.Downloaded()) / double(SDKResources::DemoDownload::MiB),
+                    double(resourceDownload.Total()) / double(SDKResources::DemoDownload::MiB),
+                    resourceDownload.Rate() / double(SDKResources::DemoDownload::MiB),
+                    resourceDownload.Installing() || resourceDownload.Complete() ? "Install" : "Download",
+                    double(progress) * 100.);
+                CenteredText(draw, 235.f, metrics, 0.7f * progressAlpha, 12.f);
+            }
+            const char* primary = resourceDownload.Stopping() ? "Pausing..." : resourceDownload.Complete() ?
+                (resourceDownload.TestMode() ? "Restart test" : "Download") :
+                resourceDownload.Running() ? "Pause" : resourceDownload.Started() ? "Resume" : "Download";
+            if (AnimatedButton("ResourcePrimary", 150.f, 274.f, 132.f, 27.f, primary, nullptr, !resourceDownload.Stopping()))
+                pendingAction = [this]
+                {
+                    resourceDescriptionPreview = false;
+                    if (resourceDownload.Running()) resourceDownload.Pause();
+                    else resourceDownload.Start();
+                };
+            if (AnimatedButton("ResourceCancel", 294.f, 274.f, 132.f, 27.f, "Cancel"))
+            {
+                resourceDownload.Pause();
+                platform.closeRequested = true;
+            }
+            const auto& saveError = resourceDownload.Error();
+            CenteredText(draw, 315.f, saveError.empty() ? "Progress is saved. You can close and resume later." : saveError,
+                saveError.empty() ? 0.45f : 1.f, 11.f);
+            if (resourceDownload.TestMode() && started && !resourceDescriptionPreview &&
+                AnimatedButton("ResourceDescription", 188.f, 344.f, 200.f, 27.f, "Back to description"))
+                pendingAction = [this]
+                {
+                    resourceDownload.Pause();
+                    resourceDescriptionPreview = true;
+                };
+        }
+
     public:
         explicit LauncherUI(LauncherPlatform& platform) : platform(platform)
         {
@@ -459,6 +543,14 @@ namespace
                 darkening = (std::max)(0.45f, (std::min)(0.95f, float(_wtoi(shade.c_str())) / 100.f));
             platform.SetBlur(useBlur);
             ImportLegacyHistory(sdkDirectory);
+            int count = 0;
+            auto args = CommandLineToArgvW(GetCommandLineW(), &count);
+            if (args)
+            {
+                for (int i = 1; i < count; ++i)
+                    if (wcscmp(args[i], L"--test-resource-download") == 0) forceResourceDemo = true;
+                LocalFree(args);
+            }
         }
 
         void LoadFonts()
@@ -530,13 +622,14 @@ namespace
         {
             if (updates.InitializeFromCommandLine())
             {
+                updateMode = true;
                 sdkDirectory = updates.Target();
                 historyDirty = true;
             }
         }
         void OpenPath(const std::wstring& path)
         {
-            if (updates.Busy()) return;
+            if (updates.Busy() || ResourceScreen()) return;
             const std::wstring fullPath = FarkashedLauncher::FullPath(path);
             const std::wstring editor = EditorForFile(fullPath);
             if (editor.empty())
@@ -555,6 +648,22 @@ namespace
             pendingAction = {};
             if (action)
                 action();
+        }
+
+        void TickResources()
+        {
+            if (resourceTarget != sdkDirectory)
+            {
+                resourceDownload.Initialize(sdkDirectory, forceResourceDemo);
+                resourceTransition = 0.f;
+                resourceDescriptionPreview = false;
+                resourceTarget = sdkDirectory;
+            }
+            if (platform.closeRequested || !ResourceScreen())
+            {
+                if (resourceDownload.Running()) resourceDownload.Pause();
+            }
+            resourceDownload.Poll();
         }
 
         void Draw()
@@ -585,7 +694,11 @@ namespace
             draw->AddRect(ImVec2(halfStroke, halfStroke),
                 ImVec2(ImGui::GetIO().DisplaySize.x - halfStroke, ImGui::GetIO().DisplaySize.y - halfStroke),
                 Color(0.9f, 0.08f, 0.1f), 0.f, 0, thickness);
-            Text(draw, 249.f, 16.f, "Welcome", 0.62f, 14.f);
+            const bool resourceScreen = ResourceScreen();
+            if (resourceScreen)
+                CenteredText(draw, 16.f, "SDK resources", 0.62f, 14.f);
+            else
+                Text(draw, 249.f, 16.f, "Welcome", 0.62f, 14.f);
             if (AnimatedButton("Minimize", 493.f, 9.f, 30.f, 29.f, "", minimizeIcon.get(), true, true))
                 pendingAction = [this] { ShowWindow(platform.window, SW_MINIMIZE); };
             if (AnimatedButton("Close", 526.f, 9.f, 30.f, 29.f, "", closeIcon.get(), true, true))
@@ -595,15 +708,19 @@ namespace
             if (!closeIcon)
                 Text(draw, 537.f, 12.f, "x", 1.f, 18.f);
             const float entrance = (1.f - opacity) * 5.f;
-            if (logo)
+            if (!resourceScreen && logo)
             {
                 const ImVec2 position = Position(37.f, 35.f + entrance);
                 const ImVec2 topLeft(std::round(position.x), std::round(position.y));
                 Image(draw, logo.get(), topLeft,
                     ImVec2(topLeft.x + float(logo->width), topLeft.y + float(logo->height)));
             }
-            else
+            else if (!resourceScreen)
                 Text(draw, 76.f, 116.f, "FARKASHED EDITION", 1.f, 32.f);
+            if (resourceScreen)
+                DrawResourceDownload();
+            else
+            {
             for (size_t i = 0; i < Editors.size(); ++i)
             {
                 const auto& editor = Editors[i];
@@ -647,6 +764,7 @@ namespace
             }
             updates.Draw(platform.dpiScale);
             DrawSettings();
+            }
             if (showError)
             {
                 ImGui::OpenPopup("Cannot open file or editor");
@@ -722,6 +840,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
         platform.redrawDuringMove = drawFrame;
         while (platform.PumpMessages())
         {
+            ui.TickResources();
             discord.Tick("In Launcher", "");
             if (IsIconic(platform.window))
             {

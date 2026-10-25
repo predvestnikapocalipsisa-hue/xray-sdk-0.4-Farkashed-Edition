@@ -21,6 +21,8 @@
 *.aps
 *.TMP
 *.ps1
+!/Launcher/ResourceWorker.ps1
+!/Launcher/tests/resource_worker_tests.ps1
 !SDKRuntime/InGame/tests/update_package_tests.ps1
 !/SDKRuntime/OrganizeSettings.ps1
 !/SDKRuntime/Scripting/InstallScripting.ps1

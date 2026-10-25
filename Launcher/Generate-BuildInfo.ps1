@@ -25,7 +25,7 @@ foreach ($name in @('SDKRuntime.dll','ActorEditor.dll','LevelEditor.dll','Partic
     if ($file) { $inputs += "$name|$($file.Length)|$($file.LastWriteTimeUtc.Ticks)" }
 }
 foreach ($file in Get-ChildItem -LiteralPath (Join-Path $Root 'Launcher') -File | Sort-Object Name) {
-    if ($file.Extension -in '.cpp','.h','.rc','.ps1','.targets') { $inputs += "$($file.Name)|$($file.Length)|$($file.LastWriteTimeUtc.Ticks)" }
+    if ($file.Extension -in '.cpp','.h','.rc','.ps1','.cs','.targets') { $inputs += "$($file.Name)|$($file.Length)|$($file.LastWriteTimeUtc.Ticks)" }
 }
 $signature = $inputs -join "`n"
 [IO.Directory]::CreateDirectory($OutputDirectory) | Out-Null
