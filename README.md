@@ -1,9 +1,9 @@
 <div align="center">
     <img width="720" alt="Logo" src="src/SDKLOGO.png"/>
     <p>
-        <img alt="version" src="https://img.shields.io/badge/VERSION-4.7.1-E53935?style=for-the-badge" />
+        <img alt="version" src="https://img.shields.io/badge/VERSION-4.8-E53935?style=for-the-badge" />
         <img alt="build" src="https://img.shields.io/badge/BUILD-PASSING-red?style=for-the-badge" />
-        <img alt="last_update" src="https://img.shields.io/badge/UPDATED-11.10.2026-red?style=for-the-badge" />
+        <img alt="last_update" src="https://img.shields.io/badge/UPDATED-26.10.2026-red?style=for-the-badge" />
         <img alt="wow" src="https://img.shields.io/badge/LICENSE-GPL--2.0-red?style=for-the-badge" />
     </p>
     <p>
