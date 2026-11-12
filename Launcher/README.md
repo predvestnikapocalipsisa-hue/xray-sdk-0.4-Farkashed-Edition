@@ -38,12 +38,11 @@ through `.006`. The current total is 10,123,443,705 bytes; actual totals always 
 from release metadata. Drafts/prereleases and GitHub source-code ZIPs are excluded.
 A contiguous volume sequence and one consistent archive name are required.
 
-The normal launcher is replaced by the resource screen when either `settings` or
-`gamedata` is absent. These checks use the SDK resource root, including layouts
-with resource folders next to `bins`/`bin`. The root is discovered using resource
-folders or `settings/fs.ltx` / `fs.ltx`, matching the engine's parent search. A
-fresh `SDK/bins` layout installs into `SDK`. Flat installations use the binaries
-folder as the resource root. The checked path is shown on screen.
+The resource screen opens when `settings`, `gamedata`, `game` or `InGame` is
+missing. A fresh `SDK/bins` or `SDK/bin` layout installs resources into `SDK`.
+Flat installations use the binaries folder as the resource root. `InGame` goes
+beside `Launcher.exe`. The screen shows the installation destination. The SDK
+folder chosen in Settings is saved for the copy of `Launcher.exe` that selected it.
 
 `Download`, `Pause`, `Resume` and `Cancel` control the hidden worker. Cancel closes
 the launcher; partial volumes remain cached. Closing/reopening leaves the job

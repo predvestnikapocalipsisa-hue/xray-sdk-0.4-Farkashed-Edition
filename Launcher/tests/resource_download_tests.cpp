@@ -74,11 +74,14 @@ int wmain()
         Check(SDKResources::Missing(sdk + L"\\bins"), "InGame must be beside the launcher");
         workspace.Add(sdk + L"\\bins\\InGame");
         Check(!SDKResources::Missing(sdk + L"\\bins"), "resources next to bins are detected");
-        const auto fresh = workspace.root + L"\\fresh-sdk";
+        const auto fresh = sdk + L"\\fresh-sdk";
         workspace.Add(fresh);
         workspace.Add(fresh + L"\\bins");
-        Check(SDKResources::ResourceRoot(fresh + L"\\bins") == fresh, "install outside empty bins");
-        Check(SDKResources::Missing(fresh + L"\\bins"), "fresh SDK still requires resources");
+        Check(SDKResources::ResourceRoot(fresh + L"\\bins\\") == fresh, "install outside empty bins");
+        Check(SDKResources::Missing(fresh + L"\\bins"), "bins-only SDK still requires resources");
+        workspace.Add(fresh + L"\\bins\\InGame");
+        Check(SDKResources::Missing(fresh + L"\\bins"), "resources from another SDK above the installation are ignored");
+        Check(SDKResources::ResourceRoot(fresh) == fresh, "flat SDK also ignores parent installations");
         Check(!SDKResources::DirectoryExists(states + L"\\absent"), "absent directory");
 
         using Demo = SDKResources::DemoDownload;

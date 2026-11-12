@@ -124,6 +124,7 @@ namespace
     class LauncherUI
     {
         LauncherPlatform& platform;
+        std::wstring sdkDirectoryKey;
         std::wstring sdkDirectory;
         std::array<std::unique_ptr<Texture>, 4> icons;
         std::unique_ptr<Texture> logo;
@@ -415,8 +416,13 @@ namespace
                             showError = true;
                             return;
                         }
+                        if (!FarkashedLauncher::SetSetting(sdkDirectoryKey.c_str(), selected))
+                        {
+                            error = "Cannot save the selected SDK folder.";
+                            showError = true;
+                            return;
+                        }
                         sdkDirectory = selected;
-                        FarkashedLauncher::SetSetting(L"SDKDirectory", selected);
                         ImportLegacyHistory(selected);
                         historyDirty = true;
                     };
@@ -480,7 +486,7 @@ namespace
                     containsEditor = containsEditor || FarkashedLauncher::FileExists(candidate + L"\\" + editor.executable);
                 if (!containsEditor || !FarkashedLauncher::FileExists(candidate + L"\\Launcher.exe") ||
                     !FarkashedLauncher::FileExists(candidate + L"\\SDKRuntime.dll")) continue;
-                if (!FarkashedLauncher::SetSetting(L"SDKDirectory", candidate))
+                if (!FarkashedLauncher::SetSetting(sdkDirectoryKey.c_str(), candidate))
                 {
                     resourceCheckMessage = "Cannot save the selected SDK folder.";
                     return;
@@ -498,7 +504,7 @@ namespace
         {
             auto* draw = ImGui::GetWindowDrawList();
             const auto root = SDKResources::ResourceRoot(sdkDirectory);
-            CenteredText(draw, 106.f, "SDK: " + Utf8(root), 0.5f, 11.f);
+            CenteredText(draw, 106.f, "Install to: " + Utf8(root), 0.5f, 11.f);
             CenteredText(draw, 88.f, "TEMP: " + Utf8(resourceDownload.TempDirectory()), 0.5f, 11.f);
             const bool started = resourceDownload.Started();
             resourceTransition = Approach(resourceTransition, started && !resourceDescriptionPreview ? 1.f : 0.f, 8.f);
@@ -568,7 +574,8 @@ namespace
                     resourceDownload.Pause();
                 };
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                ImGui::SetTooltip("Checking: %s\nsettings: %s\ngamedata: %s\ngame: %s\nInGame: %s", Utf8(root).c_str(),
+                ImGui::SetTooltip("SDK resources: %s\nSDK binaries: %s\nsettings: %s\ngamedata: %s\ngame: %s\nInGame: %s",
+                    Utf8(root).c_str(), Utf8(sdkDirectory).c_str(),
                     SDKResources::DirectoryExists(root + L"\\settings") ? "found" : "missing",
                     SDKResources::DirectoryExists(root + L"\\gamedata") ? "found" : "missing",
                     SDKResources::DirectoryExists(root + L"\\game") ? "found" : "missing",
@@ -608,9 +615,15 @@ namespace
     public:
         explicit LauncherUI(LauncherPlatform& platform) : platform(platform)
         {
-            sdkDirectory = FarkashedLauncher::Setting(L"SDKDirectory");
-            if (sdkDirectory.empty())
-                sdkDirectory = FarkashedLauncher::ModuleDirectory();
+            const auto launcherDirectory = FarkashedLauncher::ModuleDirectory();
+            // A saved folder belongs to the Launcher.exe that selected it.
+            uint64_t hash = 14695981039346656037ull;
+            for (wchar_t c : launcherDirectory) hash = (hash ^ uint64_t(towlower(c))) * 1099511628211ull;
+            sdkDirectoryKey = L"SDKDirectory_" + std::to_wstring(hash);
+            sdkDirectory = FarkashedLauncher::Setting(sdkDirectoryKey.c_str());
+            if (sdkDirectory.empty() || !FarkashedLauncher::FileExists(sdkDirectory + L"\\Launcher.exe") ||
+                !FarkashedLauncher::FileExists(sdkDirectory + L"\\SDKRuntime.dll"))
+                sdkDirectory = launcherDirectory;
             useBlur = FarkashedLauncher::Setting(L"UseBlur") != L"0";
             minimizeOnLaunch = FarkashedLauncher::Setting(L"MinimizeOnLaunch") == L"1";
             reduceMotion = FarkashedLauncher::Setting(L"ReduceMotion") == L"1";

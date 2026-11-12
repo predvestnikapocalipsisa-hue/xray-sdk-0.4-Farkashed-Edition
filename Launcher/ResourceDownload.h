@@ -32,17 +32,16 @@ namespace SDKResources
 
     inline std::wstring ResourceRoot(const std::wstring& sdk)
     {
-        const auto directory = FarkashedLauncher::FullPath(sdk);
-        // Match the engine's search for fs.ltx, including resources next to bins.
-        for (auto candidate = directory; !candidate.empty(); candidate = ParentDirectory(candidate))
-            if (HasResources(candidate) || FarkashedLauncher::FileExists(candidate + L"\\settings\\fs.ltx") ||
-                FarkashedLauncher::FileExists(candidate + L"\\fs.ltx")) return candidate;
-        for (auto candidate = directory; !candidate.empty(); candidate = ParentDirectory(candidate))
-            if (DirectoryExists(candidate + L"\\settings") || DirectoryExists(candidate + L"\\gamedata")) return candidate;
+        auto directory = FarkashedLauncher::FullPath(sdk);
+        while (directory.size() > 3 && (directory.back() == L'\\' || directory.back() == L'/')) directory.pop_back();
         const auto slash = directory.find_last_of(L"\\/");
         const auto name = directory.substr(slash == std::wstring::npos ? 0 : slash + 1);
-        const auto parent = ParentDirectory(directory);
-        if (!parent.empty() && (_wcsicmp(name.c_str(), L"bins") == 0 || _wcsicmp(name.c_str(), L"bin") == 0)) return parent;
+        if ((_wcsicmp(name.c_str(), L"bins") == 0 || _wcsicmp(name.c_str(), L"bin") == 0) && !HasResources(directory))
+        {
+            // The immediate parent belongs to this SDK. Higher ancestors can be other installations.
+            const auto parent = ParentDirectory(directory);
+            if (!parent.empty()) return parent;
+        }
         return directory;
     }
 
