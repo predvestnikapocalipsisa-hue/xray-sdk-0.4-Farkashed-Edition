@@ -1,89 +1,98 @@
-# Offline checks only. Does not call Run(), contact Google, or touch SDK resources.
-# Run with Windows PowerShell 5.1 (the same runtime used by the launcher).
+# Offline model checks. Does not call Run(), execute 7-Zip, or access the network.
 $ErrorActionPreference = 'Stop'
-Add-Type -Path (Join-Path $PSScriptRoot '../ResourceWorker.cs') -ReferencedAssemblies System.dll,System.Core.dll,System.IO.Compression.dll,System.IO.Compression.FileSystem.dll
-function Assert($condition, [string]$message) { if (-not $condition) { throw $message } }
+Add-Type -Path (Join-Path $PSScriptRoot '../ResourceWorker.cs') -ReferencedAssemblies System.dll,System.Core.dll,System.Web.Extensions.dll
+function Assert($value, [string]$message) { if (-not $value) { throw $message } }
 function Reject([scriptblock]$action, [string]$message) {
     $rejected = $false
     try { & $action | Out-Null } catch { $rejected = $true }
     Assert $rejected $message
 }
-function Fixture([string[]]$names) {
-    $memory = New-Object IO.MemoryStream
-    $zip = New-Object IO.Compression.ZipArchive($memory, [IO.Compression.ZipArchiveMode]::Create, $true)
-    try {
-        foreach ($name in $names) {
-            $entry = $zip.CreateEntry($name)
-            if (-not $name.EndsWith('/')) {
-                $stream = $entry.Open()
-                try { $bytes = [Text.Encoding]::UTF8.GetBytes('123456789'); $stream.Write($bytes, 0, $bytes.Length) }
-                finally { $stream.Dispose() }
-            }
-        }
-    } finally { $zip.Dispose() }
-    $memory.Position = 0
-    return ,$memory
+function Release([int]$number) {
+    $name = 'resources.7z.{0:000}' -f $number
+    return @{ draft = $false; prerelease = $false; assets = @(@{
+        id = 100 + $number; name = $name; size = 100; digest = 'sha256:' + ('a' * 64)
+        browser_download_url = "https://github.com/lunardontcry/SDK-DATA-PASS/releases/download/$number/$name"
+    }) }
 }
-function Inspect([IO.Stream]$stream) {
-    $crcs = [SDKResourceWorker]::ReadCrcs($stream)
-    $stream.Position = 0
-    $zip = New-Object IO.Compression.ZipArchive($stream, [IO.Compression.ZipArchiveMode]::Read, $true)
-    try { return ,([SDKResourceWorker]::Plan($zip, $crcs)) }
-    finally { $zip.Dispose() }
-}
+$releases = @((Release 3), (Release 2), (Release 1))
+$parts = [SDKResourceWorker]::ParseReleases(($releases | ConvertTo-Json -Depth 8))
+Assert ($parts.Count -eq 3) 'parts spread across releases were omitted'
+Assert ($parts[0].Number -eq 1 -and $parts[2].Number -eq 3) 'parts were not sorted numerically'
+Reject { [SDKResourceWorker]::ParseReleases((@((Release 1), (Release 3)) | ConvertTo-Json -Depth 8)) } 'missing volume accepted'
+$bad = Release 1; $bad.assets[0].digest = $null
+Reject { [SDKResourceWorker]::ParseReleases((ConvertTo-Json -InputObject @($bad) -Depth 8)) } 'missing SHA-256 accepted'
+$bad = Release 1; $bad.assets[0].browser_download_url = 'https://example.com/resources.7z.001'
+Reject { [SDKResourceWorker]::ParseReleases((ConvertTo-Json -InputObject @($bad) -Depth 8)) } 'external asset URL accepted'
 
-$confirmation = '<form method="get" action="https://drive.usercontent.google.com/download" id="download-form"><input value="137YxJG65oJrJb1kwUPaxoyCpn9XDn-2n" name="id"><input name="confirm" value="fresh-token"><input value="token&amp;value" name="uuid"></form>'
-$confirmedUrl = [SDKResourceWorker]::ConfirmationUrl($confirmation)
-Assert ($confirmedUrl.Contains('confirm=fresh-token')) 'confirmation token ignored'
-Assert ($confirmedUrl.Contains('uuid=token%26value')) 'HTML attribute decoding failed'
-$singleQuotes = "<form id='download-form' action='/download'><input value='t' name='confirm'></form>"
-Assert (([SDKResourceWorker]::ConfirmationUrl($singleQuotes)).Contains('confirm=t')) 'single-quoted confirmation unsupported'
-Assert (([SDKResourceWorker]::ConfirmationUrl($singleQuotes)).EndsWith('authuser=0')) 'default account selector omitted'
-Reject { [SDKResourceWorker]::ConfirmationUrl($confirmation.Replace('137YxJG65oJrJb1kwUPaxoyCpn9XDn-2n', 'another-file')) } 'wrong Drive file accepted'
-Reject { [SDKResourceWorker]::ConfirmationUrl($confirmation.Replace('https://drive.usercontent.google.com/download', 'https://example.com/download')) } 'external confirmation target accepted'
-Reject { [SDKResourceWorker]::ConfirmationUrl('<html>Download quota exceeded</html>') } 'quota page treated as archive'
-
-Assert ([SDKResourceWorker]::ValidateResume(206, 'bytes 100-999/1000', 900, 100, 1000)) 'valid range'
-Assert (([SDKResourceWorker]::ResponseSize(200, '', 11450714965)) -eq 11450714965) 'full download size must come from Content-Length'
-Assert (([SDKResourceWorker]::ResponseSize(206, 'bytes 100-999/1000', 900)) -eq 1000) 'resume size must come from Content-Range'
-Reject { [SDKResourceWorker]::ResponseSize(200, '', -1) } 'unknown body size accepted'
-Reject { [SDKResourceWorker]::ResponseSize(206, 'bytes */1000', 0) } 'invalid range size accepted'
-Assert (-not [SDKResourceWorker]::ValidateResume(200, '', 1000, 100, 1000)) 'full response must restart'
-Reject { [SDKResourceWorker]::ValidateResume(206, 'bytes 0-999/1000', 1000, 100, 1000) } 'wrong offset accepted'
-Reject { [SDKResourceWorker]::ValidateResume(206, 'bytes 100-999/2000', 900, 100, 1000) } 'wrong total accepted'
-Reject { [SDKResourceWorker]::ValidateResume(206, 'bytes 100-999/1000', 899, 100, 1000) } 'wrong body size accepted'
-Reject { [SDKResourceWorker]::ValidateResume(403, '', 0, 100, 1000) } 'error body accepted'
+Assert ([SDKResourceWorker]::ValidateResume(206, 'bytes 100-999/1000', 900, 100, 1000)) 'valid resume rejected'
+Assert (-not [SDKResourceWorker]::ValidateResume(200, '', 1000, 100, 1000)) 'full response must restart instead of append'
+Reject { [SDKResourceWorker]::ValidateResume(206, 'bytes 0-999/1000', 1000, 100, 1000) } 'wrong range offset accepted'
+Reject { [SDKResourceWorker]::ValidateResume(206, 'bytes 100-999/2000', 900, 100, 1000) } 'wrong range total accepted'
+Reject { [SDKResourceWorker]::ValidateResume(403, '', 0, 100, 1000) } 'HTTP error body accepted'
 foreach ($unsafe in @('../evil', '/evil', 'C:/evil', 'gamedata/../evil', 'gamedata/file:stream', 'settings/CON.ini', 'settings/name.', 'settings//file')) {
     Reject { [SDKResourceWorker]::SafeName($unsafe) } "unsafe path accepted: $unsafe"
 }
 
-$fixture = Fixture @('xray sdk 4.8/settings/system.ltx', 'xray sdk 4.8/gamedata/textures/test.dds', 'xray sdk 4.8/rawdata/object', 'xray sdk 4.8/bins/Launcher.exe', 'xray sdk 4.8/.git/config')
-try {
-    $plan = Inspect $fixture
-    Assert ($plan.Count -eq 3) 'binary or Git files selected'
-    Assert ($plan[0].Path -eq 'settings/system.ltx') 'wrapper directory was not stripped'
-    Assert ($plan[0].Crc -eq [uint32]3421780262) 'CRC directory parsing failed'
-} finally { $fixture.Dispose() }
-$fixture = Fixture @('settings/system.ltx', 'gamedata/file')
-try { Assert ((Inspect $fixture).Count -eq 2) 'root-level resources unsupported' } finally { $fixture.Dispose() }
-$fixture = Fixture @('settings/system.ltx', 'gamedata/file', 'GAMEDATA/FILE')
-try { Reject { Inspect $fixture } 'case-insensitive duplicate accepted' } finally { $fixture.Dispose() }
-$fixture = Fixture @('settings/system.ltx', 'bins/Launcher.exe')
-try { Reject { Inspect $fixture } 'missing gamedata accepted' } finally { $fixture.Dispose() }
+$listing = @'
+Path = xray sdk 4.8/settings
+Folder = +
+Size = 0
+Attributes = D
 
-# Minimal ZIP64 footer: exercises 64-bit central directory lookup without large files.
-$zip64 = New-Object IO.MemoryStream
-$writer = New-Object IO.BinaryWriter($zip64)
-try {
-    $writer.Write([uint32]0x06064b50); $writer.Write([uint64]44)
-    $writer.Write([uint16]45); $writer.Write([uint16]45)
-    $writer.Write([uint32]0); $writer.Write([uint32]0)
-    $writer.Write([uint64]0); $writer.Write([uint64]0); $writer.Write([uint64]0); $writer.Write([uint64]0)
-    $writer.Write([uint32]0x07064b50); $writer.Write([uint32]0); $writer.Write([uint64]0); $writer.Write([uint32]1)
-    $writer.Write([uint32]0x06054b50); $writer.Write([uint16]0); $writer.Write([uint16]0)
-    $writer.Write([uint16]65535); $writer.Write([uint16]65535)
-    $writer.Write([uint32]::MaxValue); $writer.Write([uint32]::MaxValue); $writer.Write([uint16]0)
-    $writer.Flush(); $zip64.Position = 0
-    Assert (([SDKResourceWorker]::ReadCrcs($zip64)).Count -eq 0) 'ZIP64 directory lookup failed'
-} finally { $writer.Dispose() }
-Write-Output 'PASS: Drive confirmation, ranges, safe paths, resource selection, wrapper roots, duplicates, CRC and ZIP64'
+Path = xray sdk 4.8/settings/fs.ltx
+Folder = -
+Size = 123
+Attributes = A
+Encrypted = -
+
+Path = xray sdk 4.8/gamedata
+Folder = +
+Size = 0
+Attributes = D
+
+Path = xray sdk 4.8/gamedata/file
+Folder = -
+Size = 456
+Attributes = A
+Encrypted = -
+
+Path = xray sdk 4.8/game/gamedata.db0
+Size = 987
+Attributes = A
+
+Path = xray sdk 4.8/bins/InGame/bin/xrEngine.exe
+Size = 654
+Attributes = A
+
+Path = xray sdk 4.8/bins/Launcher.exe
+Size = 789
+Attributes = A
+
+Path = xray sdk 4.8/.git/config
+Size = 1
+Attributes = A
+
+'@
+$entries = [SDKResourceWorker]::ParseListing($listing)
+Assert ($entries.Count -eq 6) 'SDK files outside the resource folders were selected'
+Assert ($entries[1].Relative -eq 'settings/fs.ltx') 'wrapper directory not stripped'
+Assert ($entries[3].Size -eq 456) 'entry size lost'
+Assert ($entries.Relative -contains 'game/gamedata.db0') 'game archives omitted'
+Assert ($entries.Relative -contains 'bins/InGame/bin/xrEngine.exe') 'nested InGame omitted'
+$flat = [SDKResourceWorker]::ParseListing($listing.Replace('bins/InGame/', 'InGame/'))
+Assert ($flat.Relative -contains 'InGame/bin/xrEngine.exe') 'root InGame omitted'
+Reject { [SDKResourceWorker]::ParseListing($listing.Replace('bins/InGame/', 'bins/Other/')) } 'missing InGame accepted'
+Reject { [SDKResourceWorker]::ParseListing($listing.Replace('gamedata', 'other')) } 'missing required gamedata accepted'
+Reject { [SDKResourceWorker]::ParseListing($listing.Replace('Encrypted = -', 'Encrypted = +')) } 'encrypted files accepted'
+Reject { [SDKResourceWorker]::ParseListing($listing + "`nPath = xray sdk 4.8/GAMEDATA/FILE`nSize = 1`nAttributes = A`n`n") } 'case-insensitive duplicate accepted'
+Reject { [SDKResourceWorker]::ParseListing($listing.Replace('Size = 456', "Size = 456`nSymbolic Link = outside")) } 'symbolic link accepted'
+
+$header = New-Object byte[] 32
+[byte[]]$signature = 0x37,0x7a,0xbc,0xaf,0x27,0x1c
+[Array]::Copy($signature, 0, $header, 0, 6)
+[Array]::Copy([BitConverter]::GetBytes([uint64]10000000000), 0, $header, 12, 8)
+[Array]::Copy([BitConverter]::GetBytes([uint64]100), 0, $header, 20, 8)
+Assert (([SDKResourceWorker]::SevenZipLength($header)) -eq 10000000132) '64-bit split archive length is incorrect'
+$header[0] = 0
+Reject { [SDKResourceWorker]::SevenZipLength($header) } 'invalid 7z signature accepted'
+Write-Output 'PASS: release discovery, volume ordering/gaps, SHA-256 metadata, ranges, paths, listing, wrapper and 64-bit header'

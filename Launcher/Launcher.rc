@@ -31,3 +31,7 @@ END
 IDR_SDK_UPDATE_SCRIPT RCDATA "UpdateWorker.ps1"
 IDR_SDK_RESOURCE_WORKER RCDATA "ResourceWorker.cs"
 IDR_SDK_RESOURCE_SCRIPT RCDATA "ResourceWorker.ps1"
+IDR_SDK_7ZIP_EXE RCDATA "third_party/7zip/7z.exe"
+IDR_SDK_7ZIP_DLL RCDATA "third_party/7zip/7z.dll"
+IDR_SDK_7ZIP_LICENSE RCDATA "third_party/7zip/License.txt"
+IDR_SDK_7ZIP_README RCDATA "third_party/7zip/README.md"

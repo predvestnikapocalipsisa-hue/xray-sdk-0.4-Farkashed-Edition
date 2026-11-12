@@ -19,6 +19,7 @@ public:
 	void Push(XrUI *ui, bool need_deleted = true);
 	void Draw();
     void UpdateDiscordPresence();
+    static const char* GetDiscordStatus();
 
 	virtual ~XrUIManager();
 

@@ -5,18 +5,40 @@
 #include <array>
 #include <fstream>
 #include <sstream>
+#include <unordered_map>
 
 namespace SDKResources
 {
     class LiveDownload
     {
-        std::wstring target, directory, archiveDirectory, previousArchiveDirectory, tempKey, previousTempKey, cacheTag;
+        std::wstring target, sdkDirectory, directory, archiveDirectory, previousArchiveDirectory, tempKey, previousTempKey, cacheTag;
         HANDLE process = nullptr, installationLock = INVALID_HANDLE_VALUE;
         bool started = false, stopping = false;
-        uint64_t downloaded = 0, total = 11450714965ull, extracted = 0, extractTotal = 0;
+        uint64_t downloaded = 0, total = 10123443705ull, extracted = 0, extractTotal = 0;
         double rate = 0.;
         std::string phase, error;
         std::chrono::steady_clock::time_point nextPoll;
+
+        static void ScanParts(const std::wstring& cache, std::unordered_map<std::wstring, uint64_t>& sizes)
+        {
+            if (cache.empty()) return;
+            WIN32_FIND_DATAW data = {};
+            HANDLE search = FindFirstFileW((cache + L"\\*.7z.*").c_str(), &data);
+            if (search == INVALID_HANDLE_VALUE) return;
+            do
+            {
+                if (data.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) continue;
+                std::wstring name = data.cFileName;
+                std::transform(name.begin(), name.end(), name.begin(), [](wchar_t c) { return wchar_t(towlower(c)); });
+                if (name.size() > 5 && name.substr(name.size() - 5) == L".part") name.resize(name.size() - 5);
+                const auto separator = name.rfind(L".7z.");
+                if (separator == std::wstring::npos || name.size() - separator != 7 ||
+                    name.find_first_not_of(L"0123456789", separator + 4) != std::wstring::npos) continue;
+                const uint64_t length = (uint64_t(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
+                sizes[name] = (std::max)(sizes[name], length);
+            } while (FindNextFileW(search, &data));
+            FindClose(search);
+        }
 
         static std::string Utf8(const std::wstring& text)
         {
@@ -75,7 +97,7 @@ namespace SDKResources
             std::istringstream stream(std::string(bytes, length));
             std::array<std::string, 10> lines;
             for (auto& line : lines) if (!std::getline(stream, line)) return;
-            if (lines[0] != "resources-v1" || lines[8] != "137YxJG65oJrJb1kwUPaxoyCpn9XDn-2n" || lines[9] != Utf8(target)) return;
+            if (lines[0] != "resources-v2" || lines[8] != "github:lunardontcry/SDK-DATA-PASS:7z-v1" || lines[9] != Utf8(target)) return;
             uint64_t newDownloaded = 0, newTotal = 0, newExtracted = 0, newExtractTotal = 0;
             double newRate = 0.;
             std::istringstream numbers(lines[2] + " " + lines[3] + " " + lines[4] + " " + lines[5] + " " + lines[6]);
@@ -110,12 +132,13 @@ namespace SDKResources
             Pause();
             if (process) WaitForSingleObject(process, 7000);
             ReleaseProcess();
-            target = FarkashedLauncher::FullPath(sdk);
+            sdkDirectory = FarkashedLauncher::FullPath(sdk);
+            target = ResourceRoot(sdkDirectory);
             std::transform(target.begin(), target.end(), target.begin(), [](wchar_t c) { return wchar_t(towlower(c)); });
             while (target.size() > 3 && (target.back() == L'\\' || target.back() == L'/')) target.pop_back();
             uint64_t hash = 14695981039346656037ull;
             for (wchar_t c : target) hash = (hash ^ uint64_t(c)) * 1099511628211ull;
-            cacheTag = L"drive-v1-" + std::to_wstring(hash);
+            cacheTag = L"github-v1-" + std::to_wstring(hash);
             tempKey = L"ResourceTemp_" + std::to_wstring(hash);
             previousTempKey = L"ResourceTempPrevious_" + std::to_wstring(hash);
             const auto history = FarkashedLauncher::HistoryPath();
@@ -128,28 +151,33 @@ namespace SDKResources
                 CreateDirectoryW(directory.c_str(), nullptr);
             }
             archiveDirectory = FarkashedLauncher::Setting(tempKey.c_str());
+            // Preserve the chosen TEMP disk, but keep old Google ZIP data separate.
+            if (archiveDirectory.find(L"drive-v1-") != std::wstring::npos)
+            {
+                archiveDirectory = ParentDirectory(archiveDirectory) + L"\\" + cacheTag;
+                FarkashedLauncher::SetSetting(tempKey.c_str(), archiveDirectory);
+            }
             if (archiveDirectory.empty()) archiveDirectory = directory;
             previousArchiveDirectory = FarkashedLauncher::Setting(previousTempKey.c_str());
+            if (previousArchiveDirectory.find(L"drive-v1-") != std::wstring::npos) previousArchiveDirectory.clear();
             started = false;
             downloaded = extracted = extractTotal = 0;
-            total = 11450714965ull;
+            total = 10123443705ull;
             phase.clear(); error.clear();
             if (!directory.empty())
             {
                 ReadState();
-                WIN32_FILE_ATTRIBUTE_DATA attributes = {};
-                // A pending relocation still resumes from the previous TEMP folder.
-                for (const auto& cache : { previousArchiveDirectory, archiveDirectory })
-                for (const auto* name : { L"archive.part", L"archive.zip" })
-                    if (!cache.empty() && GetFileAttributesExW((cache + L"\\" + name).c_str(), GetFileExInfoStandard, &attributes) &&
-                        !(attributes.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-                    {
-                        started = true;
-                        downloaded = (uint64_t(attributes.nFileSizeHigh) << 32) | attributes.nFileSizeLow;
-                        total = (std::max)(total, downloaded);
-                    }
+                std::unordered_map<std::wstring, uint64_t> sizes;
+                ScanParts(previousArchiveDirectory, sizes);
+                ScanParts(archiveDirectory, sizes);
+                if (!sizes.empty())
+                {
+                    started = true; downloaded = 0;
+                    for (const auto& part : sizes) downloaded += part.second;
+                    total = (std::max)(total, downloaded);
+                }
             }
-            if (Complete() && Missing(target))
+            if (Complete() && Missing(sdkDirectory))
             {
                 // Folder presence, rather than an old completion record, decides
                 // whether a subsequently damaged or stripped SDK needs setup.
@@ -173,11 +201,6 @@ namespace SDKResources
             const DWORD attributes = GetFileAttributesW(destination.c_str());
             if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
             { error = "The selected TEMP folder is unavailable."; return false; }
-            wchar_t volume[MAX_PATH] = {}, format[64] = {};
-            if (GetVolumePathNameW(destination.c_str(), volume, MAX_PATH) &&
-                GetVolumeInformationW(volume, nullptr, 0, nullptr, nullptr, nullptr, format, 64) &&
-                (_wcsicmp(format, L"FAT32") == 0 || _wcsicmp(format, L"FAT") == 0))
-            { error = "This TEMP disk cannot store archives larger than 4 GiB."; return false; }
             // Check write access without leaving a probe file behind.
             HANDLE probe = CreateFileW((destination + L"\\.write-check-" + std::to_wstring(GetCurrentProcessId())).c_str(),
                 GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
@@ -187,8 +210,9 @@ namespace SDKResources
                 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             if (lock == INVALID_HANDLE_VALUE) { error = "Another launcher is using this download."; return false; }
             auto previous = previousArchiveDirectory;
-            if (FarkashedLauncher::FileExists(archiveDirectory + L"\\archive.part") ||
-                FarkashedLauncher::FileExists(archiveDirectory + L"\\archive.zip")) previous = archiveDirectory;
+            std::unordered_map<std::wstring, uint64_t> currentParts;
+            ScanParts(archiveDirectory, currentParts);
+            if (!currentParts.empty()) previous = archiveDirectory;
             if (_wcsicmp(previous.c_str(), destination.c_str()) == 0) previous.clear();
             const bool saved = FarkashedLauncher::SetSetting(previousTempKey.c_str(), previous) &&
                 FarkashedLauncher::SetSetting(tempKey.c_str(), destination);
@@ -216,6 +240,7 @@ namespace SDKResources
             if (!process && !Complete()) return error.empty() ? "Paused" : "Download or installation interrupted";
             if (phase == "checking") return "Preparing download...";
             if (phase == "moving") return "Moving cached archive...";
+            if (phase == "verifying") return "Verifying archive parts...";
             if (phase == "extracting") return "Extracting resources...";
             if (phase == "installing") return "Installing resources...";
             if (phase == "complete") return "Resources installed.";
@@ -234,7 +259,11 @@ namespace SDKResources
                 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             if (installationLock == INVALID_HANDLE_VALUE) { error = "Another launcher is using this resource download."; return; }
             if (!ExtractResource(IDR_SDK_RESOURCE_WORKER, L"ResourceWorker.cs") ||
-                !ExtractResource(IDR_SDK_RESOURCE_SCRIPT, L"ResourceWorker.ps1"))
+                !ExtractResource(IDR_SDK_RESOURCE_SCRIPT, L"ResourceWorker.ps1") ||
+                !ExtractResource(IDR_SDK_7ZIP_EXE, L"7z.exe") ||
+                !ExtractResource(IDR_SDK_7ZIP_DLL, L"7z.dll") ||
+                !ExtractResource(IDR_SDK_7ZIP_LICENSE, L"7zip-License.txt") ||
+                !ExtractResource(IDR_SDK_7ZIP_README, L"7zip-README.md"))
             { error = "Cannot prepare the resource installer."; ReleaseProcess(); return; }
             DeleteFileW((directory + L"\\pause").c_str());
             DeleteFileW((directory + L"\\state.txt").c_str());
@@ -247,7 +276,7 @@ namespace SDKResources
             const uint64_t startTime = (uint64_t(created.dwHighDateTime) << 32) | created.dwLowDateTime;
             std::wstring command = Quote(executable) + L" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File " +
                 Quote(directory + L"\\ResourceWorker.ps1") + L" -Target " + Quote(target) + L" -Work " + Quote(directory) +
-                L" -ArchiveDirectory " + Quote(archiveDirectory) +
+                L" -Sdk " + Quote(sdkDirectory) + L" -ArchiveDirectory " + Quote(archiveDirectory) +
                 L" -ParentId " + std::to_wstring(GetCurrentProcessId()) + L" -ParentStart " + std::to_wstring(startTime);
             if (!previousArchiveDirectory.empty()) command += L" -PreviousArchiveDirectory " + Quote(previousArchiveDirectory);
             STARTUPINFOW startup = {}; startup.cb = sizeof(startup);
@@ -302,7 +331,7 @@ namespace SDKResources
         {
             test = demoMode;
             live.Initialize(sdk);
-            if (test) demo.Initialize(sdk);
+            if (test) demo.Initialize(ResourceRoot(sdk));
         }
         const std::wstring& TempDirectory() const { return live.TempDirectory(); }
         const std::string& TempError() const { return live.Error(); }

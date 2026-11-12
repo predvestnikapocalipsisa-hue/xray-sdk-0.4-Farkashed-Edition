@@ -2,11 +2,11 @@
 #include <windows.h>
 #include <string>
 #include <algorithm>
-#include "../Editors/XrEUI/discord_rpc.h"
+#include <ctime>
+#include "DiscordIPC.h"
 
 namespace FarkashedDiscord
 {
-    constexpr const char* ApplicationId = "1542531211602169966";
 
     inline std::string AnsiToUtf8(const char* text)
     {
@@ -28,15 +28,6 @@ namespace FarkashedDiscord
         return result;
     }
 
-    inline std::string LimitText(const std::string& text)
-    {
-        size_t length = (std::min)(text.size(), size_t(127));
-        if (length < text.size())
-            while (length && (static_cast<unsigned char>(text[length]) & 0xc0) == 0x80)
-                --length;
-        return text.substr(0, length);
-    }
-
     class Presence
     {
         bool initialized = false;
@@ -46,9 +37,10 @@ namespace FarkashedDiscord
         HANDLE processMarker = nullptr;
         HANDLE publisherMutex = nullptr;
         ULONGLONG nextPoll = 0;
-        ULONGLONG lastSend = 0;
-        std::string lastEnvironment;
-        std::string lastDocument;
+        IPC ipc;
+        Settings settings;
+        ULONGLONG nextSettingsPoll = 0;
+        int64_t sessionStart = 0;
 
         static std::wstring ProcessMarkerName(DWORD process)
         {
@@ -69,20 +61,26 @@ namespace FarkashedDiscord
             if (!connected)
                 return;
             // Close the old connection before another SDK process acquires RPC.
-            Discord_Shutdown();
+            ipc.Close();
             ReleaseMutex(publisherMutex);
             connected = false;
-            lastSend = 0;
-            lastEnvironment.clear();
-            lastDocument.clear();
         }
 
     public:
+        const char* Status() const
+        {
+            if (!settings.enabled) return "Discord RPC is disabled.";
+            if (!connected) return "Waiting for this SDK process to publish activity.";
+            return ipc.Status();
+        }
+
         void Initialize(bool isEditor = false)
         {
             if (initialized)
                 return;
             editor = isEditor;
+            LoadSettings(settings);
+            sessionStart = static_cast<int64_t>(std::time(nullptr));
             publisherMutex = CreateMutexW(nullptr, FALSE, L"Local\\FarkashedSDK.Discord.Publisher");
             if (!publisherMutex)
                 return;
@@ -109,6 +107,16 @@ namespace FarkashedDiscord
             if (now < nextPoll)
                 return;
             nextPoll = now + 250;
+            if (now >= nextSettingsPoll)
+            {
+                LoadSettings(settings); // Keep the last valid configuration on read failure.
+                nextSettingsPoll = now + 1000;
+            }
+            if (!settings.enabled)
+            {
+                Disconnect();
+                return;
+            }
             DWORD foregroundProcess = 0;
             GetWindowThreadProcessId(GetForegroundWindow(), &foregroundProcess);
             const bool anotherEditorForeground = foregroundProcess != GetCurrentProcessId() &&
@@ -120,36 +128,17 @@ namespace FarkashedDiscord
                 Disconnect();
                 return;
             }
-            bool justConnected = false;
             if (!connected)
             {
                 const DWORD result = WaitForSingleObject(publisherMutex, 0);
                 if (result != WAIT_OBJECT_0 && result != WAIT_ABANDONED)
                     return;
-                DiscordEventHandlers handlers = {};
-                // Do not register join commands for the launcher/editor host.
-                Discord_Initialize(ApplicationId, &handlers, 0, nullptr);
-                connected = justConnected = true;
+                connected = true;
             }
-            Discord_RunCallbacks();
-            const std::string details = LimitText(environment);
-            const std::string state = LimitText(document);
-            // Keep the selected editor visible when focus moves to Discord or
-            // the launcher. Only its connection can publish document updates.
-            if (justConnected || details != lastEnvironment ||
-                state != lastDocument || now - lastSend >= 15000)
-            {
-                DiscordRichPresence activity = {};
-                // Discord supplies the first line from the application name.
-                activity.details = details.c_str();
-                activity.state = state.empty() ? nullptr : state.c_str();
-                activity.largeImageKey = "logo";
-                activity.largeImageText = "X-Ray SDK Farkashed Edition";
-                Discord_UpdatePresence(&activity);
-                lastEnvironment = details;
-                lastDocument = state;
-                lastSend = now;
-            }
+            // Keep one publisher across the launcher and all SDK editors.
+            const Settings active = settings.custom ? settings : Settings();
+            ipc.Update(ActivityJson(active, environment, document, sessionStart));
+            ipc.Tick();
         }
 
         void Shutdown()
@@ -163,9 +152,8 @@ namespace FarkashedDiscord
                 CloseHandle(publisherMutex);
             processMarker = editorMarker = publisherMutex = nullptr;
             initialized = false;
-            nextPoll = lastSend = 0;
-            std::string().swap(lastEnvironment);
-            std::string().swap(lastDocument);
+            nextPoll = 0;
+            nextSettingsPoll = 0;
         }
         ~Presence() { Shutdown(); }
     };

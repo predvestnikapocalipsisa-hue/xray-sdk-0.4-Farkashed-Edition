@@ -11,6 +11,7 @@
 #include "../XrEUI/imgui.h"
 #include "../XrEUI/XrUIManager.h"
 #include "../XrEUI/SDKMessageBox.h"
+#include "../XrEUI/DiscordSettingsUI.h"
 
 namespace Colors {
 
@@ -786,6 +787,12 @@ inline void Render()
             if (SDKDialogs::DrawSoundSettings() && EPrefs) EPrefs->Save();
             ImGui::Spacing();
             ImGui::TextDisabled("Sound settings are saved automatically.");
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("  Discord RPC  "))
+        {
+            FarkashedDiscord::DrawSettings();
             ImGui::EndTabItem();
         }
 

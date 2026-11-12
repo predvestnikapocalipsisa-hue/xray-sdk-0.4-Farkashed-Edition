@@ -48,7 +48,9 @@ namespace SDKResources
 
     inline bool Missing(const std::wstring& sdk)
     {
-        return !HasResources(ResourceRoot(sdk));
+        const auto root = ResourceRoot(sdk);
+        return !HasResources(root) || !DirectoryExists(root + L"\\game") ||
+            !DirectoryExists(sdk + L"\\InGame");
     }
 
     class DemoDownload

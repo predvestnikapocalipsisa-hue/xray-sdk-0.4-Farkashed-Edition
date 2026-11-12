@@ -30,102 +30,80 @@ launch is optional.
 
 ### Resource download and installation
 
-When either `settings` or `gamedata` is missing from the SDK resource root,
-the launcher replaces editor buttons, recent files, settings and updates with:
-"Currently X-Ray SDK is missing resources. Do you want to download and install it?"
-`Download` fetches the public Google Drive archive with file ID
-`137YxJG65oJrJb1kwUPaxoyCpn9XDn-2n` (currently `xray sdk 4.8.zip`,
-11,450,714,965 bytes). No Google account, API key, browser, or external archiver
-is required. Windows PowerShell 5.1 and .NET Framework compile/run the embedded
-resource worker in a hidden child process.
-`Cancel` saves progress and closes the launcher. Window close and Escape also
-preserve progress. Title-bar minimize and close remain available.
-`Check resources` rechecks `settings` and `gamedata` when resources have been
-copied into the SDK manually. If both folders exist, it pauses the worker, waits
-for it to exit, rechecks the folders and returns to the normal launcher. Partial
-downloads remain cached. If either folder is absent, the resource screen shows
-a message and keeps the current download state. This also exits the test screen
-when actual resources are present.
-The root is discovered above the selected binaries folder using the resource
-folders / `settings/fs.ltx` / `fs.ltx`, matching the engine's parent search. A
-fresh `SDK/bins` or `SDK/bin` layout installs resources into `SDK`, not its binary
-subdirectory. Flat layouts continue using the binaries directory as their root.
-The checked root appears on screen; the Check resources tooltip reports both
-folder states. `Choose SDK folder...` accepts a full SDK root or its `bins`/`bin`
-directory while the worker is stopped. It also makes switching installations
-available when the ordinary Settings button is hidden.
-The resource screen hides the logo and centers its text and controls. The initial
-question disappears once the download starts, leaving the progress interface.
-The question fades out before the progress interface fades in; folder names are
-omitted from the screen. This transition follows the Reduce animation setting.
-Download progress shows actual bytes, total size, speed and percentage. The worker
-handles Drive's large-file confirmation page and rejects HTML/error responses.
-Fresh downloads use a normal GET without a Range header, like the direct browser
-link with `authuser=0`. Size and data come from the same response; there is no
-separate byte-zero size probe. Confirmation requests share cookies. Confirmation
-forms are processed again on download/resume if Drive reissues or expires a token.
-Parsing supports reordered attributes, single/double quotes and HTML entities;
-the file ID and confirmation target remain pinned to the configured Drive source.
-Repeated confirmations have a bounded retry count. Quota/access pages are reported
-as errors rather than saved as archive bytes; the bounded HTML response is kept as
-`drive-response.html` in the worker cache for diagnosis.
-It resumes `archive.part` using HTTP ranges and an ETag/Last-Modified validator;
-an unexpected full response replaces the partial instead of appending it.
-If Drive rejects a resume request with an HTML page or HTTP 416, the worker tries
-an ordinary full GET once. A changed resume validator also falls back to a full
-GET. Partial bytes are untouched until a valid binary response arrives. A full
-restart truncates the partial before committing its new validator, avoiding mixed
-archive versions after a crash.
-Changing server metadata restarts the download. A network error leaves the partial
-available for `Resume`. The worker stops when its launcher exits.
+Resources are downloaded from public GitHub releases in
+https://github.com/lunardontcry/SDK-DATA-PASS/releases. Google Drive and Google
+login are no longer used. The worker queries all published release pages, because
+the current six volumes are published in separate releases: `xray.sdk.4.8.7z.001`
+through `.006`. The current total is 10,123,443,705 bytes; actual totals always come
+from release metadata. Drafts/prereleases and GitHub source-code ZIPs are excluded.
+A contiguous volume sequence and one consistent archive name are required.
 
-The cache and atomic status snapshots are separate for each normalized SDK path:
-`%LOCALAPPDATA%\FarkashedSDK\ResourceDownloads\drive-v1-<hash>\`.
-`Choose TEMP folder...` selects another disk/folder for the archive while the
-worker is stopped. The actual cache is a dedicated
-`FarkashedSDK-Resources\drive-v1-<hash>` subfolder of the selected folder. Its path
-appears on screen and the button tooltip shows free disk space. The selection is
-saved per SDK root in the launcher settings; worker scripts/status/locks remain
-in LocalAppData. FAT/FAT32 destinations are rejected because the ZIP exceeds 4 GiB.
+The normal launcher is replaced by the resource screen when either `settings` or
+`gamedata` is absent. These checks use the SDK resource root, including layouts
+with resource folders next to `bins`/`bin`. The root is discovered using resource
+folders or `settings/fs.ltx` / `fs.ltx`, matching the engine's parent search. A
+fresh `SDK/bins` layout installs into `SDK`. Flat installations use the binaries
+folder as the resource root. The checked path is shown on screen.
 
-Changing TEMP preserves a started download: on the next `Resume`, the worker moves
-the partial/completed archive and its metadata in the background before continuing.
-The old copy is retained until the new copy is committed. The copy itself can be
-paused and resumed across launcher restarts. If the destination already has a
-cache, that cache is retained. Extraction staging stays on the SDK disk, and disk
-space checks independently account for the TEMP and SDK volumes (including mounted
-volumes). Merely choosing TEMP does not start a download or relocate the cache.
+`Download`, `Pause`, `Resume` and `Cancel` control the hidden worker. Cancel closes
+the launcher; partial volumes remain cached. Closing/reopening leaves the job
+paused. Transfer progress and speed cover the sum of all volumes, not just the
+current one. Completed volumes are reused; HTTP ranges resume the current `.part`
+file. A full HTTP response replaces a partial instead of being appended to it.
+Every volume is checked against GitHub's SHA-256 digest before extraction. The
+first 7z header's expected total length must also match the sum of the volumes,
+catching missing final volumes and mixed sets. No archive payload is executed.
 
-`Pause` cooperatively stops the worker; `Resume` starts it again. Reopening always
-leaves the job paused. An interrupted extraction resumes using fully extracted,
-CRC-checked staging files; the current partial entry is extracted again.
+State, scripts, release manifests, locks and diagnostics live under
+`%LOCALAPPDATA%\FarkashedSDK\ResourceDownloads\github-v1-<sdk-hash>\`.
+`Choose TEMP folder...` selects a different disk for all archive volumes. The
+selection is remembered for that SDK; actual files go into a dedicated
+`FarkashedSDK-Resources\github-v1-<sdk-hash>` subfolder. The tooltip reports free
+space. A paused download is relocated on Resume, keeping the source copy until a
+complete destination copy is committed. Relocation can itself be paused/resumed.
+The old Google cache is kept separate, while the chosen TEMP disk is retained.
 
-ZIP64 archives are supported. The worker strips the archive's `xray sdk 4.8/` wrapper directory
-and installs only `settings`, `gamedata`, `rawdata`, `groups` and `maps`. Legacy
-`bins`, `game`, `.git` and `logs` are excluded. Every new file is checked against
-its ZIP CRC-32. Traversal paths, links/reparse points, Windows device names and
-case-insensitive duplicates are rejected. Existing SDK files are preserved;
-missing files are added. Staging is under `.sdk-resource-stage-<file-id>` inside
-the SDK so the final moves stay on the same volume. An absent required folder
-is committed last. The normal launcher becomes available after the worker exits
-successfully and both required folders exist. No marker file substitutes for
-the `settings` / `gamedata` presence check.
+A bundled, unmodified 7-Zip 26.03 console extractor and its license are embedded
+in Launcher.exe; no system archiver installation is required. See
+`third_party/7zip/README.md` and `License.txt` for origin, hashes, source and license.
+The extractor reads the split `.001` archive directly with all volumes alongside
+it; no additional joined archive is created. Extraction runs without a console
+window. A Windows job object stops the extractor if the worker exits; Pause stops
+it cooperatively through the worker. Solid 7z extraction restarts after a pause,
+while all downloaded and verified volumes remain available.
 
-Free space is checked before the full download and again against the selected
-ZIP entries before extraction. The current archive plus selected resources takes
-about 13.46 GiB, plus a 64 MiB reserve. After success, the archive/staging cache is
-cleaned up. Errors remain visible; diagnostic details are in `worker-error.txt`
-inside the download cache. A known-invalid ZIP is discarded for a fresh retry.
+Before extraction, the technical listing is validated. Traversal paths, Windows
+device names, links, encrypted entries, duplicate paths and ambiguous resource
+roots are rejected. The installer selects `settings`, `gamedata`, `rawdata`,
+`groups`, `maps`, `game` and `InGame`. It installs `InGame` next to `Launcher.exe`,
+including when the archive stores it under `bins/InGame`. A wrapper such as
+`xray sdk 4.8/` is stripped during installation. Existing SDK files are preserved;
+only missing files are extracted. 7-Zip checks the selected files' archive CRCs,
+and extracted file lengths are compared with the validated listing.
+
+Staging stays inside `.sdk-resource-stage-github-v1` on the SDK disk. Incomplete
+staging is discarded before restarting extraction; no partially extracted file is
+installed. An absent required folder is committed last. Normal controls become
+available after the worker exits and both required resource folders exist. Free
+space accounts for the TEMP and SDK volumes independently, with an additional
+64 MiB reserve; the exact missing file sizes are checked before extraction.
+Archive volumes and staging are cleaned up after success. Diagnostics are saved
+as `worker-error.txt` / `7zip-error.txt` in the worker directory.
+
+`Check resources` rechecks folders copied in manually, stops the worker, waits for
+it to exit and returns to the normal screen if both folders exist. Partial parts
+are preserved. `Choose SDK folder...` accepts the SDK root or its binary folder
+while the worker is stopped. The check tooltip reports folder presence. The logo
+is hidden on the resource screen; text is centered and fades out before progress
+fades in, following the Reduce animation setting.
+
+`Launcher.exe --test-resource-download` retains the offline simulation with its
+separate `demo-v1-*.ini` state. It never downloads or creates fake resource folders.
+`Back to description` pauses the simulation and smoothly returns to its initial
+question; Resume continues it, and Restart test resets a completed simulation.
 The explicit SDK updater command-line flow remains independent.
 
-Use `Launcher.exe --test-resource-download` for the offline simulation, including
-when both required folders already exist. Test progress has its own `demo-v1-*.ini`
-state, never downloads files, and never creates fake resource folders.
-`Back to description` pauses the test and smoothly returns to the initial question
-without discarding progress. `Resume` continues it; `Restart test` resets a
-completed simulation. These test controls are absent from real installation.
-
-Offline checks (no network or real resource changes):
+Offline checks (no real downloads/installations):
 
 ```powershell
 msbuild Launcher/tests/resource_download_tests.vcxproj /p:Configuration=Release /p:Platform=x64

@@ -47,6 +47,7 @@
   <ItemGroup>
     <ClInclude Include="discord_register.h" />
     <ClInclude Include="discord_rpc.h" />
+    <ClInclude Include="DiscordSettingsUI.h" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="imgui_impl_dx9.h" />

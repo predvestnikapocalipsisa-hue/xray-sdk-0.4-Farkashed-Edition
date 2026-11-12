@@ -24,11 +24,17 @@
     <ClInclude Include="ResourceInstaller.h"><Filter>Source</Filter></ClInclude>
     <ClInclude Include="EditorHost.h"><Filter>Source</Filter></ClInclude>
     <ClInclude Include="DiscordPresence.h"><Filter>Source</Filter></ClInclude>
+    <ClInclude Include="DiscordIPC.h"><Filter>Source</Filter></ClInclude>
+    <ClInclude Include="DiscordSettings.h"><Filter>Source</Filter></ClInclude>
     <ResourceCompile Include="Launcher.rc"><Filter>Source</Filter></ResourceCompile>
     <None Include="Launcher.manifest"><Filter>Source</Filter></None>
     <None Include="README.md" />
     <None Include="ResourceWorker.cs"><Filter>Source</Filter></None>
     <None Include="ResourceWorker.ps1"><Filter>Source</Filter></None>
+    <None Include="third_party\7zip\7z.exe"><Filter>Assets</Filter></None>
+    <None Include="third_party\7zip\7z.dll"><Filter>Assets</Filter></None>
+    <None Include="third_party\7zip\License.txt"><Filter>Assets</Filter></None>
+    <None Include="third_party\7zip\README.md"><Filter>Assets</Filter></None>
     <None Include="assets\gui\Launcher.pdn"><Filter>Assets</Filter></None>
     <None Include="assets\gui\font.otf"><Filter>Assets</Filter></None>
     <Image Include="assets\gui\*.png"><Filter>Assets</Filter></Image>

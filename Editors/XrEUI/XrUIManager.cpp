@@ -965,6 +965,11 @@ void XrUIManager::UpdateDiscordPresence()
     editorPresence.Tick(environment.c_str(), FarkashedDiscord::AnsiToUtf8(document.c_str()));
 }
 
+const char* XrUIManager::GetDiscordStatus()
+{
+    return editorPresence.Status();
+}
+
 void XrUIManager::ShowAbout() { aboutRequested = true; }
 
 void XrUIManager::SetUIScale(float scale)

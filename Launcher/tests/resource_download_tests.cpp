@@ -64,9 +64,15 @@ int wmain()
         workspace.Add(sdk + L"\\settings");
         Check(SDKResources::Missing(sdk), "gamedata missing");
         workspace.Add(sdk + L"\\gamedata");
-        Check(!SDKResources::Missing(sdk), "both folders exist");
+        Check(SDKResources::Missing(sdk), "game and InGame missing");
+        workspace.Add(sdk + L"\\game");
+        Check(SDKResources::Missing(sdk), "InGame missing");
+        workspace.Add(sdk + L"\\InGame");
+        Check(!SDKResources::Missing(sdk), "resources present in flat layout");
         workspace.Add(sdk + L"\\bins");
         Check(SDKResources::ResourceRoot(sdk + L"\\bins") == sdk, "resource root is above bins");
+        Check(SDKResources::Missing(sdk + L"\\bins"), "InGame must be beside the launcher");
+        workspace.Add(sdk + L"\\bins\\InGame");
         Check(!SDKResources::Missing(sdk + L"\\bins"), "resources next to bins are detected");
         const auto fresh = workspace.root + L"\\fresh-sdk";
         workspace.Add(fresh);

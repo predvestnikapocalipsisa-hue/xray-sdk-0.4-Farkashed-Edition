@@ -293,7 +293,7 @@ bool DrawOGSRPreviewViewport()
     const bool visible = ImGui::Begin("Render", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     if (visible && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId))
     {
-        ImGui::TextUnformatted("OGSR InGame | I: inventory | Shift+F10: ImGui | ~: console | F5: return");
+        ImGui::TextUnformatted("OGSR InGame | F5: return");
         const ImVec2 position = ImGui::GetCursorScreenPos();
         ImVec2 size = ImGui::GetContentRegionAvail();
         size.x = _max(32.f, size.x); size.y = _max(32.f, size.y);

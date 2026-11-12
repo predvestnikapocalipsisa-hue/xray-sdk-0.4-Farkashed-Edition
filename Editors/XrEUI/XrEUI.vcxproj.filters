@@ -106,6 +106,9 @@
     <ClInclude Include="discord_rpc.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="DiscordSettingsUI.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
     <ClInclude Include="MediaPlayer.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>

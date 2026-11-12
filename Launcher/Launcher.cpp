@@ -568,9 +568,11 @@ namespace
                     resourceDownload.Pause();
                 };
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                ImGui::SetTooltip("Checking: %s\nsettings: %s\ngamedata: %s", Utf8(root).c_str(),
+                ImGui::SetTooltip("Checking: %s\nsettings: %s\ngamedata: %s\ngame: %s\nInGame: %s", Utf8(root).c_str(),
                     SDKResources::DirectoryExists(root + L"\\settings") ? "found" : "missing",
-                    SDKResources::DirectoryExists(root + L"\\gamedata") ? "found" : "missing");
+                    SDKResources::DirectoryExists(root + L"\\gamedata") ? "found" : "missing",
+                    SDKResources::DirectoryExists(root + L"\\game") ? "found" : "missing",
+                    SDKResources::DirectoryExists(sdkDirectory + L"\\InGame") ? "found" : "missing");
             if (AnimatedButton("ChooseResourceSDK", 294.f, 344.f, 200.f, 27.f,
                 "Choose SDK folder...", nullptr, !resourceDownload.Running() && !resourceCheckPending))
                 pendingAction = [this] { ChooseResourceSDK(); };
@@ -727,14 +729,13 @@ namespace
 
         void TickResources()
         {
-            const auto root = SDKResources::ResourceRoot(sdkDirectory);
-            if (!resourceDownload.Running() && (resourceTarget != root || resourceDownload.TestMode() != forceResourceDemo))
+            if (!resourceDownload.Running() && (resourceTarget != sdkDirectory || resourceDownload.TestMode() != forceResourceDemo))
             {
-                resourceDownload.Initialize(root, forceResourceDemo);
+                resourceDownload.Initialize(sdkDirectory, forceResourceDemo);
                 resourceTransition = 0.f;
                 resourceDescriptionPreview = false;
                 resourceCheckMessage.clear();
-                resourceTarget = root;
+                resourceTarget = sdkDirectory;
             }
             if (platform.closeRequested || !ResourceScreen())
             {
