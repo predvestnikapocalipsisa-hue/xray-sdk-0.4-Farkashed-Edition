@@ -1,10 +1,10 @@
 # Custom Discord RPC
 
-Open **Customization → Discord RPC** in any SDK editor. Enable **Use custom activity**, edit the fields, then click **Apply & Save**. **Enable Discord RPC** controls publishing for the launcher and every editor. **Defaults** restores the draft; click Apply to save it.
+Open **Customization → Discord RPC** in any SDK editor. Enable **Use custom activity**, edit the fields, then click **Apply & Save**. **Enable Discord RPC** takes effect separately for the launcher and every editor. Turning it off sends a clear request to Discord. **Defaults** restores the draft, which you can save with Apply.
 
-The Application ID is always `1542531211602169966`. The activity name is editable independently. Name, details and state support `{environment}` (current editor or launcher) and `{document}` (current file/object). Empty optional fields are omitted. Text is UTF-8; expanded fields are shortened without splitting a character.
+The Application ID is always `1542531211602169966`. Name, details and state support `{environment}` (current editor or launcher) and `{document}` (current file/object). If Discord keeps the registered name in the card header, **Show name in Details** uses your custom name for the Details line and requests it as the short status text. Empty optional fields are omitted. Text is UTF-8 and expanded fields are shortened without splitting a character.
 
-Images accept this application's uploaded asset keys or external HTTPS image URLs. Two optional buttons accept a label and HTTP(S) URL. Discord shows these buttons to other users, not their owner. Timers can be hidden, show elapsed process session time, or use explicit Unix timestamps in seconds. Advanced fields publish party and invite metadata; the SDK does not handle join or spectate commands.
+For **Large image** and **Small image**, independently choose **None**, **SDK asset key** or **External URL**. For an animated GIF, paste a public link that serves the GIF file directly. Discord's media proxy loads it from that URL. Two optional buttons accept a label and HTTP(S) URL. Discord shows these buttons to other users, not their owner. Timers can be hidden, show elapsed process session time, or use explicit Unix timestamps in seconds. Advanced fields publish party and invite metadata; the SDK does not handle join or spectate commands.
 
 Settings are stored per Windows user in `Documents\X-Ray SDK\discord.cfg`, separately from `theme.cfg`. Writes replace the configuration atomically. Running SDK processes reload valid settings once per second. Invalid or incomplete files leave the last valid configuration active. The RPC tab reports the connection state and Discord rejection responses.
 

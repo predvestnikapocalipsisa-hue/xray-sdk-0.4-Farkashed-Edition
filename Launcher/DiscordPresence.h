@@ -40,6 +40,7 @@ namespace FarkashedDiscord
         IPC ipc;
         Settings settings;
         ULONGLONG nextSettingsPoll = 0;
+        ULONGLONG clearDeadline = 0;
         int64_t sessionStart = 0;
 
         static std::wstring ProcessMarkerName(DWORD process)
@@ -64,12 +65,14 @@ namespace FarkashedDiscord
             ipc.Close();
             ReleaseMutex(publisherMutex);
             connected = false;
+            clearDeadline = 0;
         }
 
     public:
         const char* Status() const
         {
-            if (!settings.enabled) return "Discord RPC is disabled.";
+            if (!settings.enabled)
+                return connected ? "Removing SDK activity from Discord..." : "Discord RPC is disabled.";
             if (!connected) return "Waiting for this SDK process to publish activity.";
             return ipc.Status();
         }
@@ -114,9 +117,14 @@ namespace FarkashedDiscord
             }
             if (!settings.enabled)
             {
-                Disconnect();
+                if (connected)
+                {
+                    if (!clearDeadline) clearDeadline = now + 3000;
+                    if (now >= clearDeadline || ipc.ClearActivity()) Disconnect();
+                }
                 return;
             }
+            clearDeadline = 0;
             DWORD foregroundProcess = 0;
             GetWindowThreadProcessId(GetForegroundWindow(), &foregroundProcess);
             const bool anotherEditorForeground = foregroundProcess != GetCurrentProcessId() &&
