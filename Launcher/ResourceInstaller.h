@@ -227,6 +227,7 @@ namespace SDKResources
         bool Stopping() const { return stopping; }
         bool Installing() const { return phase == "extracting" || phase == "installing" ||
             ((phase == "paused" || phase == "error") && extractTotal > 0); }
+        bool Verifying() const { return phase == "verifying"; }
         bool Complete() const { return phase == "complete"; }
         uint64_t Downloaded() const { return downloaded; }
         uint64_t Total() const { return total; }
@@ -341,6 +342,7 @@ namespace SDKResources
         bool Running() const { return test ? demo.Running() : live.Running(); }
         bool Stopping() const { return !test && live.Stopping(); }
         bool Installing() const { return test ? demo.Installing() : live.Installing(); }
+        bool Verifying() const { return !test && live.Verifying(); }
         bool Complete() const { return test ? demo.Complete() : live.Complete(); }
         uint64_t Downloaded() const { return test ? demo.Downloaded() : live.Downloaded(); }
         uint64_t Total() const { return test ? DemoDownload::TotalBytes : live.Total(); }

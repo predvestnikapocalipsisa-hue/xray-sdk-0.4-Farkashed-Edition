@@ -533,7 +533,8 @@ namespace
                     double(resourceDownload.Downloaded()) / double(SDKResources::DemoDownload::MiB),
                     double(resourceDownload.Total()) / double(SDKResources::DemoDownload::MiB),
                     resourceDownload.Rate() / double(SDKResources::DemoDownload::MiB),
-                    resourceDownload.Installing() || resourceDownload.Complete() ? "Install" : "Download",
+                    resourceDownload.Installing() || resourceDownload.Complete() ? "Install" :
+                        resourceDownload.Verifying() ? "Verify" : "Download",
                     double(progress) * 100.);
                 CenteredText(draw, 235.f, metrics, 0.7f * progressAlpha, 12.f);
             }

@@ -178,15 +178,32 @@ public sealed class SDKResourceWorker
             output.Write(data, 0, data.Length);
             output.Flush(true);
         }
-        if (!MoveFileEx(path + ".tmp", path, 1 | 8)) throw new IOException("Cannot save resource progress.");
+        for (int attempt = 0; attempt < 5; ++attempt)
+        {
+            if (MoveFileEx(path + ".tmp", path, 1 | 8)) return;
+            int error = Marshal.GetLastWin32Error();
+            if (attempt < 4) { Thread.Sleep(100); continue; }
+            throw new IOException("Cannot atomically replace '" + Path.GetFileName(path) +
+                "' (Windows error " + error.ToString(CultureInfo.InvariantCulture) + ").");
+        }
     }
     void Report(bool force)
     {
         if (!force && clock.Elapsed.TotalSeconds - lastReport < .2) return;
-        AtomicText(Path.Combine(work, "state.txt"), String.Join("\n", new[] {
-            "resources-v2", phase, downloaded.ToString(CultureInfo.InvariantCulture), total.ToString(CultureInfo.InvariantCulture),
-            rate.ToString(CultureInfo.InvariantCulture), extracted.ToString(CultureInfo.InvariantCulture), extractTotal.ToString(CultureInfo.InvariantCulture),
-            message.Replace('\r', ' ').Replace('\n', ' '), SourceId, target }));
+        try
+        {
+            AtomicText(Path.Combine(work, "state.txt"), String.Join("\n", new[] {
+                "resources-v2", phase, downloaded.ToString(CultureInfo.InvariantCulture), total.ToString(CultureInfo.InvariantCulture),
+                rate.ToString(CultureInfo.InvariantCulture), extracted.ToString(CultureInfo.InvariantCulture), extractTotal.ToString(CultureInfo.InvariantCulture),
+                message.Replace('\r', ' ').Replace('\n', ' '), SourceId, target }));
+        }
+        catch (IOException)
+        {
+            // state.txt is only a UI snapshot. A brief antivirus/indexer/file
+            // sharing lock must not stop a multi-gigabyte archive transfer.
+            lastReport = clock.Elapsed.TotalSeconds;
+            return;
+        }
         lastReport = clock.Elapsed.TotalSeconds;
     }
 
@@ -342,14 +359,31 @@ public sealed class SDKResourceWorker
     bool Verify(string path, Part part)
     {
         if (!File.Exists(path) || new FileInfo(path).Length != part.Size) return false;
+        // Include bytes read by this hash in the overall progress. Without this,
+        // resuming a cached multi-gigabyte archive appears stuck at "verifying".
+        long verifiedBefore = 0;
+        foreach (var previous in parts)
+        {
+            if (Object.ReferenceEquals(previous, part)) break;
+            string previousPath = Under(cache, previous.Name);
+            if (File.Exists(previousPath))
+                verifiedBefore = checked(verifiedBefore + Math.Min(new FileInfo(previousPath).Length, previous.Size));
+        }
         phase = "verifying"; rate = 0; Report(true);
         using (var input = File.OpenRead(path))
         using (var hash = SHA256.Create())
         {
             var buffer = new byte[1048576];
+            long verifiedBytes = 0;
             int read;
             while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
-            { CheckPause(); hash.TransformBlock(buffer, 0, read, buffer, 0); Report(false); }
+            {
+                CheckPause();
+                hash.TransformBlock(buffer, 0, read, buffer, 0);
+                verifiedBytes += read;
+                downloaded = verifiedBefore + verifiedBytes;
+                Report(false);
+            }
             hash.TransformFinalBlock(new byte[0], 0, 0);
             return BitConverter.ToString(hash.Hash).Replace("-", "").ToLowerInvariant() == part.Sha256;
         }
@@ -381,6 +415,7 @@ public sealed class SDKResourceWorker
         {
             if (Verify(full, part)) return;
             File.Delete(full);
+            downloaded = CachedBytes();
         }
         long offset = File.Exists(partial) ? new FileInfo(partial).Length : 0;
         if (offset > part.Size) { File.Delete(partial); offset = 0; }
