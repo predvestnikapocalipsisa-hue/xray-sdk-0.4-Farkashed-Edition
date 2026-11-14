@@ -56,6 +56,7 @@ u32 NET_Packet::r_elapsed()
 void NET_Packet::r_advance(u32 size)
 {
 	INI_ASSERT(r_advance)
+	R_ASSERT(r_pos <= B.count && size <= B.count - r_pos);
 	r_pos += size;
 	VERIFY(r_pos <= B.count);
 }
@@ -284,11 +285,19 @@ void NET_Packet::r_sdir(Fvector &A)
 	A.mul(s);
 }
 
+static const char* PacketString(const NET_Buffer& buffer, u32 position)
+{
+    R_ASSERT(position < buffer.count && buffer.count <= sizeof(buffer.data));
+    const char* text = reinterpret_cast<const char*>(buffer.data + position);
+    R_ASSERT(std::memchr(text, 0, buffer.count - position));
+    return text;
+}
+
 void NET_Packet::r_stringZ(LPSTR S)
 {
 	if (!inistream)
 	{
-		LPCSTR data = LPCSTR(&B.data[r_pos]);
+		LPCSTR data = PacketString(B, r_pos);
 		size_t len = xr_strlen(data);
 		r(S, (u32)len + 1);
 	}
@@ -302,7 +311,7 @@ void NET_Packet::r_stringZ(xr_string &dest)
 {
 	if (!inistream)
 	{
-		dest = LPCSTR(&B.data[r_pos]);
+		dest = PacketString(B, r_pos);
 		r_advance(u32(dest.size() + 1));
 	}
 	else
@@ -317,7 +326,7 @@ void NET_Packet::r_stringZ(shared_str &dest)
 {
 	if (!inistream)
 	{
-		dest = LPCSTR(&B.data[r_pos]);
+		dest = PacketString(B, r_pos);
 		r_advance(dest.size() + 1);
 	}
 	else

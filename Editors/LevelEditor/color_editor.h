@@ -539,16 +539,26 @@ inline void Render()
     // ================================================================
     //  TAB BAR
     // ================================================================
-    ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, s_rounding);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 12.f*XrUIManager::GetUIScale(), 5.f*XrUIManager::GetUIScale() });
-    if (ImGui::BeginTabBar("##main_tabs", ImGuiTabBarFlags_None))
+    const float dpi = XrUIManager::GetUIScale();
+    const ImVec2 tabPadding(8.f * dpi, 5.f * dpi);
+    const auto beginTab = [&](const char* label)
     {
+        ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, s_rounding);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, tabPadding);
+        const bool visible = ImGui::BeginTabItem(label);
         ImGui::PopStyleVar(2);
+        return visible;
+    };
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, tabPadding);
+    const bool tabBarOpen = ImGui::BeginTabBar("##main_tabs", ImGuiTabBarFlags_FittingPolicyScroll);
+    ImGui::PopStyleVar();
+    if (tabBarOpen)
+    {
 
         // =========================================================
         //  TAB: Themes
         // =========================================================
-        if (ImGui::BeginTabItem("  Presets  "))
+        if (beginTab("Presets"))
         {
             ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(s_textDisabled));
@@ -630,7 +640,7 @@ inline void Render()
         // =========================================================
         //  TAB: Colors
         // =========================================================
-        if (ImGui::BeginTabItem("  Palette  "))
+        if (beginTab("Palette"))
         {
             ImGui::Spacing();
             bool changed = false;
@@ -720,7 +730,7 @@ inline void Render()
         // =========================================================
         //  TAB: Geometry
         // =========================================================
-        if (ImGui::BeginTabItem("  Geometry  "))
+        if (beginTab("Geometry"))
         {
             ImGui::Spacing();
             bool changed = false;
@@ -780,7 +790,7 @@ inline void Render()
         // =========================================================
         //  TAB: Config
         // =========================================================
-        if (ImGui::BeginTabItem("  Sound  "))
+        if (beginTab("Sound"))
         {
             ImGui::Spacing();
             SectionLabel("  Message box sound");
@@ -790,13 +800,13 @@ inline void Render()
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("  Discord RPC  "))
+        if (beginTab("Discord RPC"))
         {
             FarkashedDiscord::DrawSettings();
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("  Config  "))
+        if (beginTab("Config"))
         {
             ImGui::Spacing();
             SectionLabel("  Persistence");
@@ -841,10 +851,6 @@ inline void Render()
         }
 
         ImGui::EndTabBar();
-    }
-    else
-    {
-        ImGui::PopStyleVar(2);
     }
 
     ImGui::End();

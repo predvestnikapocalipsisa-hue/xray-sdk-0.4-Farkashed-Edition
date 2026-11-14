@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "../../xrSound/stdafx.h"
 #include "../../xrSound/SoundRender_Source.h"
+#include "../../Recovery/LevelRecovery.h"
 
 #define VIS_RADIUS 0.25f
 #define SOUND_SEL0_COLOR 0x00A0A0F0
@@ -458,6 +459,19 @@ void ESoundSource::SetSourceWAV(LPCSTR fname)
 {
     m_WAVName = fname;
     ResetSource();
+}
+
+void ESoundSource::ImportCompiledSound(const LevelRecovery::SoundRecord& record)
+{
+    m_WAVName = record.resource.c_str();
+    m_Params.position.set(record.position[0], record.position[1], record.position[2]);
+    m_Params.volume = record.volume;
+    m_Params.freq = record.frequency;
+    m_ActiveTime.set(record.timings[0] / 1000.f, record.timings[1] / 1000.f);
+    m_PlayTime.set(record.timings[2] / 1000.f, record.timings[3] / 1000.f);
+    m_RandomPause.set(record.timings[4] / 1000.f, record.timings[5] / 1000.f);
+    string_path path;
+    if (FS.exist(path, _game_sounds_, record.resource.c_str(), ".ogg")) ResetSource();
 }
 
 bool ESoundSource::ExportGame(SExportStreams *F)

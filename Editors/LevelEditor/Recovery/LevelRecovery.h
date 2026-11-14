@@ -72,6 +72,7 @@ struct Level
     uint64_t boundaryEdges = 0, ambiguousEdges = 0, degenerateFaces = 0;
     uint64_t coincidentFaceCopies = 0;
     std::vector<std::string> shaders, warnings;
+    std::vector<std::string> previewTextures;
     std::vector<Mesh> meshes;
     std::vector<TreePrototype> treePrototypes;
     std::vector<TreeGroup> treeGroups;
@@ -84,6 +85,41 @@ struct Level
 // UTF-8 paths. Unsupported layouts and malformed input throw std::runtime_error.
 // No input files are written. Grouping changes labels only, never mesh topology.
 Level Read(const std::string& directory);
+
+struct WayNode { std::array<float, 3> position; uint32_t flags; std::string name; };
+struct WayLink { uint16_t from, to; float probability; };
+struct WayPath { std::string name; std::vector<WayNode> nodes; std::vector<WayLink> links; };
+struct SpawnRecord
+{
+    std::string section, name;
+    std::array<float, 3> position, rotation;
+    std::vector<uint8_t> packet;
+    bool respawn = false;
+};
+struct RespawnRecord
+{
+    std::array<float, 3> position, rotation;
+    uint8_t team, type;
+    uint16_t gameType;
+    std::string profile;
+};
+struct SoundRecord
+{
+    std::string resource;
+    std::array<float, 3> position;
+    float volume, frequency;
+    std::array<uint32_t, 6> timings;
+};
+struct Gameplay
+{
+    std::vector<WayPath> ways;
+    std::vector<SpawnRecord> spawns;
+    std::vector<RespawnRecord> respawns;
+    std::vector<SoundRecord> sounds;
+    std::vector<std::string> warnings;
+};
+Gameplay ReadGameplay(const std::string& directory);
+std::array<float, 3> PreviewCameraTarget(const Level& level);
 void GroupConnectedSurfaces(Level& level);
 std::string Describe(const Level& level);
 // Creates a NEW directory atomically. Refuses existing destinations and any path

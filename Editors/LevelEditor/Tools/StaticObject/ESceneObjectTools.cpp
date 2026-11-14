@@ -48,7 +48,8 @@ bool ESceneObjectTool::Validate(bool full_test)
         for (auto* surface : object->Surfaces())
         {
             if (surface->m_ShaderXRLCName == "__recovery_unmapped__" || surface->m_GameMtlName == "__recovery_unmapped__" ||
-                (recoveredPreview && surface->m_ShaderName == "editor\\wire"))
+                (recoveredPreview && (surface->m_ShaderName == "editor\\wire" ||
+                    surface->m_ShaderName == "editor\\recovery_preview" || surface->m_ShaderName == "editor\\recovery_cutout")))
             {
                 ELog.Msg(mtError, "Recovered object '%s': map its render shader, compiler shader and physical material before Build or Make Game.", object->GetName());
                 bRes = false;

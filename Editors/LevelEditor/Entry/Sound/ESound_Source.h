@@ -1,5 +1,7 @@
 #pragma once
 
+namespace LevelRecovery { struct SoundRecord; }
+
 class ESoundSource : public CCustomObject
 {
     typedef CCustomObject inherited;
@@ -58,6 +60,7 @@ public:
 
     LPCSTR GetSourceWAV() { return *m_WAVName; }
     void SetSourceWAV(LPCSTR fname);
+    void ImportCompiledSound(const LevelRecovery::SoundRecord& record);
     void Play() { m_Command = stPlay; }
     void Stop() { m_Command = stStop; }
     void Simulate() { m_Command = stSimulate; }

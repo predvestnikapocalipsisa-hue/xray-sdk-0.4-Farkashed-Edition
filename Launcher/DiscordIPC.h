@@ -47,8 +47,17 @@ namespace FarkashedDiscord
         {
             if (!value.empty()) out += ',' + JsonString(key) + ':' + JsonString(value);
         };
-        if (s.custom) field("name", LimitText(Expand(s.name, environment, document)));
-        field("details", LimitText(Expand(s.details, environment, document)));
+        const auto name = s.custom ? LimitText(Expand(s.name, environment, document)) : std::string();
+        field("name", name);
+        if (s.custom && s.showNameInDetails && !name.empty())
+        {
+            field("details", name);
+            out += ",\"status_display_type\":2"; // Use Details for the member-list status text.
+        }
+        else
+        {
+            field("details", LimitText(Expand(s.details, environment, document)));
+        }
         field("state", LimitText(Expand(s.state, environment, document)));
         const int64_t start = s.timer == 1 ? sessionStart : s.timer == 2 ? s.start : 0;
         const int64_t end = s.timer == 2 ? s.end : 0;
@@ -59,10 +68,15 @@ namespace FarkashedDiscord
             if (end) out += std::string(start ? "," : "") + "\"end\":" + std::to_string(end);
             out += '}';
         }
-        if (!s.largeImageKey.empty() || !s.smallImageKey.empty())
-            out += ",\"assets\":" + JsonObject({ { "large_image", s.largeImageKey },
-                { "large_text", s.largeImageKey.empty() ? "" : s.largeImageText },
-                { "small_image", s.smallImageKey }, { "small_text", s.smallImageKey.empty() ? "" : s.smallImageText } });
+        const auto largeImage = s.largeImageSource == ImageSource::None ? std::string() : s.largeImageKey;
+        const auto smallImage = s.smallImageSource == ImageSource::None ? std::string() : s.smallImageKey;
+        if (!largeImage.empty() || !smallImage.empty())
+        {
+            // Discord proxies external URLs itself, including animated GIFs.
+            out += ",\"assets\":" + JsonObject({ { "large_image", largeImage },
+                { "large_text", largeImage.empty() ? "" : s.largeImageText },
+                { "small_image", smallImage }, { "small_text", smallImage.empty() ? "" : s.smallImageText } });
+        }
         if (!s.partyId.empty())
         {
             out += ",\"party\":{\"id\":" + JsonString(s.partyId);
@@ -96,6 +110,7 @@ namespace FarkashedDiscord
         char readBuffer[8192] = {};
         std::vector<char> incoming, outgoing;
         std::string desired, sent;
+        bool acknowledged = false;
         std::string status = "Waiting for Discord desktop client.";
         std::vector<std::string> pongs;
         ULONGLONG retryAt = 0, handshakeDeadline = 0;
@@ -170,10 +185,15 @@ namespace FarkashedDiscord
                         ready = true;
                         status = "Connected to Discord.";
                     }
-                    if (compact.find("\"evt\":\"ERROR\"") != std::string::npos)
+                    const bool currentUpdate = desired == sent &&
+                        compact.find("\"nonce\":" + JsonString(std::to_string(nonce))) != std::string::npos;
+                    if (currentUpdate && compact.find("\"evt\":\"ERROR\"") != std::string::npos)
                         status = "Discord rejected the activity: " + payload;
-                    else if (compact.find("\"cmd\":\"SET_ACTIVITY\"") != std::string::npos)
-                        status = "Activity accepted by Discord.";
+                    else if (currentUpdate && compact.find("\"cmd\":\"SET_ACTIVITY\"") != std::string::npos)
+                    {
+                        acknowledged = true;
+                        status = "Discord acknowledged the activity update.";
+                    }
                 }
                 incoming.erase(incoming.begin(), incoming.begin() + 8 + length);
             }
@@ -200,15 +220,29 @@ namespace FarkashedDiscord
             if (write.hEvent) CloseHandle(write.hEvent);
             pipe = INVALID_HANDLE_VALUE;
             read = {}; write = {};
-            reading = writing = ready = false;
+            reading = writing = ready = acknowledged = false;
             incoming.clear(); outgoing.clear(); sent.clear();
             pongs.clear();
             retryAt = GetTickCount64() + 3000;
             status = "Waiting for Discord desktop client (automatic reconnect).";
         }
 
-        void Update(const std::string& json) { desired = json; }
+        void Update(const std::string& json)
+        {
+            if (desired == json) return;
+            desired = json;
+            acknowledged = false;
+            if (ready) status = "Activity update queued.";
+        }
         const char* Status() const { return status.c_str(); }
+
+        bool ClearActivity()
+        {
+            if (!ready || sent.empty()) return true;
+            Update("null");
+            Tick();
+            return !ready || acknowledged;
+        }
 
         void Tick()
         {
@@ -254,6 +288,8 @@ namespace FarkashedDiscord
                     "},\"nonce\":" + JsonString(std::to_string(++nonce)) + '}';
                 if (!Send(1, command)) { Close(); return; }
                 sent = desired;
+                acknowledged = false;
+                status = "Waiting for Discord to acknowledge the update.";
             }
         }
     };

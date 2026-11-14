@@ -280,6 +280,7 @@ public:
 	IC void r(void *p, u32 count)
 	{
 		R_ASSERT(inistream == NULL);
+		R_ASSERT(r_pos <= B.count && count <= B.count - r_pos && B.count <= sizeof(B.data));
 		VERIFY(p && count);
 		CopyMemory(p, &B.data[r_pos], count);
 		r_pos += count;

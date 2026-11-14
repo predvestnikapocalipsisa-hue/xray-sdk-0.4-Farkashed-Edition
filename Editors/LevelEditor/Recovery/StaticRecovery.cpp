@@ -147,12 +147,14 @@ void WriteModels(const Level& l,const StaticLibrary& plan,const fs::path& root)
 
 StaticLibrary BuildStaticLibrary(const Level& l)
 {
-    Check(l.componentCount>0,"Run connected surface analysis before static recovery");
     std::map<uint32_t,std::vector<StaticFaceRef>> components;
     for (uint32_t m=0; m<l.meshes.size(); ++m)
         if (Static(l.meshes[m]))
             for (uint32_t f=0; f<l.meshes[m].triangles.size(); ++f)
+            {
+                Check(l.componentCount > 0, "Run connected surface analysis before static recovery");
                 components[l.meshes[m].triangles[f].component].push_back({m,f,0});
+            }
     StaticLibrary plan;
     std::unordered_map<uint64_t,std::vector<uint32_t>> candidates;
     for (const auto& component : components)
@@ -198,7 +200,6 @@ StaticLibrary BuildStaticLibrary(const Level& l)
         for (const auto& f : faces) instance.faces.push_back(f.ref);
         plan.instances.push_back(std::move(instance));
     }
-    Check(!plan.instances.empty(),"No static geometry in this level");
     return plan;
 }
 
@@ -208,7 +209,7 @@ std::string StaticLibraryName(const Level& l)
     Check(pos!=std::string::npos,"Missing source fingerprint");
     const auto hash=l.libraryName.substr(pos+1);
     Check(hash.size()==16 && hash.find_first_not_of("0123456789abcdef")==std::string::npos,"Invalid source fingerprint");
-    return "recovered_statics_v03_"+hash;
+    return "recovered_statics_v04_"+hash;
 }
 void InstallStaticLibrary(const Level& l,const StaticLibrary& plan,const std::string& objectsDirectory)
 {
@@ -231,12 +232,12 @@ void InstallStaticLibrary(const Level& l,const StaticLibrary& plan,const std::st
     Check(!fs::exists(dest),"Static destination appeared during installation"); fs::rename(stage,dest);
 }
 
-void ExportSceneLibrary(const Level& l,const StaticLibrary& plan,const std::string& newDirectory)
+static std::vector<NativeIO::Instance> SceneInstances(const Level& l, const StaticLibrary& plan,
+    const TreeLibrary& trees)
 {
-    Check(!plan.models.empty() && !newDirectory.empty(),"Empty static export");
     const auto library=StaticLibraryName(l);
-    const auto trees=BuildTreeLibrary(l);
     std::vector<NativeIO::Instance> selection;
+    selection.reserve(plan.instances.size() + trees.instances.size());
     for (const auto& instance : plan.instances)
     {
         Check(instance.model<plan.models.size(),"Invalid static model reference");
@@ -246,9 +247,93 @@ void ExportSceneLibrary(const Level& l,const StaticLibrary& plan,const std::stri
     for (const auto& instance : trees.instances)
     {
         Placement p;
+        Check(!instance.meshes.empty(), "Recovered vegetation instance has no geometry");
         for (auto i : instance.meshes) Check(TreePlacement(l,l.meshes[i],p),"Unsupported vegetation transform; use the separate tree export for diagnostics");
         selection.push_back({"recovered_tree_visual_"+std::to_string(instance.visual),l.libraryName+"\\"+TreeName(instance.model),p});
     }
+    return selection;
+}
+
+size_t NativeIO::PreparePreviewTextures(Level& l, const std::string& texturesDirectory)
+{
+    const auto source = fs::canonical(fs::u8path(l.source));
+    const auto textures = fs::canonical(fs::u8path(texturesDirectory));
+    Check(!Inside(textures, source), "Cannot install preview textures inside the source level");
+    const auto modTextures = source.parent_path().parent_path() / "textures";
+    const auto previewDirectory = "recovered_preview_" + l.libraryName.substr(l.libraryName.size() - 16);
+    const auto previewRoot = textures / previewDirectory;
+    // Only accept relative asset names and never overwrite an installed texture.
+    std::map<std::string, std::string> resolved;
+    size_t missing = 0;
+    uint64_t mappingHash = 14695981039346656037ull;
+    l.previewTextures.clear();
+    for (const auto& shader : l.shaders)
+    {
+        const auto slash = shader.find('/');
+        const auto comma = shader.find(',', slash == std::string::npos ? 0 : slash + 1);
+        const auto name = slash == std::string::npos ? std::string() : shader.substr(slash + 1, comma - slash - 1);
+        auto entry = resolved.emplace(name, "ed\\ed_not_existing_texture");
+        auto& preview = entry.first->second;
+        if (entry.second && !name.empty())
+        {
+            const auto relative = fs::u8path(name);
+            const bool safe = !relative.has_root_path() && name.find(':') == std::string::npos &&
+                name.find('$') == std::string::npos && std::none_of(relative.begin(), relative.end(),
+                    [](const fs::path& part) { return part == "." || part == ".." || part.empty(); });
+            if (safe)
+            {
+                auto dds = relative;
+                dds += ".dds";
+                const auto local = source / dds;
+                const auto fromMod = modTextures / dds;
+                const auto cached = previewRoot / dds;
+                const bool levelTexture = fs::is_regular_file(local);
+                if (!levelTexture && fs::is_regular_file(textures / dds))
+                {
+                    preview = name;
+                }
+                else
+                {
+                    const auto original = levelTexture ? local : fromMod;
+                    if (!fs::exists(cached) && fs::is_regular_file(original))
+                    {
+                        fs::create_directories(cached.parent_path());
+                        fs::copy_file(original, cached, fs::copy_options::skip_existing);
+                    }
+                    if (fs::is_regular_file(cached)) preview = previewDirectory + "\\" + name;
+                }
+            }
+            if (preview == "ed\\ed_not_existing_texture") ++missing;
+        }
+        l.previewTextures.push_back(preview);
+        for (const unsigned char ch : preview) { mappingHash ^= ch; mappingHash *= 1099511628211ull; }
+        mappingHash ^= 0; mappingHash *= 1099511628211ull;
+    }
+    // A changed texture mapping gets a separate library so existing scenes keep their objects.
+    const auto suffix = l.libraryName.size() - 16;
+    std::ostringstream id;
+    id << std::hex << std::setfill('0') << std::setw(16) << (mappingHash ^ std::stoull(l.libraryName.substr(suffix), nullptr, 16));
+    l.libraryName.replace(suffix, 16, id.str());
+    return missing;
+}
+
+std::vector<NativeIO::Instance> NativeIO::PrepareSceneImport(const Level& l, const std::string& objectsDirectory)
+{
+    const auto plan = BuildStaticLibrary(l);
+    const auto trees = BuildTreeLibrary(l);
+    auto selection = SceneInstances(l, plan, trees);
+    Check(!selection.empty(), "No geometry could be recovered from the compiled level");
+    if (!plan.models.empty()) InstallStaticLibrary(l, plan, objectsDirectory);
+    if (!trees.models.empty()) InstallTreeLibrary(l, objectsDirectory);
+    return selection;
+}
+
+void ExportSceneLibrary(const Level& l,const StaticLibrary& plan,const std::string& newDirectory)
+{
+    Check(!plan.models.empty() && !newDirectory.empty(),"Empty static export");
+    const auto library=StaticLibraryName(l);
+    const auto trees=BuildTreeLibrary(l);
+    const auto selection = SceneInstances(l, plan, trees);
     const auto out=fs::weakly_canonical(fs::absolute(fs::u8path(newDirectory)));
     Check(!Inside(out,fs::canonical(fs::u8path(l.source))),"Scene export must be outside source level");
     Check(!fs::exists(out) && fs::is_directory(out.parent_path()),"Scene export requires a new folder and existing parent");
@@ -308,7 +393,7 @@ void ExportSceneLibrary(const Level& l,const StaticLibrary& plan,const std::stri
         << "\nCoincident faces participate once in adjacency analysis only. Every source triangle, including reverse sides, is exported. No remeshing, welding, simplification or approximate placement."
         << "\nSurface candidates are NOT proven author objects. A welded table and bar cannot be identified as separate objects from connectivity alone. Native models retain separate material meshes for review."
         << "\nInstall objects/<static namespace> and vegetation/objects/<tree namespace> into SDK objects, then open geometry.selection. The recovery window can install and import into an empty scene."
-        << "\nPreview is editor\\wire; render/compiler/physical materials remain explicitly unmapped and SDK Build/Make Game are blocked."
+        << "\nPreview uses base textures; original render/compiler/physical materials remain unmapped and SDK Build/Make Game are blocked."
         << "\nOriginal local shading normals are archived in *.normals.bin; SDK preview recomputes normals. Tree lighting, wind, lightmaps, sectors, portals, details and spawn are not restored into this selection."
         << "\noriginal.cform is an exact source snapshot. It is NOT imported as render geometry and no collider is generated from recovered meshes. Original gamemtl.xr is still required for physical material mapping.\n";
     report.close();

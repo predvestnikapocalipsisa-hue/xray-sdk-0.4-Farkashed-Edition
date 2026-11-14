@@ -563,7 +563,6 @@ void TUI::RealRedrawScene()
 }
 void TUI::OnFrame()
 {
-    UpdateDiscordPresence();
     EDevice.FrameMove();
     SndLib->OnFrame();
     // tools on frame
@@ -622,6 +621,7 @@ bool TUI::Idle()
 
     pInput->OnFrame();
     Sleep(1);
+    UpdateDiscordPresence();
 
     // Tools may also use renderer resources; keep them paused until a pending
     // reset succeeds, while continuing to dispatch window messages above.

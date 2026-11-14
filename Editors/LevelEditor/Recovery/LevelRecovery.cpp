@@ -244,7 +244,7 @@ Level Read(const std::string& directory)
     for (const auto* bytes : {&levelBytes, &geomBytes})
         for (auto b : *bytes) { fingerprint ^= b; fingerprint *= 1099511628211ull; }
     std::ostringstream library;
-    library << "recovered_trees_v02_" << std::hex << std::setw(16) << std::setfill('0') << fingerprint;
+    library << "recovered_trees_v03_" << std::hex << std::setw(16) << std::setfill('0') << fingerprint;
     l.libraryName = library.str();
     const auto geom = Split(Reader(geomBytes));
     auto geomHeader = Chunk(geom, 1);
@@ -427,6 +427,159 @@ Level Read(const std::string& directory)
     l.warnings.push_back("CFORM material numbers require the source gamemtl.xr; they are not mapped to the active SDK material library.");
     l.warnings.push_back("Custom shader UV/normal decoding must be verified against its shader code. No remeshing or automatic collider generation is performed.");
     return l;
+}
+
+Gameplay ReadGameplay(const std::string& directory)
+{
+    const auto dir = fs::u8path(directory);
+    Gameplay result;
+    const auto vector = [](Reader& reader) -> Vec3 { return {{reader.Float(), reader.Float(), reader.Float()}}; };
+    const auto readFile = [&](const char* name, const auto& read)
+    {
+        try
+        {
+            const auto path = dir / name;
+            if (!fs::exists(path)) return;
+            const auto bytes = Load(path);
+            read(Split(Reader(bytes)));
+        }
+        catch (const std::runtime_error& e) { result.warnings.push_back(std::string(name) + ": " + e.what()); }
+    };
+    const auto readRecords = [&](const char* file, const Chunks& records, const auto& read)
+    {
+        for (const auto& record : records)
+        {
+            try { read(record.second); }
+            catch (const std::runtime_error& e)
+            {
+                result.warnings.push_back(std::string(file) + " #" + std::to_string(record.first) + ": " + e.what());
+            }
+        }
+    };
+    readFile("level.game", [&](const Chunks& game)
+    {
+        if (game.count(0x1000)) readRecords("Patrol path", Split(Chunk(game, 0x1000)), [&](Reader record)
+        {
+            const auto chunks = Split(record);
+            auto version = Chunk(chunks, 1);
+            Require(version.Get<uint16_t>() == 0x13, "Unsupported patrol path version");
+            version.End();
+            auto name = Chunk(chunks, 5);
+            WayPath way;
+            way.name = name.String(); name.End();
+            Require(!way.name.empty(), "Empty patrol path name");
+            auto points = Chunk(chunks, 2);
+            const auto count = points.Get<uint16_t>();
+            Require(count && count <= points.Remaining() / 17, "Invalid patrol point count");
+            for (uint16_t i = 0; i < count; ++i)
+                way.nodes.push_back({vector(points), points.U32(), points.String()});
+            points.End();
+            auto links = Chunk(chunks, 3);
+            const auto linkCount = links.Get<uint16_t>();
+            Require(links.Remaining() == size_t(linkCount) * 8, "Invalid patrol link count");
+            for (uint16_t i = 0; i < linkCount; ++i)
+            {
+                const WayLink link{links.Get<uint16_t>(), links.Get<uint16_t>(), links.Float()};
+                Require(link.from < count && link.to < count && link.from != link.to && link.probability >= 0,
+                    "Invalid patrol link");
+                way.links.push_back(link);
+            }
+            result.ways.push_back(std::move(way));
+        });
+        if (game.count(0x2000)) readRecords("Respawn point", Split(Chunk(game, 0x2000)), [&](Reader record)
+        {
+            RespawnRecord point;
+            point.position = vector(record);
+            point.rotation = vector(record);
+            point.team = record.Get<uint8_t>();
+            point.type = record.Get<uint8_t>();
+            Require(point.type < 3, "Unsupported respawn type");
+            point.gameType = record.Get<uint16_t>();
+            if (record.Remaining()) point.profile = record.String();
+            record.End();
+            result.respawns.push_back(std::move(point));
+        });
+    });
+    for (const char* file : {"level.spawn", "level_rs.spawn"})
+        readFile(file, [&](const Chunks& spawn)
+        {
+            readRecords(file, spawn, [&](Reader record)
+            {
+                SpawnRecord object;
+                Require(record.size < 16384 && record.Get<uint16_t>() == 1, "Invalid spawn packet");
+                object.section = record.String(); object.name = record.String();
+                Require(!object.section.empty() && object.section.size() < 64, "Invalid spawn section");
+                record.Take(2);
+                object.position = vector(record); object.rotation = vector(record);
+                record.Take(8);
+                Require(record.Get<uint16_t>() & (1 << 5), "Unversioned spawn packet");
+                const auto version = record.Get<uint16_t>();
+                Require(version == 118 || version == 128, "Unsupported spawn version " + std::to_string(version));
+                if (version == 128) record.Take(2);
+                record.Take(2);
+                record.Take(record.Get<uint16_t>());
+                record.Take(2);
+                const auto bodySize = record.Get<uint16_t>();
+                Require(bodySize >= 2 && bodySize - 2 == record.Remaining(), "Invalid spawn state length");
+                object.packet.assign(record.data, record.data + record.size);
+                object.respawn = std::string(file) == "level_rs.spawn";
+                result.spawns.push_back(std::move(object));
+            });
+        });
+    readFile("level.snd_static", [&](const Chunks& sounds)
+    {
+        readRecords("Static sound", sounds, [&](Reader record)
+        {
+            auto sound = Chunk(Split(record), 0);
+            SoundRecord data;
+            data.resource = sound.String();
+            Require(!data.resource.empty() && data.resource.size() < 256, "Invalid sound resource name");
+            data.position = vector(sound);
+            data.volume = sound.Float(); data.frequency = sound.Float();
+            for (auto& timing : data.timings) timing = sound.U32();
+            sound.End();
+            result.sounds.push_back(std::move(data));
+        });
+    });
+    for (const char* file : {"level.ai", "level.graph", "level.env_mod", "level.ps_static", "level.fog_vol"})
+        if (fs::exists(dir / file)) result.warnings.push_back(std::string(file) + " is outside the editable gameplay import.");
+    return result;
+}
+
+std::array<float, 3> PreviewCameraTarget(const Level& level)
+{
+    // The mean of the triangle centers is inside the populated part of large maps.
+    // Snap it to a nearby upward-facing surface instead of using the entire level box.
+    std::array<double, 2> center{};
+    if (level.collisionFaces.empty()) return {};
+    for (const auto& face : level.collisionFaces)
+        for (auto index : face.vertices)
+        {
+            const auto& point = level.collisionVertices[index];
+            center[0] += point[0];
+            center[1] += point[2];
+        }
+    for (auto& value : center) value /= 3.0 * level.collisionFaces.size();
+
+    Vec3 target = level.collisionVertices.front();
+    double best = std::numeric_limits<double>::infinity();
+    for (const auto& face : level.collisionFaces)
+    {
+        const auto& a = level.collisionVertices[face.vertices[0]];
+        const auto& b = level.collisionVertices[face.vertices[1]];
+        const auto& c = level.collisionVertices[face.vertices[2]];
+        const double normalY = (double(b[2]) - a[2]) * (double(c[0]) - a[0]) -
+            (double(b[0]) - a[0]) * (double(c[2]) - a[2]);
+        if (normalY <= 0) continue;
+        const double x = (double(a[0]) + b[0] + c[0]) / 3;
+        const double z = (double(a[2]) + b[2] + c[2]) / 3;
+        const double dx = x - center[0], dz = z - center[1];
+        const double distance = dx * dx + dz * dz;
+        if (distance >= best) continue;
+        best = distance;
+        target = {{float(x), float((double(a[1]) + b[1] + c[1]) / 3), float(z)}};
+    }
+    return target;
 }
 
 void GroupConnectedSurfaces(Level& l)

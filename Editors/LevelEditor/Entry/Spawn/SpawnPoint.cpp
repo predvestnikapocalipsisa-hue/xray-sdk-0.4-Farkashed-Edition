@@ -1,5 +1,7 @@
 ﻿#include "stdafx.h"
 
+#include "../../Recovery/LevelRecovery.h"
+
 #define SPAWNPOINT_CHUNK_VERSION 0xE411
 #define SPAWNPOINT_CHUNK_POSITION 0xE412
 #define SPAWNPOINT_CHUNK_RPOINT 0xE413
@@ -739,6 +741,51 @@ bool CSpawnPoint::CreateSpawnData(LPCSTR entity_ref)
     return m_SpawnData.Valid();
 }
 //----------------------------------------------------
+
+bool CSpawnPoint::ImportCompiledSpawn(const LevelRecovery::SpawnRecord& record)
+{
+    if (!pSettings->section_exist(record.section.c_str()) ||
+        !pSettings->line_exist(record.section.c_str(), "class") || !CreateSpawnData(record.section.c_str())) return false;
+
+    NET_Packet packet{};
+    if (record.packet.size() >= sizeof(packet.B.data)) return false;
+    packet.B.count = static_cast<u32>(record.packet.size());
+    std::memset(packet.B.data, 0, sizeof(packet.B.data));
+    std::memcpy(packet.B.data, record.packet.data(), packet.B.count);
+    if (!m_SpawnData.m_Data->Spawn_Read(packet) || packet.r_tell() != packet.B.count) return false;
+    m_SpawnData.m_flags.set(SSpawnData::eSDTypeRespawn, record.respawn);
+    SetValid(true);
+
+    if (const auto* shape = dynamic_cast<const CShapeData*>(m_SpawnData.m_Data->shape()))
+    {
+        if (!shape->shapes.empty())
+        {
+            auto* tool = Scene->GetOTool(OBJCLASS_SHAPE);
+            if (!tool) return false;
+            auto* attached = static_cast<CEditShape*>(tool->CreateObject(nullptr, GetName()));
+            m_AttachedObject = attached;
+            for (const auto& part : shape->shapes)
+            {
+                if (part.type == CShapeData::cfSphere) attached->add_sphere(part.data.sphere);
+                else if (part.type == CShapeData::cfBox) attached->add_box(part.data.box);
+            }
+            attached->OnAttach(this);
+        }
+    }
+    SetPosition(Fvector().set(record.position[0], record.position[1], record.position[2]));
+    SetRotation(Fvector().set(record.rotation[0], record.rotation[1], record.rotation[2]));
+    return true;
+}
+
+void CSpawnPoint::ImportCompiledRespawn(const LevelRecovery::RespawnRecord& record)
+{
+    m_RP_TeamID = record.team;
+    m_RP_Type = record.type;
+    m_GameType.m_GameType.assign(record.gameType);
+    m_rpProfile = record.profile.c_str();
+    SetPosition(Fvector().set(record.position[0], record.position[1], record.position[2]));
+    SetRotation(Fvector().set(record.rotation[0], record.rotation[1], record.rotation[2]));
+}
 
 bool CSpawnPoint::GetBox(Fbox& box)
 {

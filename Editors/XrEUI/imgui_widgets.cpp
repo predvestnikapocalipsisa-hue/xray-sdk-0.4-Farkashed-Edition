@@ -8389,6 +8389,14 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb, 
     if (bb.GetWidth() <= 1.0f)
         return;
 
+    const bool customization = ModernUI::ClassicCustomization(g.CurrentWindow->Name);
+    if (customization && !close_button_id && !(flags & ImGuiTabItemFlags_UnsavedDocument))
+    {
+        RenderTextClippedEx(draw_list, bb.Min, bb.Max, label, FindRenderedTextEnd(label),
+            &label_size, ImVec2(0.5f, 0.5f), &bb);
+        return;
+    }
+
     // In Style V2 we'll have full override of all colors per state (e.g. focused, selected)
     // But right now if you want to alter text color of tabs this is what you need to do.
 #if 0
@@ -8399,7 +8407,7 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb, 
 
     // Render text label (with clipping + alpha gradient) + unsaved marker
     ImRect text_pixel_clip_bb(bb.Min.x + frame_padding.x, bb.Min.y + frame_padding.y, bb.Max.x - frame_padding.x, bb.Max.y);
-    if (const char* icon = ModernUI::ClassicCustomization(g.CurrentWindow->Name) ? nullptr : ModernUI::CaptionIcon(label,true))
+    if (const char* icon = customization ? nullptr : ModernUI::CaptionIcon(label,true))
     {
         if (text_pixel_clip_bb.GetWidth() > g.FontSize+4.f)
         {

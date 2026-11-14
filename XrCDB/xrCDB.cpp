@@ -85,11 +85,12 @@ void MODEL::build_thread(void *params)
 void MODEL::build(Fvector *V, int Vcnt, TRI *T, int Tcnt, build_callback *bc, void *bcp)
 {
 	R_ASSERT(S_INIT == status);
-	R_ASSERT((Vcnt >= 4) && (Tcnt >= 2));
+	R_ASSERT(Vcnt >= 3 && Tcnt >= 1);
 
 	_initialize_cpu_thread();
 #ifdef _EDITOR
 	build_internal(V, Vcnt, T, Tcnt, bc, bcp);
+	if (Tcnt == 1) status = S_READY;
 #else
 	if (!strstr(Core.Params, "-mt_cdb"))
 	{
@@ -121,6 +122,9 @@ void MODEL::build_internal(Fvector *V, int Vcnt, TRI *T, int Tcnt, build_callbac
 	// callback
 	if (bc)
 		bc(verts, Vcnt, tris, Tcnt, bcp);
+	// OPCODE's no-leaf tree needs two primitives. Query one triangle directly.
+	if (tris_count == 1)
+		return;
 
 	// Release data pointers
 	status = S_BUILD;
@@ -175,7 +179,7 @@ u32 MODEL::memory()
 	}
 	u32 V = verts_count * sizeof(Fvector);
 	u32 T = tris_count * sizeof(TRI);
-	return tree->GetUsedBytes() + V + T + sizeof(*this) + sizeof(*tree);
+	return V + T + sizeof(*this) + (tree ? tree->GetUsedBytes() + sizeof(*tree) : 0);
 }
 
 // This is the constructor of a class that has been exported.

@@ -428,11 +428,27 @@ public:
 void COLLIDER::ray_query(const MODEL *m_def, const Fvector &r_start, const Fvector &r_dir, float r_range)
 {
 	m_def->syncronize();
+	r_clear();
+	if (m_def->tris_count == 1)
+	{
+		if (ray_mode & OPT_CULL)
+		{
+			ray_collider<false, true, false, false> collider;
+			collider._init(this, m_def->verts, m_def->tris, r_start, r_dir, r_range);
+			collider._prim(0);
+		}
+		else
+		{
+			ray_collider<false, false, false, false> collider;
+			collider._init(this, m_def->verts, m_def->tris, r_start, r_dir, r_range);
+			collider._prim(0);
+		}
+		return;
+	}
 
 	// Get nodes
 	const AABBNoLeafTree *T = (const AABBNoLeafTree *)m_def->tree->GetTree();
 	const AABBNoLeafNode *N = T->GetNodes();
-	r_clear();
 
 	if (CPU::ID.feature & _CPU_FEATURE_SSE)
 	{

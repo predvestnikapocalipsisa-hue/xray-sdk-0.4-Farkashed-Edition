@@ -7,6 +7,7 @@ class CSE_Visual;
 class CSE_Motion;
 class CObjectAnimator;
 class ISE_Abstract;
+namespace LevelRecovery { struct SpawnRecord; struct RespawnRecord; }
 
 
 
@@ -156,6 +157,8 @@ public:
     virtual LPCSTR RefName();
 
     bool CreateSpawnData(LPCSTR entity_ref);
+    bool ImportCompiledSpawn(const LevelRecovery::SpawnRecord& record);
+    void ImportCompiledRespawn(const LevelRecovery::RespawnRecord& record);
     virtual void Render(int priority, bool strictB2F);
 
     virtual bool RayPick(float& distance, const Fvector& start, const Fvector& direction, SRayPickInfo* pinf = NULL);
