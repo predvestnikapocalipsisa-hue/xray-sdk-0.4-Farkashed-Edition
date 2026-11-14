@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../../Recovery/LevelRecovery.h"
 #include "../../Entry/CustomObject.h"
 #define WAYPOINT_SIZE 1.5f
 #define WAYPOINT_RADIUS WAYPOINT_SIZE * .5f
@@ -878,6 +879,22 @@ void CWayObject::SaveStream(IWriter &F)
     F.open_chunk(WAYOBJECT_CHUNK_TYPE);
     F.w_u32(m_Type);
     F.close_chunk();
+}
+
+void CWayObject::ImportCompiledPath(const LevelRecovery::WayPath& path)
+{
+    Clear();
+    m_WayPoints.reserve(path.nodes.size());
+    for (const auto& node : path.nodes)
+    {
+        auto* point = xr_new<CWayPoint>(node.name.c_str());
+        point->m_vPosition.set(node.position[0], node.position[1], node.position[2]);
+        point->m_Flags.assign(node.flags);
+        m_WayPoints.push_back(point);
+    }
+    for (const auto& link : path.links)
+        m_WayPoints[link.from]->CreateLink(m_WayPoints[link.to], link.probability);
+    InvalidateBox();
 }
 
 bool CWayObject::ExportGame(SExportStreams *F)

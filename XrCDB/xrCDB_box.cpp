@@ -295,11 +295,27 @@ public:
 void COLLIDER::box_query(const MODEL *m_def, const Fvector &b_center, const Fvector &b_dim)
 {
 	m_def->syncronize();
+	r_clear();
+	if (m_def->tris_count == 1)
+	{
+		if (box_mode & OPT_FULL_TEST)
+		{
+			box_collider<true, false> collider;
+			collider._init(this, m_def->verts, m_def->tris, b_center, b_dim);
+			collider._prim(0);
+		}
+		else
+		{
+			box_collider<false, false> collider;
+			collider._init(this, m_def->verts, m_def->tris, b_center, b_dim);
+			collider._prim(0);
+		}
+		return;
+	}
 
 	// Get nodes
 	const AABBNoLeafTree *T = (const AABBNoLeafTree *)m_def->tree->GetTree();
 	const AABBNoLeafNode *N = T->GetNodes();
-	r_clear();
 
 	// Binary dispatcher
 	if (box_mode & OPT_FULL_TEST)

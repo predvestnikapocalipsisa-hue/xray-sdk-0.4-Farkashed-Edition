@@ -6,6 +6,8 @@
 #ifdef _EDITOR
 #include "Blender_Editor_Wire.h"
 #include "Blender_Editor_Selection.h"
+#include "../R1_PC/Blender_Vertex.h"
+#include "../R1_PC/Blender_Vertex_aref.h"
 #endif
 
 void CResourceManager::OnDeviceDestroy(BOOL)
@@ -59,6 +61,13 @@ void CResourceManager::OnDeviceCreate(IReader *F)
 		return;
 
 #ifdef _EDITOR
+    // Recovered geometry has base UVs but no compiled lightmap UVs.
+    IBlender* recovered = xr_new<CBlender_Vertex>();
+    recovered->getDescription().Setup("editor\\recovery_preview");
+    m_blenders.insert(mk_pair(xr_strdup("editor\\recovery_preview"), recovered));
+    IBlender* recoveredAlpha = xr_new<CBlender_Vertex_aref>();
+    recoveredAlpha->getDescription().Setup("editor\\recovery_cutout");
+    m_blenders.insert(mk_pair(xr_strdup("editor\\recovery_cutout"), recoveredAlpha));
     if (!F && Core.DebugMode)
     {
         IBlender* wire = xr_new<CBlender_Editor_Wire>();

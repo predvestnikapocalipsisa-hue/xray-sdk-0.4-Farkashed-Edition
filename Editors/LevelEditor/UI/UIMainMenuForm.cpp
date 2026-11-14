@@ -43,6 +43,9 @@ void UIMainMenuForm::Draw()
                     UISceneTabBar::ReplaceActiveScene(path.c_str(), nullptr);
             }
 
+            if (ImGui::MenuItem("Open Compiled Level...", nullptr, false, UILevelRecovery::CanOpenCompiledLevel()))
+                UILevelRecovery::OpenCompiledLevel();
+
             if (ImGui::MenuItem("Open in New Tab...", "", false))
             {
                 xr_string path;

@@ -2,6 +2,7 @@
 
 class CFrustum;
 class CWayPoint;
+namespace LevelRecovery { struct WayPath; }
 bool IsPointMode();
 
 struct SWPLink
@@ -64,6 +65,7 @@ public:
     void Construct(LPVOID data);
     virtual ~CWayObject();
     void Clear();
+    void ImportCompiledPath(const LevelRecovery::WayPath& path);
     virtual bool CanAttach() { return true; }
 
     EWayType GetType() { return m_Type; }
