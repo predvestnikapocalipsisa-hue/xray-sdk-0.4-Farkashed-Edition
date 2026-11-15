@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "spawn_packet_format.h"
 #include "xrServer_Objects.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -34,7 +35,7 @@ void CSE_Shape::cform_read(NET_Packet &tNetPacket)
 		{
 		case 0:
 		{
-			if (tNetPacket.inistream && !Core.SocSdk)
+			if (tNetPacket.inistream && !UseSocSpawnPacket())
 			{
 				tNetPacket.r_vec3(S.data.sphere.P);
 				tNetPacket.r_float(S.data.sphere.R);
@@ -46,6 +47,9 @@ void CSE_Shape::cform_read(NET_Packet &tNetPacket)
 		case 1:
 			tNetPacket.r_matrix(S.data.box);
 			break;
+		default:
+			R_ASSERT2(false, "Unknown spawn shape type");
+			return;
 		}
 		shapes.push_back(S);
 		--count;
@@ -63,7 +67,7 @@ void CSE_Shape::cform_write(NET_Packet &tNetPacket)
 		{
 		case 0:
 		{
-			if (tNetPacket.inistream && !Core.SocSdk)
+			if (tNetPacket.inistream && !UseSocSpawnPacket())
 			{
 				tNetPacket.w_vec3(S.data.sphere.P);
 				tNetPacket.w_float(S.data.sphere.R);

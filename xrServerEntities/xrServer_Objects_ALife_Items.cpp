@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "spawn_packet_format.h"
 #include "xrMessages.h"
 #include "xrServer_Objects_ALife_Items.h"
 #include "clsid_game.h"
@@ -84,7 +85,7 @@ void CSE_ALifeInventoryItem::STATE_Write(NET_Packet &tNetPacket)
 {
 	tNetPacket.w_float(m_fCondition);
 
-	if (!Core.SocSdk)
+	if (!UseSocSpawnPacket())
 		save_data(m_upgrades, tNetPacket);
 
 	State.position = base()->o_Position;
@@ -587,7 +588,7 @@ void CSE_ALifeItemWeapon::STATE_Write(NET_Packet &tNetPacket)
 	tNetPacket.w_u8(m_addon_flags.get());
 	tNetPacket.w_u8(ammo_type);
 
-	if (!Core.SocSdk)
+	if (!UseSocSpawnPacket())
 		tNetPacket.w_u8(a_elapsed_grenades.pack_to_byte());
 }
 

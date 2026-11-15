@@ -2,9 +2,16 @@
 #pragma hdrstop
 
 #include "fs_internal.h"
+#include "Xr_ini_fallback.h"
 
 XRCORE_API CInifile *pSettings = NULL;
 XRCORE_API CInifile *pSettingsAuth = NULL;
+static thread_local IniSectionFallback iniSectionFallback = nullptr;
+
+void SetIniSectionFallback(IniSectionFallback lookup)
+{
+	iniSectionFallback = lookup;
+}
 
 CInifile *CInifile::Create(const char *szFileName, BOOL ReadOnly)
 {
@@ -490,8 +497,10 @@ bool CInifile::save_as(LPCSTR new_fname)
 
 BOOL CInifile::section_exist(LPCSTR S) const
 {
+	if (!S || !*S) return FALSE;
 	RootCIt I = std::lower_bound(DATA.begin(), DATA.end(), S, sect_pred);
-	return (I != DATA.end() && xr_strcmp(*(*I)->Name, S) == 0);
+	return (I != DATA.end() && xr_strcmp(*(*I)->Name, S) == 0) ||
+		(this == pSettings && iniSectionFallback && iniSectionFallback(S));
 }
 
 BOOL CInifile::line_exist(LPCSTR S, LPCSTR L) const
@@ -536,6 +545,8 @@ CInifile::Sect &CInifile::r_section(LPCSTR S) const
 	RootCIt I = std::lower_bound(DATA.begin(), DATA.end(), section, sect_pred);
 	if (!(I != DATA.end() && xr_strcmp(*(*I)->Name, section) == 0))
 	{
+		if (this == pSettings && iniSectionFallback)
+			if (auto* fallback = iniSectionFallback(section)) return *fallback;
 
 		// g_pStringContainer->verify();
 

@@ -4,6 +4,7 @@
 #include "NativeRecoveryIO.h"
 #include "../../../XrCore/lzhuf.h"
 #include "../UI/UISceneTabBar.h"
+#include "../../XrSE_Factory/xrSE_Factory_import_export.h"
 #include <atomic>
 #include <chrono>
 #include <future>
@@ -145,6 +146,7 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
     ULONGLONG nextUpdate = GetTickCount64() + 33;
     {
         // Resolve each model before clearing the current scene, and keep loaded references alive.
+        xrEditorOperationScope recover;
         DeferredBuffers deferred;
         for (const auto& instance : prepared.objects)
         {
@@ -245,7 +247,7 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
         }
     progress.Stage(6.f, "Opening the recovered scene");
     if (!ExecCommand(COMMAND_CLEAR)) throw std::runtime_error("Could not clear the current scene");
-    if (globalSpawnCount) CLE_Visual::g_NoToAll_MissingVisual = true;
+    if (spawnCount) CLE_Visual::g_NoToAll_MissingVisual = true;
     for (auto& object : objects) Scene->AppendObject(object.release(), false);
     size_t navigationCount = 0;
     if (!prepared.gameplay.navigation.nodes.empty())
@@ -391,11 +393,15 @@ void OpenCompiledLevel()
         auto preparation = std::async(std::launch::async, [&]
         {
             auto data = LevelRecovery::Read(path);
+            const auto target = LevelRecovery::PreviewCameraTarget(data);
+            // Opening a scene only uses the original CFORM to frame the view.
+            decltype(data.collisionBytes){}.swap(data.collisionBytes);
+            decltype(data.collisionVertices){}.swap(data.collisionVertices);
+            decltype(data.collisionFaces){}.swap(data.collisionFaces);
             currentStage.store(1);
             LevelRecovery::GroupConnectedSurfaces(data);
             const auto separator = data.source.find_last_of("\\/");
             auto name = data.source.substr(separator == std::string::npos ? 0 : separator + 1);
-            const auto target = LevelRecovery::PreviewCameraTarget(data);
             currentStage.store(2);
             const auto missing = LevelRecovery::NativeIO::PreparePreviewTextures(data, texturesRoot);
             currentStage.store(3);
@@ -414,11 +420,18 @@ void OpenCompiledLevel()
             else UI->ProgressDraw();
         }
         const auto prepared = preparation.get();
+        struct ResetSourceConfig
+        {
+            ~ResetSourceConfig() { XrSE_Factory::SelectCompiledLevelConfig(nullptr); }
+        } resetSourceConfig;
+        XrSE_Factory::SelectCompiledLevelConfig(folder.c_str());
         OpenRecoveredScene(prepared, progress);
+        XrSE_Factory::RememberCompiledLevelConfig();
         ELog.Msg(mtInformation, "Recovered %zu objects from %s.", prepared.objects.size(), prepared.name.c_str());
         if (prepared.missingTextures)
             ELog.Msg(mtInformation, "%zu missing base textures use a placeholder.", prepared.missingTextures);
     }
+    catch (const xrEditorOperationError& e) { ELog.DlgMsg(mtError, "%s", e.details); }
     catch (const std::exception& e) { ELog.DlgMsg(mtError, "%s", e.what()); }
 }
 

@@ -20,6 +20,7 @@
 #define SPAWNPOINT_CHUNK_ENVMOD2 0xE423
 #define SPAWNPOINT_CHUNK_ENVMOD3 0xE424
 #define SPAWNPOINT_CHUNK_FLAGS 0xE425
+#define SPAWNPOINT_CHUNK_COMPILED_COP 0xE426
 
 const float RPOINT_SIZE = 0.5f;
 const float ENVMOD_SIZE = 0.25f;
@@ -250,9 +251,15 @@ void CSpawnPoint::CLE_Motion::PlayMotion()
 //------------------------------------------------------------------------------
 // SpawnData
 //------------------------------------------------------------------------------
-void CSpawnPoint::SSpawnData::Create(LPCSTR _entity_ref)
+void CSpawnPoint::SSpawnData::Create(LPCSTR _entity_ref, CLASS_ID compiledClass)
 {
-    m_Data = XrSE_Factory::create_entity(_entity_ref);
+    m_CompiledClass = compiledClass;
+    if (!pSettings->line_exist(_entity_ref, "class"))
+    {
+        Msg("! Spawn section '%s' has no class in the SDK or source configs.", _entity_ref);
+        return;
+    }
+    m_Data = compiledClass ? XrSE_Factory::create_compiled_entity(_entity_ref, compiledClass) : XrSE_Factory::create_entity(_entity_ref);
     if (m_Data)
     {
         m_Data->set_name(_entity_ref);
@@ -288,6 +295,18 @@ void CSpawnPoint::SSpawnData::Create(LPCSTR _entity_ref)
         m_owner->SetRenderIfSelected(FALSE);
 }
 
+bool CSpawnPoint::SSpawnData::ReadPacket(NET_Packet& packet)
+{
+    packet.timeReceive = 0;
+    return m_CompiledClass ? XrSE_Factory::read_compiled_entity(m_Data, packet) : m_Data->Spawn_Read(packet);
+}
+
+void CSpawnPoint::SSpawnData::WritePacket(NET_Packet& packet)
+{
+    if (m_CompiledClass) XrSE_Factory::write_compiled_entity(m_Data, packet);
+    else m_Data->Spawn_Write(packet, TRUE);
+}
+
 void CSpawnPoint::SSpawnData::Destroy()
 {
     XrSE_Factory::destroy_entity(m_Data);
@@ -312,7 +331,8 @@ void CSpawnPoint::SSpawnData::get_bone_xform(LPCSTR name, Fmatrix& xform)
 bool CSpawnPoint::SSpawnData::LoadLTX(CInifile& ini, LPCSTR sect_name)
 {
     xr_string temp = ini.r_string(sect_name, "name");
-    Create(temp.c_str());
+    const CLASS_ID compiledClass = ini.line_exist(sect_name, "compiled_class") ? ini.r_u64(sect_name, "compiled_class") : 0;
+    Create(temp.c_str(), compiledClass);
 
     if (ini.line_exist(sect_name, "fl"))
         m_flags.assign(ini.r_u8(sect_name, "fl"));
@@ -325,7 +345,7 @@ bool CSpawnPoint::SSpawnData::LoadLTX(CInifile& ini, LPCSTR sect_name)
     Packet.inistream = &ini_stream;
 
     if (Valid())
-        if (!m_Data->Spawn_Read(Packet))
+        if (!ReadPacket(Packet))
             Destroy();
 
     return Valid();
@@ -335,6 +355,7 @@ void CSpawnPoint::SSpawnData::SaveLTX(CInifile& ini, LPCSTR sect_name)
 {
     ini.w_string(sect_name, "name", m_Data->name());
     ini.w_u8(sect_name, "fl", m_flags.get());
+    if (m_CompiledClass) ini.w_u64(sect_name, "compiled_class", m_CompiledClass);
 
     NET_Packet Packet;
     SIniFileStream ini_stream;
@@ -343,7 +364,7 @@ void CSpawnPoint::SSpawnData::SaveLTX(CInifile& ini, LPCSTR sect_name)
     ini_stream.move_begin();
     Packet.inistream = &ini_stream;
 
-    m_Data->Spawn_Write(Packet, TRUE);
+    WritePacket(Packet);
 }
 
 void CSpawnPoint::SSpawnData::SaveStream(IWriter& F)
@@ -351,6 +372,12 @@ void CSpawnPoint::SSpawnData::SaveStream(IWriter& F)
     F.open_chunk(SPAWNPOINT_CHUNK_ENTITYREF);
     F.w_stringZ(m_Data->name());
     F.close_chunk();
+    if (m_CompiledClass)
+    {
+        F.open_chunk(SPAWNPOINT_CHUNK_COMPILED_COP);
+        F.w_u64(m_CompiledClass);
+        F.close_chunk();
+    }
 
     if (!Core.SocSdk)
     {
@@ -361,7 +388,7 @@ void CSpawnPoint::SSpawnData::SaveStream(IWriter& F)
 
     F.open_chunk(SPAWNPOINT_CHUNK_SPAWNDATA);
     NET_Packet Packet;
-    m_Data->Spawn_Write(Packet, TRUE);
+    WritePacket(Packet);
     F.w_u32(Packet.B.count);
     F.w(Packet.B.data, Packet.B.count);
     F.close_chunk();
@@ -376,13 +403,15 @@ bool CSpawnPoint::SSpawnData::LoadStream(IReader& F)
     if (F.find_chunk(SPAWNPOINT_CHUNK_FLAGS))
         m_flags.assign(F.r_u8());
 
+    const CLASS_ID compiledClass = F.find_chunk(SPAWNPOINT_CHUNK_COMPILED_COP) == sizeof(CLASS_ID) ? F.r_u64() : 0;
     NET_Packet Packet;
     R_ASSERT(F.find_chunk(SPAWNPOINT_CHUNK_SPAWNDATA));
     Packet.B.count = F.r_u32();
+    if (Packet.B.count >= sizeof(Packet.B.data)) return false;
     F.r(Packet.B.data, Packet.B.count);
-    Create(temp);
+    Create(temp, compiledClass);
 
-    if (Valid() && !m_Data->Spawn_Read(Packet))
+    if (Valid() && !ReadPacket(Packet))
         Destroy();
 
     return Valid();
@@ -416,7 +445,7 @@ bool CSpawnPoint::SSpawnData::ExportGame(SExportStreams* F, CSpawnPoint* owner)
     // end
 
     NET_Packet Packet;
-    m_Data->Spawn_Write(Packet, TRUE);
+    WritePacket(Packet);
 
     SExportStreamItem& tgt = (m_flags.test(eSDTypeRespawn)) ? F->spawn_rs : F->spawn;
     tgt.stream.open_chunk(tgt.chunk++);
@@ -731,11 +760,11 @@ LPCSTR CSpawnPoint::RefName()
     return m_SpawnData.Valid() ? m_SpawnData.m_Data->name() : 0;
 }
 
-bool CSpawnPoint::CreateSpawnData(LPCSTR entity_ref)
+bool CSpawnPoint::CreateSpawnData(LPCSTR entity_ref, CLASS_ID compiledClass)
 {
     R_ASSERT(entity_ref && entity_ref[0]);
     m_SpawnData.Destroy();
-    m_SpawnData.Create(entity_ref);
+    m_SpawnData.Create(entity_ref, compiledClass);
     if (m_SpawnData.Valid())
         m_Type = ptSpawnPoint;
     return m_SpawnData.Valid();
@@ -744,16 +773,16 @@ bool CSpawnPoint::CreateSpawnData(LPCSTR entity_ref)
 
 bool CSpawnPoint::ImportCompiledSpawn(const LevelRecovery::SpawnRecord& record)
 {
-    if (!pSettings->section_exist(record.section.c_str()) ||
-        !pSettings->line_exist(record.section.c_str(), "class") || !CreateSpawnData(record.section.c_str())) return false;
+    const auto* section = record.section.c_str();
+    const auto compiledClass = record.version == 128 ? XrSE_Factory::compiled_entity_class(section) : 0;
+    if ((record.version == 128 && !compiledClass) || !CreateSpawnData(section, compiledClass)) return false;
 
     NET_Packet packet{};
     if (record.packet.size() >= sizeof(packet.B.data)) return false;
-    packet.timeReceive = 0;
     packet.B.count = static_cast<u32>(record.packet.size());
     std::memset(packet.B.data, 0, sizeof(packet.B.data));
     std::memcpy(packet.B.data, record.packet.data(), packet.B.count);
-    if (!m_SpawnData.m_Data->Spawn_Read(packet)) return false;
+    if (!m_SpawnData.ReadPacket(packet) || packet.r_tell() > packet.B.count) return false;
     if (packet.r_tell() != packet.B.count)
     {
         // These Lua classes deliberately stop after their editable state in the
@@ -765,7 +794,7 @@ bool CSpawnPoint::ImportCompiledSpawn(const LevelRecovery::SpawnRecord& record)
         const auto type = m_SpawnData.m_ClassID;
         const u32 emptyStateSize = type == smartTerrain ? 3 :
             (type == respawn || type == mosquitoBald || type == mincer ? 1 : 0);
-        if (!record.global || !emptyStateSize || packet.r_tell() > packet.B.count ||
+        if (compiledClass || !record.global || !emptyStateSize ||
             packet.B.count - packet.r_tell() != emptyStateSize ||
             std::any_of(packet.B.data + packet.r_tell(), packet.B.data + packet.B.count,
                 [](u8 value) { return value != 0; }))
@@ -1545,7 +1574,7 @@ void CSpawnPoint::OnFillChooseItems(ChooseValue* val)
     VERIFY(st);
     CLASS_ID cls_id = m_SpawnData.m_ClassID;
     ESceneSpawnTool::ClassSpawnMapIt cls_it = st->m_Classes.find(cls_id);
-    VERIFY(cls_it != st->m_Classes.end());
+    if (cls_it == st->m_Classes.end()) return;
     *val->m_Items = cls_it->second;
 }
 
@@ -1554,7 +1583,7 @@ shared_str CSpawnPoint::SectionToEditor(shared_str nm)
     ESceneSpawnTool* st = dynamic_cast<ESceneSpawnTool*>(FParentTools);
     VERIFY(st);
     ESceneSpawnTool::ClassSpawnMapIt cls_it = st->m_Classes.find(m_SpawnData.m_ClassID);
-    VERIFY(cls_it != st->m_Classes.end());
+    if (cls_it == st->m_Classes.end()) return 0;
     for (ESceneSpawnTool::SSVecIt ss_it = cls_it->second.begin(); ss_it != cls_it->second.end(); ++ss_it)
         if (nm.equal(ss_it->hint))
             return ss_it->name;
@@ -1566,7 +1595,7 @@ shared_str CSpawnPoint::EditorToSection(shared_str nm)
     ESceneSpawnTool* st = dynamic_cast<ESceneSpawnTool*>(FParentTools);
     VERIFY(st);
     ESceneSpawnTool::ClassSpawnMapIt cls_it = st->m_Classes.find(m_SpawnData.m_ClassID);
-    VERIFY(cls_it != st->m_Classes.end());
+    if (cls_it == st->m_Classes.end()) return 0;
     for (ESceneSpawnTool::SSVecIt ss_it = cls_it->second.begin(); ss_it != cls_it->second.end(); ++ss_it)
         if (nm.equal(ss_it->name))
             return ss_it->hint;
@@ -1609,9 +1638,12 @@ void CSpawnPoint::FillProp(LPCSTR pref, PropItemVec& items)
     {
         shared_str pref1 = PrepareKey(pref, m_SpawnData.m_Data->name());
         m_SpawnData.m_Profile = SectionToEditor(m_SpawnData.m_Data->name());
-        ChooseValue* C = PHelper().CreateChoose(items, PrepareKey(pref1.c_str(), "Profile (spawn section)"), &m_SpawnData.m_Profile, smCustom, 0, 0, 1, cfFullExpand);
-        C->OnChooseFillEvent.bind(this, &CSpawnPoint::OnFillChooseItems);
-        C->OnChangeEvent.bind(this, &CSpawnPoint::OnProfileChange);
+        if (!m_SpawnData.m_CompiledClass && m_SpawnData.m_Profile.size())
+        {
+            ChooseValue* C = PHelper().CreateChoose(items, PrepareKey(pref1.c_str(), "Profile (spawn section)"), &m_SpawnData.m_Profile, smCustom, 0, 0, 1, cfFullExpand);
+            C->OnChooseFillEvent.bind(this, &CSpawnPoint::OnFillChooseItems);
+            C->OnChangeEvent.bind(this, &CSpawnPoint::OnProfileChange);
+        }
         m_SpawnData.FillProp(pref, items);
     }
     else

@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "spawn_packet_format.h"
 #pragma hdrstop
 
 #include "PHNetState.h"
@@ -224,7 +225,7 @@ SPHBonesData::SPHBonesData()
 
 void SPHBonesData::net_Save(NET_Packet &P)
 {
-	if (Core.SocSdk)
+	if (UseSocSpawnPacket())
 		P.w_u64(bones_mask_soc);
 	else
 	{
@@ -252,7 +253,7 @@ void SPHBonesData::net_Load(NET_Packet &P)
 {
 	bones.clear();
 
-	if (Core.SocSdk)
+	if (UseSocSpawnPacket())
 		bones_mask_soc = P.r_u64();
 	else
 	{

@@ -15,6 +15,14 @@
 #include "script_engine.h"
 #include "object_item_script.h"
 
+#ifdef NO_XR_GAME
+CObjectFactory::SERVER_BASE_CLASS *CObjectFactory::native_server_object(const CLASS_ID &clsid, LPCSTR section) const
+{
+	const auto* source = item(clsid, true);
+	return source && !dynamic_cast<const CObjectItemScript*>(source) ? source->server_object(section) : nullptr;
+}
+#endif
+
 void CObjectFactory::register_script_class(LPCSTR client_class, LPCSTR server_class, LPCSTR clsid, LPCSTR script_clsid)
 {
 #ifndef NO_XR_GAME
