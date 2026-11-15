@@ -21,6 +21,7 @@
 #define SPAWNPOINT_CHUNK_ENVMOD3 0xE424
 #define SPAWNPOINT_CHUNK_FLAGS 0xE425
 #define SPAWNPOINT_CHUNK_COMPILED_COP 0xE426
+#define SPAWNPOINT_CHUNK_COMPILED_PREVIEW 0xE427
 
 const float RPOINT_SIZE = 0.5f;
 const float ENVMOD_SIZE = 0.25f;
@@ -82,7 +83,21 @@ void CLE_Visual::OnChangeVisual()
     ::Render->model_Delete(visual, TRUE);
     if (source->visual_name.size())
     {
-        visual = ::Render->model_Create(source->visual_name.c_str());
+        const bool usePreview = compiledPreview.size() && compiledOriginal == source->visual_name;
+        if (usePreview)
+        {
+            try
+            {
+                xrEditorOperationScope recovery;
+                visual = ::Render->model_Create(compiledPreview.c_str());
+            }
+            catch (const xrEditorOperationError& e)
+            {
+                Msg("! Spawn preview '%s': %s", compiledPreview.c_str(), e.details);
+            }
+            if (!visual) return;
+        }
+        else visual = ::Render->model_Create(source->visual_name.c_str());
 
         if (NULL == visual && !g_tmp_lock && !g_NoToAll_MissingVisual)
         {
@@ -348,6 +363,11 @@ bool CSpawnPoint::SSpawnData::LoadLTX(CInifile& ini, LPCSTR sect_name)
         if (!ReadPacket(Packet))
             Destroy();
 
+    if (m_Visual && ini.line_exist(sect_name, "compiled_preview"))
+    {
+        m_Visual->compiledPreview = ini.r_string(sect_name, "compiled_preview");
+        m_Visual->compiledOriginal = m_Data->visual()->visual_name;
+    }
     return Valid();
 }
 
@@ -356,6 +376,8 @@ void CSpawnPoint::SSpawnData::SaveLTX(CInifile& ini, LPCSTR sect_name)
     ini.w_string(sect_name, "name", m_Data->name());
     ini.w_u8(sect_name, "fl", m_flags.get());
     if (m_CompiledClass) ini.w_u64(sect_name, "compiled_class", m_CompiledClass);
+    if (m_Visual && m_Visual->compiledPreview.size() && m_Visual->compiledOriginal == m_Data->visual()->visual_name)
+        ini.w_string(sect_name, "compiled_preview", m_Visual->compiledPreview.c_str());
 
     NET_Packet Packet;
     SIniFileStream ini_stream;
@@ -376,6 +398,12 @@ void CSpawnPoint::SSpawnData::SaveStream(IWriter& F)
     {
         F.open_chunk(SPAWNPOINT_CHUNK_COMPILED_COP);
         F.w_u64(m_CompiledClass);
+        F.close_chunk();
+    }
+    if (m_Visual && m_Visual->compiledPreview.size() && m_Visual->compiledOriginal == m_Data->visual()->visual_name)
+    {
+        F.open_chunk(SPAWNPOINT_CHUNK_COMPILED_PREVIEW);
+        F.w_stringZ(m_Visual->compiledPreview.c_str());
         F.close_chunk();
     }
 
@@ -414,6 +442,11 @@ bool CSpawnPoint::SSpawnData::LoadStream(IReader& F)
     if (Valid() && !ReadPacket(Packet))
         Destroy();
 
+    if (m_Visual && F.find_chunk(SPAWNPOINT_CHUNK_COMPILED_PREVIEW))
+    {
+        F.r_stringZ(m_Visual->compiledPreview);
+        m_Visual->compiledOriginal = m_Data->visual()->visual_name;
+    }
     return Valid();
 }
 
@@ -821,6 +854,42 @@ bool CSpawnPoint::ImportCompiledSpawn(const LevelRecovery::SpawnRecord& record)
     }
     SetPosition(Fvector().set(record.position[0], record.position[1], record.position[2]));
     SetRotation(Fvector().set(record.rotation[0], record.rotation[1], record.rotation[2]));
+    return true;
+}
+
+bool CSpawnPoint::ImportConfiguredNpc(LPCSTR section, const Fvector& position)
+{
+    const auto clsid = XrSE_Factory::compiled_entity_class(section);
+    if (!clsid || !CreateSpawnData(section, clsid)) return false;
+    const auto* profile = XrSE_Factory::CompiledSourceValue(section, "character_profile");
+    if (m_SpawnData.m_Visual)
+        if (const auto* visual = XrSE_Factory::CompiledNpcVisual(profile))
+            m_SpawnData.m_Visual->source->visual_name = visual;
+    SetPosition(position);
+    SetValid(true);
+    return true;
+}
+
+bool CSpawnPoint::PrepareCompiledVisual(const std::string& level, const std::string& meshes, const std::string& textures)
+{
+    if (!m_SpawnData.m_Visual) return false;
+    const auto clsid = m_SpawnData.m_CompiledClass ? m_SpawnData.m_CompiledClass : m_SpawnData.m_ClassID;
+    const bool npc = clsid == TEXT2CLSID("AI_STL_S") || clsid == TEXT2CLSID("AI_STL") ||
+        clsid == TEXT2CLSID("AI_TRD_S") || clsid == TEXT2CLSID("AI_TRADE");
+    auto* visual = m_SpawnData.m_Visual->source;
+    const char* section = m_SpawnData.m_Data->name();
+    const auto* configuredProfile = npc ? XrSE_Factory::CompiledSourceValue(section, "character_profile") : nullptr;
+    const auto* profileVisual = configuredProfile ? XrSE_Factory::CompiledNpcVisual(configuredProfile) : nullptr;
+    if (npc && !visual->visual_name.size())
+        if (profileVisual && *profileVisual) visual->visual_name = profileVisual;
+    if (!visual->visual_name.size()) return false;
+    const std::string name = visual->visual_name.c_str();
+    if (!npc && !strstr(section, "door") && name.find("\\door\\") == std::string::npos &&
+        name.find("/door/") == std::string::npos) return false;
+    const auto prepared = LevelRecovery::PrepareSpawnPreview(level, name, meshes, textures);
+    if (prepared.empty()) return false;
+    m_SpawnData.m_Visual->compiledOriginal = visual->visual_name;
+    m_SpawnData.m_Visual->compiledPreview = prepared.c_str();
     return true;
 }
 

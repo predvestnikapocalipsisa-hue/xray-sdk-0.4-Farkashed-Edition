@@ -135,6 +135,8 @@ struct Gameplay
 // The editor supplies the decoder for compressed legacy .db directories.
 using ArchiveIndexDecoder = std::vector<uint8_t> (*)(std::vector<uint8_t>&);
 Gameplay ReadGameplay(const std::string& directory, ArchiveIndexDecoder decodeArchiveIndex = nullptr);
+std::string PrepareSpawnPreview(const std::string& levelDirectory, const std::string& visual,
+    const std::string& meshesDirectory, const std::string& texturesDirectory);
 std::array<float, 3> PreviewCameraTarget(const Level& level);
 void GroupConnectedSurfaces(Level& level);
 std::string Describe(const Level& level);

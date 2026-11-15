@@ -23,6 +23,7 @@ public:
     static bool g_NoToAll_MissingVisual;
     CSE_Visual* source;
     IRenderVisual* visual;
+    shared_str compiledPreview, compiledOriginal;
     void OnChangeVisual();
     void StopAllAnimations();
     void PlayAnimation();
@@ -161,6 +162,8 @@ public:
 
     bool CreateSpawnData(LPCSTR entity_ref, CLASS_ID compiledClass = 0);
     bool ImportCompiledSpawn(const LevelRecovery::SpawnRecord& record);
+    bool ImportConfiguredNpc(LPCSTR section, const Fvector& position);
+    bool PrepareCompiledVisual(const std::string& level, const std::string& meshes, const std::string& textures);
     void ImportCompiledRespawn(const LevelRecovery::RespawnRecord& record);
     virtual void Render(int priority, bool strictB2F);
 

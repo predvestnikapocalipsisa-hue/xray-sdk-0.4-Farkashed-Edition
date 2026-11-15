@@ -9,6 +9,7 @@
 #include <chrono>
 #include <future>
 #include <memory>
+#include <map>
 #include <set>
 #include <shobjidl.h>
 #pragma comment(lib, "ole32.lib")
@@ -36,7 +37,7 @@ std::future<Result> job;
 std::shared_ptr<LevelRecovery::Level> level;
 struct CompiledScene
 {
-    std::string name;
+    std::string name, source;
     std::vector<LevelRecovery::NativeIO::Instance> objects;
     std::array<float, 3> cameraTarget{};
     size_t missingTextures = 0;
@@ -132,6 +133,96 @@ struct DeferredBuffers
     ~DeferredBuffers() { EPrefs->object_flags.assign(flags); }
 };
 
+struct ConfiguredNpc
+{
+    std::string section, name;
+    std::array<float, 3> position;
+};
+
+std::vector<ConfiguredNpc> ReadConfiguredNpcs(const LevelRecovery::Gameplay& gameplay)
+{
+    std::unique_ptr<CInifile, decltype(&CInifile::Destroy)> simulation(
+        XrSE_Factory::OpenCompiledSimulation(), CInifile::Destroy);
+    if (!simulation) return {};
+    std::map<std::string, const LevelRecovery::WayPath*> paths;
+    std::set<std::string> nativeSections, names, visitedSmarts;
+    for (const auto& path : gameplay.ways) paths.emplace(path.name, &path);
+    for (const auto& spawn : gameplay.spawns)
+    {
+        nativeSections.insert(spawn.section);
+        names.insert(spawn.name);
+    }
+    std::vector<ConfiguredNpc> result;
+    const auto usePath = [&](const char* name, std::array<float, 3>& position)
+    {
+        if (!name || !*name) return false;
+        const auto found = paths.find(name);
+        if (found == paths.end() || found->second->nodes.empty()) return false;
+        position = found->second->nodes.front().position;
+        return true;
+    };
+    for (const auto& smart : gameplay.spawns)
+    {
+        if (smart.section != "smart_terrain" || !simulation->section_exist(smart.name.c_str()) ||
+            !visitedSmarts.insert(smart.name).second) continue;
+        const auto& squads = simulation->r_section(smart.name.c_str()).Data;
+        for (const auto& squad : squads)
+        {
+            if (!squad.first.size()) continue;
+            const auto* members = XrSE_Factory::CompiledSourceValue(squad.first.c_str(), "npc");
+            if (!members || !*members) continue;
+            int repetitions = 1;
+            if (squad.second.size())
+            {
+                char* end = nullptr;
+                const long count = std::strtol(squad.second.c_str(), &end, 10);
+                if (*end || count <= 0 || count > 64) continue;
+                repetitions = int(count);
+            }
+            auto position = smart.position;
+            const auto* spawnVid = XrSE_Factory::CompiledSourceValue(squad.first.c_str(), "spawn_vid");
+            const auto* spawnPath = XrSE_Factory::CompiledSourceValue(squad.first.c_str(), "spawn_point");
+            bool placed = false;
+            if (spawnVid && *spawnVid)
+            {
+                char* end = nullptr;
+                const auto index = std::strtoul(spawnVid, &end, 10);
+                if (end != spawnVid && *end == ':' && index < gameplay.navigation.nodes.size())
+                {
+                    position = gameplay.navigation.nodes[index].position;
+                    placed = true;
+                }
+                else continue;
+            }
+            if (!placed)
+            {
+                if (spawnPath && *spawnPath)
+                {
+                    if (!usePath(spawnPath, position)) continue;
+                }
+                else usePath((smart.name + "_spawn_point").c_str(), position);
+            }
+            for (int i = 0, count = _GetItemCount(members); i < count && i < 64; ++i)
+            {
+                xr_string section;
+                _GetItem(members, i, section);
+                if (section.empty() || section.size() >= 64 || nativeSections.count(section.c_str())) continue;
+                const auto clsid = XrSE_Factory::compiled_entity_class(section.c_str());
+                if (clsid != TEXT2CLSID("AI_STL_S") && clsid != TEXT2CLSID("AI_STL") &&
+                    clsid != TEXT2CLSID("AI_TRD_S") && clsid != TEXT2CLSID("AI_TRADE")) continue;
+                for (int n = 0; n < repetitions; ++n)
+                {
+                    std::string name = section.c_str();
+                    for (size_t suffix = 1; !names.insert(name).second; ++suffix)
+                        name = std::string(section.c_str()) + "_imported_" + std::to_string(suffix);
+                    result.push_back({section.c_str(), std::move(name), position});
+                }
+            }
+        }
+    }
+    return result;
+}
+
 void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& progress)
 {
     if (Scene->locked()) throw std::runtime_error("Wait until the editor finishes working on the current scene");
@@ -189,8 +280,20 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
             objects.push_back(std::move(object));
             ++wayCount;
         }
+    size_t npcCount = 0, previewCount = 0;
     if (!prepared.gameplay.spawns.empty() || !prepared.gameplay.respawns.empty()) if (auto* spawnTool = getTool(OBJCLASS_SPAWNPOINT))
     {
+        string_path assetRoot;
+        FS.update_path(assetRoot, "$game_meshes$", "");
+        const auto meshes = ConvertPath(assetRoot, CP_ACP, CP_UTF8);
+        FS.update_path(assetRoot, "$game_textures$", "");
+        const auto textures = ConvertPath(assetRoot, CP_ACP, CP_UTF8);
+        const auto preparePreview = [&](CSpawnPoint& spawn)
+        {
+            try { if (spawn.PrepareCompiledVisual(prepared.source, meshes, textures)) ++previewCount; }
+            catch (const xrEditorOperationError& e) { Msg("! Spawn preview %s: %s", spawn.GetName(), e.details); }
+            catch (const std::exception& e) { Msg("! Spawn preview %s: %s", spawn.GetName(), e.what()); }
+        };
         const auto less = [](const std::string& a, const std::string& b) { return _stricmp(a.c_str(), b.c_str()) < 0; };
         std::set<std::string, decltype(less)> importedGlobal(less);
         size_t visited = 0;
@@ -213,8 +316,10 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
                 // An entity factory assertion must not abort the entire level import.
                 xrEditorOperationScope recovery;
                 std::unique_ptr<CCustomObject, DeleteObject> object(spawnTool->CreateObject(nullptr, name.c_str()));
-                if (!static_cast<CSpawnPoint*>(object.get())->ImportCompiledSpawn(record))
+                auto* spawn = static_cast<CSpawnPoint*>(object.get());
+                if (!spawn->ImportCompiledSpawn(record))
                     throw std::runtime_error("missing SDK section or incompatible entity state");
+                preparePreview(*spawn);
                 objects.push_back(std::move(object));
                 ++spawnCount;
                 if (record.global)
@@ -225,6 +330,30 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
             }
             catch (const xrEditorOperationError& e) { ELog.Msg(mtInformation, "Recovery: skipped spawn %s: %s", name.c_str(), e.details); }
             catch (const std::runtime_error& e) { ELog.Msg(mtInformation, "Recovery: skipped spawn %s: %s", name.c_str(), e.what()); }
+        }
+        std::vector<ConfiguredNpc> configuredNpcs;
+        try
+        {
+            xrEditorOperationScope recovery;
+            configuredNpcs = ReadConfiguredNpcs(prepared.gameplay);
+        }
+        catch (const xrEditorOperationError& e) { Msg("! Starting NPCs: %s", e.details); }
+        catch (const std::exception& e) { Msg("! Starting NPCs: %s", e.what()); }
+        for (const auto& npc : configuredNpcs)
+        {
+            try
+            {
+                xrEditorOperationScope recovery;
+                std::unique_ptr<CCustomObject, DeleteObject> object(spawnTool->CreateObject(nullptr, npc.name.c_str()));
+                auto* spawn = static_cast<CSpawnPoint*>(object.get());
+                if (!spawn->ImportConfiguredNpc(npc.section.c_str(),
+                    Fvector().set(npc.position[0], npc.position[1], npc.position[2]))) continue;
+                preparePreview(*spawn);
+                objects.push_back(std::move(object));
+                ++spawnCount;
+                ++npcCount;
+            }
+            catch (const xrEditorOperationError& e) { Msg("! Starting NPC %s: %s", npc.name.c_str(), e.details); }
         }
         size_t index = 0;
         for (const auto& record : prepared.gameplay.respawns)
@@ -246,6 +375,11 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
             ++soundCount;
         }
     progress.Stage(6.f, "Opening the recovered scene");
+    if (previewCount)
+    {
+        FS.get_path("$game_meshes$")->rescan_path_cb();
+        FS.get_path("$game_textures$")->rescan_path_cb();
+    }
     if (!ExecCommand(COMMAND_CLEAR)) throw std::runtime_error("Could not clear the current scene");
     if (spawnCount) CLE_Visual::g_NoToAll_MissingVisual = true;
     for (auto& object : objects) Scene->AppendObject(object.release(), false);
@@ -275,6 +409,8 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
     UI->RedrawScene();
     ELog.Msg(mtInformation, "Recovered gameplay: %zu patrol paths, %zu spawn/respawn points (%zu from all.spawn), %zu static sounds, %zu AI nodes.",
         wayCount, spawnCount, globalSpawnCount, soundCount, navigationCount);
+    if (npcCount || previewCount)
+        ELog.Msg(mtInformation, "Recovered %zu starting NPCs and %zu door/NPC model previews.", npcCount, previewCount);
     progress.item->Update(progress.item->max);
 }
 void ImportTrees()
@@ -405,7 +541,7 @@ void OpenCompiledLevel()
             currentStage.store(2);
             const auto missing = LevelRecovery::NativeIO::PreparePreviewTextures(data, texturesRoot);
             currentStage.store(3);
-            return CompiledScene{std::move(name), LevelRecovery::NativeIO::PrepareSceneImport(data, objectsRoot), target,
+            return CompiledScene{std::move(name), data.source, LevelRecovery::NativeIO::PrepareSceneImport(data, objectsRoot), target,
                 missing, LevelRecovery::ReadGameplay(path, DecodeArchiveIndex)};
         });
         int displayedStage = 0;

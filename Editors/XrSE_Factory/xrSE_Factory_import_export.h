@@ -9,6 +9,7 @@
 
 struct ISE_Abstract;
 class NET_Packet;
+class CInifile;
 
 namespace XrSE_Factory
 {
@@ -22,6 +23,9 @@ namespace XrSE_Factory
 	FACTORY_API void destroy();
 	FACTORY_API void SelectCompiledLevelConfig(const wchar_t* directory);
 	FACTORY_API void RememberCompiledLevelConfig();
+	FACTORY_API CInifile* OpenCompiledSimulation();
+	FACTORY_API LPCSTR CompiledSourceValue(LPCSTR section, LPCSTR key);
+	FACTORY_API LPCSTR CompiledNpcVisual(LPCSTR profile);
 }
 
 #endif

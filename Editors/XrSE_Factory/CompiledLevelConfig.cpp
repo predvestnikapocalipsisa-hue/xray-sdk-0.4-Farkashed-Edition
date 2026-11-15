@@ -2,9 +2,11 @@
 #include "CompiledLevelConfig.h"
 #include "xrSE_Factory_import_export.h"
 #include "../../XrCore/Xr_ini_fallback.h"
+#include "../../xrXMLParser/xrXMLParser.h"
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <map>
 #include <set>
 #include <stdexcept>
 #include <string_view>
@@ -44,6 +46,8 @@ class ConfigIncludes
     fs::path root;
     std::set<fs::path> visited;
     std::string text;
+    bool xml = false;
+    size_t includeCount = 0;
 
     void Append(const fs::path& file, unsigned depth = 0)
     {
@@ -53,7 +57,7 @@ class ConfigIncludes
         if (relative.empty() || relative.is_absolute() || *relative.begin() == "..")
             throw std::runtime_error("LTX include is outside the source config directory");
         if (!visited.insert(path).second) return;
-        if (visited.size() > 8192)
+        if (++includeCount > (xml ? 32768u : 8192u))
             throw std::runtime_error("Too many source LTX includes");
         if (fs::file_size(path) >= 64 * 1024 * 1024)
             throw std::runtime_error("Source LTX exceeds the editor's parser limits");
@@ -73,7 +77,8 @@ class ConfigIncludes
                 const auto end = begin == std::string::npos ? begin : line.find('"', begin + 1);
                 if (end == std::string::npos || end == begin + 1)
                     throw std::runtime_error("Malformed LTX include in " + path.u8string());
-                const auto include = path.parent_path() / fs::path(line.substr(begin + 1, end - begin - 1));
+                const fs::path name(line.substr(begin + 1, end - begin - 1));
+                const auto include = xml ? root / name : path.parent_path() / name;
                 const auto mask = include.native().find_first_of(L"*?");
                 if (mask == std::wstring::npos)
                 {
@@ -105,10 +110,13 @@ class ConfigIncludes
             }
         }
         if (input.bad()) throw std::runtime_error("Could not finish reading " + path.u8string());
+        if (xml) visited.erase(path); // XML fragments may be shared by several characters.
     }
 
 public:
     explicit ConfigIncludes(const fs::path& system) : root(system.parent_path()) { Append(system); }
+    ConfigIncludes(const fs::path& file, const fs::path& config) : root(config), xml(true) { Append(file); }
+    const std::string& Text() const { return text; }
     std::unique_ptr<CInifile> Read()
     {
         IReader reader(text.data(), static_cast<int>(text.size()));
@@ -125,6 +133,53 @@ std::vector<Source> sources;
 fs::path selected;
 std::vector<fs::path> remembered;
 bool usedSelected = false;
+fs::path profilesSource;
+std::map<std::string, std::string> npcVisuals, npcProfiles, npcProfileClasses, npcClassVisuals;
+
+void ReadCharacterXml(LPCSTR files, bool profiles)
+{
+    if (!files) return;
+    xr_string name;
+    for (int i = 0, count = _GetItemCount(files); i < count; ++i)
+    {
+        _GetItem(files, i, name);
+        if (name.empty() || name.find_first_of("\\/:.") != xr_string::npos) continue;
+        const auto path = selected.parent_path() / "gameplay" / (std::string(name.c_str()) + ".xml");
+        std::error_code error;
+        if (fs::file_size(path, error) > 8 * 1024 * 1024 || error) continue;
+        std::string data;
+        try { data = ConfigIncludes(path, selected.parent_path()).Text(); }
+        catch (const std::exception& e)
+        {
+            Msg("! Character profiles %s: %s", path.u8string().c_str(), e.what());
+            continue;
+        }
+        TiXmlDocument doc;
+        doc.Parse(&doc, data.c_str());
+        const auto* root = doc.RootElement();
+        if (!root || doc.Error()) continue;
+        const auto* element = profiles ? "character" : "specific_character";
+        for (auto* node = root->FirstChildElement(element); node; node = node->NextSiblingElement(element))
+        {
+            const auto* id = node->Attribute("id");
+            if (!id) continue;
+            const auto* value = node->FirstChildElement(profiles ? "specific_character" : "visual");
+            const auto* category = node->FirstChildElement("class");
+            const auto* className = category ? category->GetText() : nullptr;
+            const auto* text = value ? value->GetText() : nullptr;
+            if (profiles)
+            {
+                if (text && *text) npcProfiles.emplace(id, text);
+                if (className && *className) npcProfileClasses.emplace(id, className);
+            }
+            else if (text && *text)
+            {
+                npcVisuals.emplace(id, text);
+                if (className && *className) npcClassVisuals.emplace(className, text);
+            }
+        }
+    }
+}
 
 fs::path Manifest()
 {
@@ -192,6 +247,11 @@ void DestroyCompiledLevelConfig()
     selected.clear();
     remembered.clear();
     sources.clear();
+    profilesSource.clear();
+    npcVisuals.clear();
+    npcProfiles.clear();
+    npcProfileClasses.clear();
+    npcClassVisuals.clear();
 }
 
 void XrSE_Factory::SelectCompiledLevelConfig(const wchar_t* directory)
@@ -230,6 +290,50 @@ CLASS_ID XrSE_Factory::compiled_entity_class(LPCSTR section)
             }
         }
     return pSettings->line_exist(section, "class") ? pSettings->r_clsid(section, "class") : 0;
+}
+
+CInifile* XrSE_Factory::OpenCompiledSimulation()
+{
+    if (selected.empty()) return nullptr;
+    const auto path = selected.parent_path() / "misc" / "simulation.ltx";
+    if (!fs::is_regular_file(path)) return nullptr;
+    usedSelected = true;
+    return ConfigIncludes(fs::canonical(path)).Read().release();
+}
+
+LPCSTR XrSE_Factory::CompiledSourceValue(LPCSTR section, LPCSTR key)
+{
+    if (selected.empty()) return nullptr;
+    auto* definition = FindInSource(selected, section);
+    LPCSTR value = nullptr;
+    if (definition && definition->line_exist(key, &value))
+    {
+        usedSelected = true;
+        return value;
+    }
+    return nullptr;
+}
+
+LPCSTR XrSE_Factory::CompiledNpcVisual(LPCSTR profile)
+{
+    if (!profile || !*profile || selected.empty()) return nullptr;
+    if (profilesSource != selected)
+    {
+        npcVisuals.clear();
+        npcProfiles.clear();
+        npcProfileClasses.clear();
+        npcClassVisuals.clear();
+        ReadCharacterXml(CompiledSourceValue("profiles", "files"), true);
+        ReadCharacterXml(CompiledSourceValue("profiles", "specific_characters_files"), false);
+        profilesSource = selected;
+    }
+    const auto alias = npcProfiles.find(profile);
+    const auto visual = npcVisuals.find(alias == npcProfiles.end() ? profile : alias->second);
+    if (visual != npcVisuals.end()) return visual->second.c_str();
+    const auto category = npcProfileClasses.find(profile);
+    if (category == npcProfileClasses.end()) return nullptr;
+    const auto fallback = npcClassVisuals.find(category->second);
+    return fallback == npcClassVisuals.end() ? nullptr : fallback->second.c_str();
 }
 
 void XrSE_Factory::RememberCompiledLevelConfig()

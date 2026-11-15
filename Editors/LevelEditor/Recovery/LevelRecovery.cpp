@@ -23,6 +23,7 @@ namespace
 namespace fs = std::filesystem;
 using Bytes = std::vector<uint8_t>;
 using Vec3 = std::array<float, 3>;
+std::string LowerAscii(std::string text);
 void Require(bool condition, const std::string& message)
 {
     if (!condition) throw std::runtime_error(message);
@@ -428,6 +429,124 @@ Level Read(const std::string& directory)
     l.warnings.push_back("CFORM material numbers require the source gamemtl.xr; they are not mapped to the active SDK material library.");
     l.warnings.push_back("Custom shader UV/normal decoding must be verified against its shader code. No remeshing or automatic collider generation is performed.");
     return l;
+}
+
+std::string PrepareSpawnPreview(const std::string& levelDirectory, const std::string& visual,
+    const std::string& meshesDirectory, const std::string& texturesDirectory)
+{
+    const auto relativeAsset = [](const std::string& name)
+    {
+        auto path = fs::u8path(name);
+        if (name.empty() || name.size() >= 200 || path.has_root_path() || name.find(':') != std::string::npos)
+            return fs::path();
+        for (const auto& part : path)
+            if (part.empty() || part == "." || part == "..") return fs::path();
+        return path;
+    };
+    auto model = relativeAsset(visual);
+    if (model.empty()) return {};
+    if (model.extension().empty()) model += ".ogf";
+    if (LowerAscii(model.extension().u8string()) != ".ogf") return {};
+    const auto level = fs::u8path(levelDirectory);
+    const auto data = level.parent_path().parent_path();
+    auto original = level / model;
+    if (!fs::is_regular_file(original)) original = level / "meshes" / model;
+    if (!fs::is_regular_file(original)) original = data / "meshes" / model;
+    if (!fs::is_regular_file(original)) return {};
+    Require(fs::file_size(original) <= 64 * 1024 * 1024, "Spawn model is too large");
+
+    const auto id = [](const auto& value, uint64_t seed)
+    {
+        for (unsigned char ch : value) { seed ^= ch; seed *= 1099511628211ull; }
+        return seed;
+    };
+    const auto hex = [](uint64_t value)
+    {
+        std::ostringstream out;
+        out << std::hex << value;
+        return out.str();
+    };
+    const auto input = Load(original);
+    const auto sourceId = id(data.u8string(), 14695981039346656037ull);
+    const auto cacheName = "recovered_spawn_v1\\" + hex(id(input, sourceId));
+    const auto target = fs::u8path(meshesDirectory) / fs::u8path(cacheName + ".ogf");
+    if (fs::is_regular_file(target)) return cacheName;
+    const auto append = [](Bytes& out, uint32_t chunk, const Bytes& content)
+    {
+        for (const uint32_t value : {chunk, uint32_t(content.size())})
+            for (unsigned i = 0; i < 4; ++i) out.push_back(uint8_t(value >> (i * 8)));
+        out.insert(out.end(), content.begin(), content.end());
+    };
+    const auto textureName = [&](std::string name)
+    {
+        auto relative = relativeAsset(name);
+        if (relative.empty()) return std::string("ed\\ed_not_existing_texture");
+        if (LowerAscii(relative.extension().u8string()) == ".dds") relative.replace_extension();
+        const auto prefix = "recovered_spawn_v1\\" + hex(sourceId) + "\\";
+        auto file = relative;
+        file += ".dds";
+        const auto source = data / "textures" / file;
+        const auto dest = fs::u8path(texturesDirectory) / fs::u8path(prefix) / file;
+        if (!fs::is_regular_file(source))
+            return fs::is_regular_file(fs::u8path(texturesDirectory) / file) ? relative.u8string() :
+                std::string("ed\\ed_not_existing_texture");
+        fs::create_directories(dest.parent_path());
+        fs::copy_file(source, dest, fs::copy_options::skip_existing);
+        return prefix + relative.u8string();
+    };
+    const auto rewrite = [&](const auto& self, Reader reader, unsigned depth) -> Bytes
+    {
+        Require(depth <= 8, "Spawn model hierarchy is too deep");
+        const auto chunks = Split(reader);
+        const auto header = Chunk(chunks, 1);
+        Require(header.size == 44 && header.data[0] == 4, "Unsupported spawn model format");
+        const auto type = header.data[1];
+        Require(type == 0 || type == 1 || type == 2 || type == 3 || type == 4 || type == 5 || type == 10,
+            "Unsupported spawn model type");
+        Require(!chunks.count(10), "Spawn model requires externally linked child geometry");
+        Bytes result;
+        for (const auto& entry : chunks)
+        {
+            const auto chunk = entry.first;
+            const auto& data = entry.second;
+            Bytes content;
+            if (chunk == 9)
+            {
+                for (const auto& child : Split(data))
+                    append(content, child.first, self(self, child.second, depth + 1));
+            }
+            else if (chunk == 2)
+            {
+                Reader texture = data;
+                const auto name = textureName(texture.String());
+                texture.String();
+                texture.End();
+                content.assign(name.begin(), name.end());
+                content.push_back(0);
+                constexpr char shader[] = "models\\model";
+                content.insert(content.end(), shader, shader + sizeof(shader));
+            }
+            else
+            {
+                content.assign(data.data, data.data + data.size);
+                // Preview an animated skeleton in its bind pose so the SDK can
+                // display it without loading foreign gameplay motion sets.
+                if (chunk == 1 && type == 3) content[1] = 10;
+            }
+            append(result, chunk, content);
+        }
+        return result;
+    };
+    const auto bytes = rewrite(rewrite, Reader(input), 0);
+    fs::create_directories(target.parent_path());
+    auto temporary = target;
+    temporary += ".partial";
+    std::ofstream file(temporary, std::ios::binary | std::ios::trunc);
+    file.exceptions(std::ios::badbit | std::ios::failbit);
+    file.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    file.close();
+    fs::rename(temporary, target);
+    return cacheName;
 }
 
 namespace
