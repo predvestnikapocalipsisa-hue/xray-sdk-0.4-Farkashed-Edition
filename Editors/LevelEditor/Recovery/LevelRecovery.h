@@ -94,6 +94,7 @@ struct SpawnRecord
     std::string section, name;
     std::array<float, 3> position, rotation;
     std::vector<uint8_t> packet;
+    uint16_t version = 0;
     bool respawn = false;
     bool global = false;
 };

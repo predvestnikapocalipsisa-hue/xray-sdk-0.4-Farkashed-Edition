@@ -40,6 +40,8 @@ BOOL is_combat_cover(shared_str const &table_id)
 {
 	if (table_id.size() == 0)
 		return (FALSE);
+	if (table_id.size() >= 200)
+		return TRUE;
 
 	string256 temp;
 	xr_strcpy(temp, "smart_covers.descriptions.");
@@ -52,12 +54,8 @@ BOOL is_combat_cover(shared_str const &table_id)
 			table,
 			LUA_TTABLE);
 
-	VERIFY2(result, make_string("bad or missing description in smart_cover [%s]", table_id.c_str()));
-	if (table.type() != LUA_TTABLE)
-	{
-		VERIFY(table.type() != LUA_TNIL);
-		return (TRUE);
-	}
+	if (!result || table.type() != LUA_TTABLE)
+		return TRUE; // Keep the packet's flags when the source description is unavailable.
 
 	value = table["is_combat_cover"];
 	if (value.type() == LUA_TNIL)
@@ -177,7 +175,7 @@ void CSE_SmartCover::FillProps(LPCSTR pref, PropItemVec &items)
 {
 #ifdef XRSEFACTORY_EXPORTS
 	PHelper().CreateFloat(items, PrepareKey(pref, *s_name, "hold position time"), &m_hold_position_time, 0.f, 60.f);
-	RListValue *value = PHelper().CreateRList(items, PrepareKey(pref, *s_name, "description"), &m_description, &*fp_data.smart_covers.begin(), fp_data.smart_covers.size());
+	RListValue *value = PHelper().CreateRList(items, PrepareKey(pref, *s_name, "description"), &m_description, fp_data.smart_covers.data(), fp_data.smart_covers.size());
 	value->OnChangeEvent.bind(this, &CSE_SmartCover::OnChangeDescription);
 
 	PHelper().CreateFloat(items, PrepareKey(pref, *s_name, "enter min enemy distance"), &m_enter_min_enemy_distance, 0.f, 100.f);
@@ -464,12 +462,12 @@ shared_str animation_id(luabind::object table)
 
 void CSE_SmartCover::load_draw_data()
 {
+	m_draw_data.clear();
+	if (m_description.size() >= 200) return;
 	string256 temp;
 	xr_strcpy(temp, "smart_covers.descriptions.");
 	xr_strcat(temp, m_description.c_str());
 	xr_strcat(temp, ".loopholes");
-
-	m_draw_data.clear();
 
 	luabind::object loopholes;
 	bool result =

@@ -61,6 +61,7 @@ public:
         ISE_Abstract* m_Data;
         CLE_Visual* m_Visual;
         Flags8 m_flags;
+        CLASS_ID m_CompiledClass = 0;
         xr_vector<CLE_Visual*> m_VisualHelpers;
 
         CLE_Motion* m_Motion;
@@ -82,8 +83,10 @@ public:
         {
             Destroy();
         }
-        void Create(LPCSTR entity_ref);
+        void Create(LPCSTR entity_ref, CLASS_ID compiledClass = 0);
         void Destroy();
+        bool ReadPacket(NET_Packet& packet);
+        void WritePacket(NET_Packet& packet);
         bool Valid() const { return m_Data; }
 
         bool LoadStream(IReader&);
@@ -156,7 +159,7 @@ public:
     bool RefCompare(LPCSTR ref);
     virtual LPCSTR RefName();
 
-    bool CreateSpawnData(LPCSTR entity_ref);
+    bool CreateSpawnData(LPCSTR entity_ref, CLASS_ID compiledClass = 0);
     bool ImportCompiledSpawn(const LevelRecovery::SpawnRecord& record);
     void ImportCompiledRespawn(const LevelRecovery::RespawnRecord& record);
     virtual void Render(int priority, bool strictB2F);

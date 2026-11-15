@@ -450,7 +450,7 @@ SpawnRecord ReadSpawnPacket(Reader record, Reader* state = nullptr)
     object.rotation = ReadPosition(record);
     record.Take(8);
     Require(record.Get<uint16_t>() & (1 << 5), "Unversioned spawn packet");
-    const auto version = record.Get<uint16_t>();
+    const auto version = object.version = record.Get<uint16_t>();
     Require(version == 118 || version == 128, "Unsupported spawn version " + std::to_string(version));
     if (version == 128) record.Take(2);
     record.Take(2);
@@ -1002,7 +1002,8 @@ void GroupConnectedSurfaces(Level& l)
     };
     const auto faceCount = FaceCount(l);
     Require(faceCount < UINT32_MAX, "Too many faces for grouping");
-    std::vector<uint32_t> parent(size_t(faceCount), 0), rank(size_t(faceCount), 0);
+    std::vector<uint32_t> parent(size_t(faceCount), 0);
+    std::vector<uint8_t> rank(size_t(faceCount), 0);
     std::iota(parent.begin(), parent.end(), 0u);
     auto root = [&](uint32_t a)
     {
@@ -1012,7 +1013,10 @@ void GroupConnectedSurfaces(Level& l)
     std::unordered_map<Point, uint32_t, Hash> points;
     std::unordered_map<Point, uint32_t, Hash> uniqueFaces;
     std::vector<Edge> edges;
-    edges.reserve(size_t(faceCount)*3);
+    size_t staticFaceCount = 0;
+    for (const auto& mesh : l.meshes)
+        if (mesh.type != 7 && mesh.type != 11) staticFaceCount += mesh.triangles.size();
+    edges.reserve(staticFaceCount * 3);
     uint32_t faceId = 0;
     l.boundaryEdges = l.ambiguousEdges = l.degenerateFaces = l.coincidentFaceCopies = 0;
     for (const auto& mesh : l.meshes)

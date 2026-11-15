@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "spawn_packet_format.h"
 #include "xrServer_Objects_ALife.h"
 #include "xrServer_Objects_ALife_Monsters.h"
 	#include "object_broker.h"
@@ -1460,7 +1461,7 @@ void CSE_ALifeObjectHangingLamp::STATE_Write(NET_Packet &tNetPacket)
 
 	tNetPacket.w_stringZ(light_ambient_bone);
 
-	if (!Core.SocSdk)
+	if (!UseSocSpawnPacket())
 	{
 		tNetPacket.w_float(m_volumetric_quality);
 		tNetPacket.w_float(m_volumetric_intensity);
@@ -2029,7 +2030,7 @@ void CSE_ALifeObjectClimable::STATE_Write(NET_Packet &tNetPacket)
 	inherited2::STATE_Write(tNetPacket);
 	cform_write(tNetPacket);
 
-	if (!Core.SocSdk)
+	if (!UseSocSpawnPacket())
 		tNetPacket.w_stringZ(material);
 }
 
@@ -2292,7 +2293,7 @@ void CSE_ALifeInventoryBox::STATE_Read(NET_Packet &tNetPacket, u16 size)
 void CSE_ALifeInventoryBox::STATE_Write(NET_Packet &tNetPacket)
 {
 	inherited::STATE_Write(tNetPacket);
-	if (Core.SocSdk) return; // The inventory box extension was introduced after spawn version 118.
+	if (UseSocSpawnPacket()) return; // The inventory box extension was introduced after spawn version 118.
 	tNetPacket.w_u8((m_can_take) ? 1 : 0);
 	tNetPacket.w_u8((m_closed) ? 1 : 0);
 	tNetPacket.w_stringZ(m_tip_text);

@@ -7,6 +7,9 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "spawn_packet_format.h"
+
+thread_local bool compiledCopSpawnPacket = false;
 #include "xrServer_Objects.h"
 #include "xrMessages.h"
 #include "script_value_container_impl.h"
@@ -48,9 +51,8 @@ IC u16 script_server_object_version()
 	if (!initialized)
 	{
 		initialized = true;
-		if (!pSettings->section_exist(script_section) || !pSettings->line_exist(script_section, current_version))
-			script_version = 0;
-		script_version = pSettings->r_u16(script_section, current_version);
+		if (pSettings->line_exist(script_section, current_version))
+			script_version = pSettings->r_u16(script_section, current_version);
 	}
 	return (script_version);
 }
@@ -212,7 +214,7 @@ void CSE_Abstract::Spawn_Write(NET_Packet &tNetPacket, BOOL bLocal)
 	else
 		tNetPacket.w_u16(u16(s_flags.flags & ~(M_SPAWN_OBJECT_LOCAL | M_SPAWN_OBJECT_ASPLAYER)));
 
-	if (!Core.SocSdk)
+	if (!UseSocSpawnPacket())
 	{
 		tNetPacket.w_u16(128);
 		tNetPacket.w_u16(m_gameType.m_GameType.get());

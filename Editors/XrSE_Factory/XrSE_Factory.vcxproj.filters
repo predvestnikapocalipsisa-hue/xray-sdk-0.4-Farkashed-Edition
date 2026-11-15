@@ -183,6 +183,9 @@
     <ClInclude Include="xr_LuaAllocator.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="CompiledLevelConfig.h">
+      <Filter>Core</Filter>
+    </ClInclude>
     <ClInclude Include="xrSE_Factory.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -576,6 +579,9 @@
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="xr_LuaAllocator.c">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="CompiledLevelConfig.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="xrSE_Factory.cpp">

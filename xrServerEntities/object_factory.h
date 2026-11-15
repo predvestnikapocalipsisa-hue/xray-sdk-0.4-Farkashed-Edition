@@ -80,6 +80,9 @@ public:
 	CObjectFactory();
 	virtual ~CObjectFactory();
 	void init();
+#ifdef NO_XR_GAME
+	SERVER_BASE_CLASS *native_server_object(const CLASS_ID &clsid, LPCSTR section) const;
+#endif
 #ifndef NO_XR_GAME
 	IC CLIENT_BASE_CLASS *client_object(const CLASS_ID &clsid) const;
 	IC SERVER_BASE_CLASS *server_object(const CLASS_ID &clsid, LPCSTR section) const;

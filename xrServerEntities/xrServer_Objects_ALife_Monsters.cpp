@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "spawn_packet_format.h"
 #include "xrServer_Objects_ALife_Items.h"
 #include "xrServer_Objects_ALife_Monsters.h"
 #include "object_broker.h"
@@ -181,7 +182,7 @@ void CSE_ALifeTraderAbstract::STATE_Write(NET_Packet &tNetPacket)
 #endif
 	save_data(m_character_name, tNetPacket);
 
-	if (!Core.SocSdk)
+	if (!UseSocSpawnPacket())
 	{
 		tNetPacket.w_u8((m_deadbody_can_take) ? 1 : 0);
 		tNetPacket.w_u8((m_deadbody_closed) ? 1 : 0);
@@ -1259,7 +1260,7 @@ void CSE_ALifeMonsterAbstract::STATE_Write(NET_Packet &tNetPacket)
 	tNetPacket.w_stringZ(m_in_space_restrictors);
 	tNetPacket.w_u16(m_smart_terrain_id);
 
-	if (tNetPacket.inistream && !Core.SocSdk)
+	if (tNetPacket.inistream && !UseSocSpawnPacket())
 		tNetPacket.w_u16((m_task_reached) ? 1 : 0);
 	else
 		tNetPacket.w(&m_task_reached, sizeof(m_task_reached));
@@ -2194,7 +2195,7 @@ void CSE_ALifeOnlineOfflineGroup::STATE_Write(NET_Packet &tNetPacket)
 	inherited1::STATE_Write(tNetPacket);
 
 #if 1
-	if (!Core.SocSdk)
+	if (!UseSocSpawnPacket())
 	{
 		tNetPacket.w_u32(m_members.size());
 
@@ -2211,7 +2212,7 @@ void CSE_ALifeOnlineOfflineGroup::STATE_Read(NET_Packet &tNetPacket, u16 size)
 	inherited1::STATE_Read(tNetPacket, size);
 
 #if 1
-	if (!Core.SocSdk)
+	if (!UseSocSpawnPacket())
 	{
 		u32 container_size = tNetPacket.r_u32();
 
