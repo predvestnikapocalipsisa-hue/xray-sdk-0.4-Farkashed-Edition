@@ -107,7 +107,7 @@ public:
 
     int CalculateSector(const Fvector &P, float R);
 
-    void SaveBuild();
+    bool SaveBuild();
     void SaveBuildAsObject();
 
 protected:

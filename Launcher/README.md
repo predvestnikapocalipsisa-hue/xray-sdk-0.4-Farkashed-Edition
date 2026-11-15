@@ -112,6 +112,34 @@ powershell.exe -NoProfile -File Launcher/tests/resource_worker_tests.ps1
 
 ### InGame setup
 
+#### External engine
+
+In **Settings → InGame external engine**, choose the game engine EXE, the game
+folder and an SDK resource directory laid out like `gamedata`. Set any native
+launch arguments and select **Save external engine**, then press **F5** in Level
+Editor. The profile belongs to the selected SDK installation and is read on F5.
+Press F5 again from Level Editor to stop the session.
+
+The SDK injects its x86 or x64 hook DLL during startup using Microsoft Detours.
+The hook enumerates loose SDK and game files together and redirects read-only
+opens under the game's `gamedata` to matching SDK files. Game writes and
+unmatched reads use the original paths. The engine opens its game archives in
+place. Priority between archives and loose files inside the engine's own
+filesystem index depends on the engine build. Engines using other resource APIs
+or physical paths outside that `gamedata` directory need their own integration.
+
+**Send current scene (SDK preview protocol)** enables the existing shared-memory
+preview for external engines that implement that protocol. With the checkbox
+cleared, the engine runs in its own window and starts the game's own session
+using the supplied arguments. The hook DLL does not require rebuilding the game.
+**Use bundled OGSR** clears the external profile.
+
+The SDK identifies known IX-Ray builds by their names, version resources or
+embedded build strings. The detection runs before the game starts and terminates
+the Level Editor process after the error dialog.
+
+#### Bundled OGSR
+
 Press F5 in Level Editor to prepare InGame automatically, or use Settings >
 Set up InGame / change game folder in the launcher. Select the Shadow of
 Chernobyl 1.0006 folder containing `gamedata.db*` once. The saved archive path is

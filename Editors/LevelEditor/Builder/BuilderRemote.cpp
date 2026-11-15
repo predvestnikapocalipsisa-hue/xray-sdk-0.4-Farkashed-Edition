@@ -327,13 +327,17 @@ void SceneBuilder::SaveBuildAsObject()
     FS.w_close(F);
 }
 
-void SceneBuilder::SaveBuild()
+bool SceneBuilder::SaveBuild()
 {
     xr_string fn = MakeLevelPath("build.prj");
     IWriter *F = FS.w_open(fn.c_str());
 
-    if (!F)
-        return;
+    if (!F || !F->valid())
+    {
+        FS.w_close(F);
+        ELog.Msg(mtError, "Failed to open compiler project for writing: %s", fn.c_str());
+        return false;
+    }
 
     F->open_chunk(EB_Version);
 
@@ -436,6 +440,7 @@ void SceneBuilder::SaveBuild()
     F->close_chunk();
 
     FS.w_close(F);
+    return true;
 }
 
 int SceneBuilder::CalculateSector(const Fvector &P, float R)
@@ -1576,7 +1581,7 @@ BOOL SceneBuilder::CompileStatic(bool b_selected_only)
         if (m_save_as_object)
             SaveBuildAsObject();
         else
-            SaveBuild();
+            bResult = SaveBuild();
     }
 
     if (b_selected_only)

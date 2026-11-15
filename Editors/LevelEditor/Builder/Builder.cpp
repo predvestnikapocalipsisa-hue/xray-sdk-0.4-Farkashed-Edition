@@ -102,9 +102,9 @@ BOOL SceneBuilder::Compile(bool b_selected_only)
                     }
                 }
             }
-            Clear();
         } while (0);
 
+        Clear();
         if (!error_text.empty())
             ELog.DlgMsg(mtError, error_text.c_str());
         else if (UI->NeedAbort())
@@ -119,7 +119,7 @@ BOOL SceneBuilder::Compile(bool b_selected_only)
     }
     UI->EndEState();
 
-    return error_text.empty();
+    return error_text.empty() && !UI->NeedAbort();
 }
 //------------------------------------------------------------------------------
 

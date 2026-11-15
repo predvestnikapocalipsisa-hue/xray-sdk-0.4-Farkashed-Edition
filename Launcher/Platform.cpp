@@ -1,6 +1,7 @@
 #include "SDKMessageBox.h"
 #include "Platform.h"
 #include "RecentFiles.h"
+#include "../SDKRuntime/HighPerformanceGpu.h"
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
@@ -169,11 +170,25 @@ bool LauncherPlatform::Initialize(HINSTANCE applicationInstance)
     parameters.BackBufferFormat = D3DFMT_A8R8G8B8;
     parameters.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
     parameters.hDeviceWindow = window;
-    HRESULT result = direct3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, window,
-        D3DCREATE_HARDWARE_VERTEXPROCESSING, &parameters, &device);
-    if (FAILED(result))
-        result = direct3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, window,
-            D3DCREATE_SOFTWARE_VERTEXPROCESSING, &parameters, &device);
+    const auto createDevice = [&](UINT adapter)
+    {
+        auto requested = parameters;
+        HRESULT result = direct3D->CreateDevice(adapter, D3DDEVTYPE_HAL, window,
+            D3DCREATE_HARDWARE_VERTEXPROCESSING, &requested, &device);
+        if (FAILED(result))
+        {
+            requested = parameters;
+            result = direct3D->CreateDevice(adapter, D3DDEVTYPE_HAL, window,
+                D3DCREATE_SOFTWARE_VERTEXPROCESSING, &requested, &device);
+        }
+        if (SUCCEEDED(result))
+            parameters = requested;
+        return result;
+    };
+    const UINT adapter = SDKRuntime::SelectHighPerformanceGpu(direct3D, parameters.BackBufferFormat);
+    HRESULT result = createDevice(adapter);
+    if (FAILED(result) && adapter != D3DADAPTER_DEFAULT)
+        result = createDevice(D3DADAPTER_DEFAULT);
     if (FAILED(result))
         return false;
     SetBlur(true);

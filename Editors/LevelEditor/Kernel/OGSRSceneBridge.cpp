@@ -8,7 +8,8 @@
 #include "Entry/WayPoint/WayPoint.h"
 #include <memory>
 #include "../../../SDKRuntime/InGame/NavigationPreparation.h"
-#include "../../../SDKRuntime/InGame/RuntimeSetup.h"
+#include "../../../SDKRuntime/InGame/ExternalEngine.h"
+#include "../../../SDKRuntime/InGame/EngineHookProtocol.h"
 #include "../../XrEUI/SDKMessageBox.h"
 
 bool& CLevelMain::AutoRepairOGSRNavigation() { static bool enabled = false; return enabled; }
@@ -22,9 +23,90 @@ namespace
         HANDLE ready = nullptr;
         HWND window = nullptr;
         HWND parent = nullptr;
-        ~PreviewSession() { if (process) CloseHandle(process); if (ready) CloseHandle(ready); }
+        HWINEVENTHOOK windowHook = nullptr;
+        bool externalWindow = false;
+        ~PreviewSession()
+        {
+            if (windowHook) UnhookWinEvent(windowHook);
+            if (process) CloseHandle(process);
+            if (ready) CloseHandle(ready);
+        }
     };
     std::unique_ptr<PreviewSession> preview;
+
+    void CALLBACK TrackExternalWindow(HWINEVENTHOOK hook, DWORD event, HWND window, LONG object,
+        LONG child, DWORD, DWORD)
+    {
+        if (!preview || preview->windowHook != hook || object != OBJID_WINDOW || child != CHILDID_SELF) return;
+        if ((event == EVENT_OBJECT_DESTROY || event == EVENT_OBJECT_HIDE) && preview->window == window)
+            preview->window = nullptr;
+        if (event == EVENT_OBJECT_SHOW && window && GetAncestor(window, GA_ROOT) == window && !GetWindow(window, GW_OWNER))
+            preview->window = window;
+    }
+
+    void LaunchHookedEngine(const std::wstring& sdk, const SDKExternalEngine::Profile& profile,
+        std::wstring& command, PreviewSession& session)
+    {
+        using SDKInGameSetup::Failure;
+#ifdef _WIN64
+        constexpr wchar_t hookName[] = L"SDKInGameHook64.dll";
+#else
+        constexpr wchar_t hookName[] = L"SDKInGameHook32.dll";
+#endif
+        const auto dll = sdk + L"\\InGame\\bin\\" + hookName;
+        auto dllPath = dll;
+        wchar_t shortPath[MAX_PATH];
+        const DWORD size = GetShortPathNameW(dll.c_str(), shortPath, _countof(shortPath));
+        if (size && size < _countof(shortPath)) dllPath = shortPath;
+        const auto importPath = SDKInGameSetup::EnginePath(dllPath);
+        HMODULE module = LoadLibraryExW(dll.c_str(), nullptr,
+            LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
+        if (!module) throw Failure{L"Cannot load the SDK InGame hook DLL:\n" + dll};
+
+        struct LaunchHandles
+        {
+            HMODULE module;
+            HANDLE ready = nullptr;
+            ~LaunchHandles() { if (ready) CloseHandle(ready); FreeLibrary(module); }
+        } handles{module};
+        const auto launch = reinterpret_cast<SDKEngineHook::Launch>(GetProcAddress(module, "SDKLaunchExternalEngine"));
+        if (!launch) throw Failure{L"The SDK InGame hook DLL has an incompatible version."};
+        auto payload = std::make_unique<SDKEngineHook::Payload>();
+        auto resources = profile.resources;
+        while (resources.size() > 3 && resources.back() == L'\\') resources.pop_back();
+        auto directory = profile.directory;
+        if (directory.back() != L'\\') directory += L'\\';
+        const auto data = directory + L"gamedata";
+        if (data.size() >= _countof(payload->gameData) || resources.size() >= _countof(payload->resources))
+            throw Failure{L"The game or SDK resources path is too long."};
+        wcscpy_s(payload->gameData, data.c_str());
+        wcscpy_s(payload->resources, resources.c_str());
+        swprintf_s(payload->ready, L"Local\\XRaySDK.Hook.%lu.%llu", GetCurrentProcessId(), GetTickCount64());
+        handles.ready = CreateEventW(nullptr, TRUE, FALSE, payload->ready);
+        if (!handles.ready) throw Failure{L"Cannot create the InGame hook readiness event."};
+
+        PROCESS_INFORMATION process{};
+        if (!launch(profile.executable.c_str(), &command[0], profile.directory.c_str(), importPath.c_str(),
+                payload.get(), &process))
+            throw Failure{L"Cannot start the engine with the SDK hook DLL. Windows error " +
+                std::to_wstring(GetLastError()) + L"."};
+        session.process = process.hProcess;
+        if (session.externalWindow)
+            session.windowHook = SetWinEventHook(EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE, nullptr, TrackExternalWindow,
+                process.dwProcessId, 0, WINEVENT_OUTOFCONTEXT);
+        const DWORD resumed = ResumeThread(process.hThread);
+        CloseHandle(process.hThread);
+        const HANDLE waitHandles[]{handles.ready, session.process};
+        if (resumed == DWORD(-1) || WaitForMultipleObjects(2, waitHandles, FALSE, 10000) != WAIT_OBJECT_0)
+        {
+            DWORD code = 0;
+            GetExitCodeProcess(session.process, &code);
+            TerminateProcess(session.process, 126);
+            WaitForSingleObject(session.process, 3000);
+            throw Failure{L"The engine did not initialize the SDK filesystem hooks. Process status " +
+                std::to_wstring(code) + L"."};
+        }
+    }
 
     std::wstring FindBridgeHost()
     {
@@ -282,14 +364,30 @@ void PollOGSRPreview()
     {
         DWORD code = 0;
         GetExitCodeProcess(preview->process, &code);
+        Msg("InGame finished (exit code %lu).", code);
         preview.reset();
-        Msg("OGSR InGame finished (exit code %lu).", code);
     }
 }
 
 bool DrawOGSRPreviewViewport()
 {
     if (!preview) return false;
+    if (preview->externalWindow)
+    {
+        if (ImGui::Begin("Render", nullptr, ImGuiWindowFlags_NoScrollbar))
+        {
+            ImGui::TextUnformatted("External InGame | F5: stop");
+            DWORD pid = 0;
+            GetWindowThreadProcessId(preview->window, &pid);
+            if (pid == GetProcessId(preview->process) && ImGui::Button("Focus game"))
+            {
+                if (IsIconic(preview->window)) ShowWindowAsync(preview->window, SW_RESTORE);
+                SetForegroundWindow(preview->window);
+            }
+        }
+        ImGui::End();
+        return true;
+    }
     const bool visible = ImGui::Begin("Render", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     if (visible && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId))
     {
@@ -313,9 +411,9 @@ void CLevelMain::StopOGSRPreview()
     if (!preview) return;
     if (WaitForSingleObject(preview->process, 0) == WAIT_TIMEOUT)
     {
-        if (preview->window) PostMessage(preview->window, WM_CLOSE, 0, 0);
         const DWORD pid = GetProcessId(preview->process);
-        if (!preview->window) EnumWindows([](HWND window, LPARAM parameter) -> BOOL {
+        if (preview->window && !preview->externalWindow) PostMessage(preview->window, WM_CLOSE, 0, 0);
+        else EnumWindows([](HWND window, LPARAM parameter) -> BOOL {
             DWORD owner = 0;
             GetWindowThreadProcessId(window, &owner);
             if (owner == DWORD(parameter)) PostMessage(window, WM_CLOSE, 0, 0);
@@ -339,18 +437,47 @@ void CLevelMain::StartOGSRPreview()
     }
     if (IsInGame() || GetEState() != esEditScene || Scene->locked() || IsMouseCaptured() || IsMouseInUse()) return;
     const HWND parent = GetActiveWindow();
+    const auto sdk = SDKInGameSetup::ModuleDirectory();
+    const auto external = SDKExternalEngine::Load(sdk);
+    const bool useExternal = !external.executable.empty();
+    if (useExternal && SDKExternalEngine::IsIXRay(external.executable))
+    {
+        MessageBoxW(parent, SDKExternalEngine::IXRayMessage(), L"InGame", MB_OK | MB_ICONERROR);
+        ExitProcess(ERROR_NOT_SUPPORTED);
+    }
+    if (useExternal && (!SDKInGameSetup::File(external.executable) ||
+        !SDKExternalEngine::IsDirectory(external.directory) || !SDKExternalEngine::IsDirectory(external.resources)))
+    {
+        MessageBoxW(parent, L"Check the engine executable, game folder and SDK resources in Launcher settings.",
+            L"InGame", MB_OK | MB_ICONERROR);
+        return;
+    }
+    if (useExternal && !external.sceneBridge)
+    {
+        try
+        {
+            auto session = std::make_unique<PreviewSession>();
+            session->externalWindow = true;
+            std::wstring command = L"\"" + external.executable + L"\" " + external.arguments;
+            LaunchHookedEngine(sdk, external, command, *session);
+            preview = std::move(session);
+            Msg("External InGame started with SDK filesystem hooks.");
+        }
+        catch (const SDKInGameSetup::Failure& error)
+        {
+            MessageBoxW(parent, error.message.c_str(), L"InGame", MB_OK | MB_ICONERROR);
+        }
+        return;
+    }
     SetWindowLongPtr(parent, GWL_STYLE, GetWindowLongPtr(parent, GWL_STYLE) | WS_CLIPCHILDREN);
     std::wstring setupError;
-    const auto sdk = SDKInGameSetup::ModuleDirectory();
-    if (!SDKInGameSetup::Ensure(sdk, parent, setupError))
+    if (!useExternal && !SDKInGameSetup::Ensure(sdk, parent, setupError))
     {
         if (!setupError.empty()) MessageBoxW(parent, setupError.c_str(), L"InGame setup", MB_OK | MB_ICONERROR);
         return;
     }
-    std::wstring host = sdk + L"\\InGame\\bin\\SDKSceneHost.exe";
-    const std::wstring bin = host.substr(0, host.find_last_of(L"\\/"));
-    const std::wstring runtime = bin.substr(0, bin.find_last_of(L"\\/"));
-    const std::wstring engine = bin + L"\\xrEngine.exe";
+    const std::wstring runtime = sdk + L"\\InGame";
+    const std::wstring engine = useExternal ? external.executable : runtime + L"\\bin\\xrEngine.exe";
     if (GetFileAttributesW(engine.c_str()) == INVALID_FILE_ATTRIBUTES)
     { ELog.DlgMsg(mtError, "OGSR xrEngine.exe is missing from InGame/bin."); return; }
     SPBItem* progress = ProgressStart(2, "Preparing OGSR InGame...");
@@ -367,15 +494,21 @@ void CLevelMain::StartOGSRPreview()
         session->ready = CreateEventW(nullptr, TRUE, FALSE, (name + L".Ready").c_str());
         if (!session->ready) throw std::runtime_error("Cannot create OGSR startup event");
         progress->Update(1);
-        std::wstring command = L"\"" + engine + L"\" -use-work-dir -fsltx fsgame.runtime.ltx -ltx sdk-preview.ltx -sdk-preview " + name +
+        std::wstring command = L"\"" + engine + L"\" -use-work-dir " +
+            (useExternal ? std::wstring() : L"-fsltx fsgame.runtime.ltx -ltx sdk-preview.ltx ") + L"-sdk-preview " + name +
             L" -sdk-preview-parent " + std::to_wstring(uintptr_t(parent)) +
-            L" -sdk-play -start server(all/single/alife/new) client(localhost)";
-        STARTUPINFOW startup{sizeof(startup)};
-        PROCESS_INFORMATION process{};
-        if (!CreateProcessW(engine.c_str(), &command[0], nullptr, nullptr, FALSE, 0, nullptr, runtime.c_str(), &startup, &process))
-            throw std::runtime_error("Cannot start OGSR InGame");
-        CloseHandle(process.hThread);
-        session->process = process.hProcess;
+            L" -sdk-play " + (useExternal && !external.arguments.empty() ? external.arguments :
+                L"-start server(all/single/alife/new) client(localhost)");
+        if (useExternal) LaunchHookedEngine(sdk, external, command, *session);
+        else
+        {
+            STARTUPINFOW startup{sizeof(startup)};
+            PROCESS_INFORMATION process{};
+            if (!CreateProcessW(engine.c_str(), &command[0], nullptr, nullptr, FALSE, 0, nullptr, runtime.c_str(), &startup, &process))
+                throw std::runtime_error("Cannot start OGSR InGame");
+            CloseHandle(process.hThread);
+            session->process = process.hProcess;
+        }
         const HANDLE waitHandles[] = {session->ready, session->process};
         const ULONGLONG deadline = GetTickCount64() + 180000;
         DWORD wait;
@@ -388,7 +521,8 @@ void CLevelMain::StartOGSRPreview()
                 TerminateProcess(session->process, 124);
                 WaitForSingleObject(session->process, 5000);
             }
-            throw std::runtime_error("OGSR could not load the scene. See InGame/_appdata_/logs for details.");
+            throw std::runtime_error(useExternal ? "The external engine did not acknowledge the SDK scene protocol. Check its game logs." :
+                "OGSR could not load the scene. See InGame/_appdata_/logs for details.");
         }
         EnumChildWindows(parent, [](HWND window, LPARAM parameter) -> BOOL {
             auto* session = reinterpret_cast<PreviewSession*>(parameter);
@@ -407,6 +541,7 @@ void CLevelMain::StartOGSRPreview()
         Msg("OGSR InGame started. I: inventory, 1/2/3: weapons, R: reload, F5: return to SDK. Shift+F10: ImGui, ~: console.");
     }
     catch (const CaptureCancelled&) { Msg("OGSR snapshot cancelled by user."); }
+    catch (const SDKInGameSetup::Failure& error) { MessageBoxW(parent, error.message.c_str(), L"InGame", MB_OK | MB_ICONERROR); }
     catch (const std::exception& error) { ELog.DlgMsg(mtError, "OGSR InGame: %s", error.what()); }
 }
 

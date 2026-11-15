@@ -7,6 +7,7 @@
 #include "RecentFiles.h"
 #include "ResourceInstaller.h"
 #include "../SDKRuntime/InGame/RuntimeSetup.h"
+#include "../SDKRuntime/InGame/ExternalEngine.h"
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
@@ -126,6 +127,8 @@ namespace
         LauncherPlatform& platform;
         std::wstring sdkDirectoryKey;
         std::wstring sdkDirectory;
+        SDKExternalEngine::Profile externalEngine;
+        char externalArguments[4096]{};
         std::array<std::unique_ptr<Texture>, 4> icons;
         std::unique_ptr<Texture> logo;
         std::unique_ptr<Texture> closeIcon;
@@ -390,6 +393,7 @@ namespace
             if (showSettings)
             {
                 ImGui::OpenPopup("Launcher settings");
+                LoadExternalEngine();
                 showSettings = false;
             }
             ImGui::SetNextWindowPos(Position(288.f, 218.f), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
@@ -423,10 +427,12 @@ namespace
                             return;
                         }
                         sdkDirectory = selected;
+                        LoadExternalEngine();
                         ImportLegacyHistory(selected);
                         historyDirty = true;
                     };
                 ImGui::Separator();
+                DrawExternalEngineSettings();
                 ImGui::TextUnformatted("InGame (OGSR)");
                 ImGui::TextWrapped("Choose the Shadow of Chernobyl 1.0006 game folder once. InGame starts with F5 in Level Editor.");
                 ImGui::TextDisabled("%s", SDKInGameSetup::Binaries(sdkDirectory + L"\\InGame") && SDKInGameSetup::Resources(sdkDirectory + L"\\InGame")
@@ -611,6 +617,83 @@ namespace
                     resourceDownload.Pause();
                     resourceDescriptionPreview = true;
                 };
+        }
+
+        void LoadExternalEngine()
+        {
+            externalEngine = SDKExternalEngine::Load(sdkDirectory);
+            strncpy_s(externalArguments, Utf8(externalEngine.arguments).c_str(), _TRUNCATE);
+        }
+
+        void DrawExternalEngineSettings()
+        {
+            if (!ImGui::CollapsingHeader("InGame external engine")) return;
+            ImGui::TextWrapped("%s", externalEngine.executable.empty() ? "No engine selected" :
+                Utf8(externalEngine.executable).c_str());
+            if (ImGui::Button("Choose engine EXE..."))
+                pendingAction = [this]
+                {
+                    try
+                    {
+                        auto file = SDKInGameSetup::PickPath(platform.window, L"Select the game's engine executable", true);
+                        if (file.empty()) return;
+                        externalEngine.directory = SDKExternalEngine::DefaultDirectory(file);
+                        externalEngine.executable = std::move(file);
+                    }
+                    catch (const SDKInGameSetup::Failure& failure)
+                    {
+                        error = Utf8(failure.message);
+                        showError = true;
+                    }
+                };
+            ImGui::TextWrapped("Game folder: %s", Utf8(externalEngine.directory).c_str());
+            if (ImGui::Button("Choose InGame game folder..."))
+                pendingAction = [this]
+                {
+                    auto folder = platform.PickSDKDirectory(L"Select the game folder containing gamedata or archives");
+                    if (!folder.empty()) externalEngine.directory = std::move(folder);
+                };
+            ImGui::TextWrapped("SDK resources: %s", Utf8(externalEngine.resources).c_str());
+            if (ImGui::Button("Choose SDK resources..."))
+                pendingAction = [this]
+                {
+                    auto folder = platform.PickSDKDirectory(L"Select the SDK resource folder laid out like gamedata");
+                    if (!folder.empty()) externalEngine.resources = std::move(folder);
+                };
+            ImGui::InputText("Launch arguments", externalArguments, sizeof(externalArguments));
+            ImGui::Checkbox("Send current scene (SDK preview protocol)", &externalEngine.sceneBridge);
+            if (ImGui::Button("Save external engine"))
+            {
+                const int size = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, externalArguments, -1, nullptr, 0);
+                if (size <= 0 || !SDKInGameSetup::File(externalEngine.executable) ||
+                    !SDKExternalEngine::IsDirectory(externalEngine.directory) ||
+                    !SDKExternalEngine::IsDirectory(externalEngine.resources))
+                {
+                    error = "Choose a valid executable, game folder and SDK resource folder.";
+                    showError = true;
+                }
+                else
+                {
+                    externalEngine.arguments.resize(size);
+                    MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, externalArguments, -1, &externalEngine.arguments[0], size);
+                    externalEngine.arguments.pop_back();
+                    if (!SDKExternalEngine::Save(sdkDirectory, externalEngine))
+                    {
+                        error = "Cannot save the external InGame profile.";
+                        showError = true;
+                    }
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Use bundled OGSR"))
+            {
+                if (SDKExternalEngine::Save(sdkDirectory, {})) LoadExternalEngine();
+                else
+                {
+                    error = "Cannot clear the external InGame profile.";
+                    showError = true;
+                }
+            }
         }
 
     public:
@@ -893,6 +976,12 @@ namespace
             ImGui::End();
         }
     };
+}
+
+extern "C"
+{
+    __declspec(dllexport) DWORD NvOptimusEnablement = 1;
+    __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
 }
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)

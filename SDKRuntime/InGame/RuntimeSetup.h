@@ -90,7 +90,7 @@ namespace SDKInGameSetup
             throw Failure{L"The game folder path is unsupported by the engine. Choose a folder with a shorter, simple path."};
         return result;
     }
-    inline std::wstring PickFolder(HWND owner, const wchar_t* title)
+    inline std::wstring PickPath(HWND owner, const wchar_t* title, bool executable)
     {
         // The editor may not have initialized COM on its UI thread yet.
         const HRESULT initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -98,7 +98,10 @@ namespace SDKInGameSetup
         std::wstring result;
         const HRESULT created = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog));
         if (SUCCEEDED(created)) {
-            dialog->SetOptions(FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
+            dialog->SetOptions(FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST |
+                (executable ? FOS_FILEMUSTEXIST : FOS_PICKFOLDERS));
+            const COMDLG_FILTERSPEC filter{L"Windows executable", L"*.exe"};
+            if (executable) dialog->SetFileTypes(1, &filter);
             dialog->SetTitle(title);
             const HRESULT shown = dialog->Show(owner);
             if (SUCCEEDED(shown)) {
@@ -115,12 +118,17 @@ namespace SDKInGameSetup
             dialog->Release();
             if (FAILED(shown) && shown != HRESULT_FROM_WIN32(ERROR_CANCELLED)) {
                 if (SUCCEEDED(initialized)) CoUninitialize();
-                throw Failure{L"Cannot open the InGame folder chooser."};
+                throw Failure{L"Cannot open the InGame file or folder chooser."};
             }
         }
         if (SUCCEEDED(initialized)) CoUninitialize();
-        if (FAILED(created)) throw Failure{L"Cannot open the InGame folder chooser."};
+        if (FAILED(created)) throw Failure{L"Cannot open the InGame file or folder chooser."};
         return result;
+    }
+
+    inline std::wstring PickFolder(HWND owner, const wchar_t* title)
+    {
+        return PickPath(owner, title, false);
     }
     inline bool Binaries(const std::wstring& root)
     {

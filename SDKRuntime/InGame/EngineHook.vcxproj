@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32"><Configuration>Release</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{03E06420-C055-4F66-A989-A6B58842D408}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset Condition="'$(PlatformToolset)'==''">v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <TargetName Condition="'$(Platform)'=='Win32'">SDKInGameHook32</TargetName>
+    <TargetName Condition="'$(Platform)'=='x64'">SDKInGameHook64</TargetName>
+    <IntDir>$(MSBuildThisFileDirectory)..\..\output\Intermediate\$(Platform)\InGameHook\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link><ModuleDefinitionFile>EngineHook.def</ModuleDefinitionFile><ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary></Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="EngineHook.cpp" />
+    <ClCompile Include="..\..\External\Detours\detours.cpp" />
+    <ClCompile Include="..\..\External\Detours\modules.cpp" />
+    <ClCompile Include="..\..\External\Detours\disasm.cpp" />
+    <ClCompile Include="..\..\External\Detours\image.cpp" />
+    <ClCompile Include="..\..\External\Detours\creatwth.cpp" />
+    <ClCompile Include="..\..\External\Detours\disolx86.cpp" />
+    <ClCompile Include="..\..\External\Detours\disolx64.cpp" />
+    <ClCompile Include="..\..\External\Detours\disolia64.cpp" />
+    <ClCompile Include="..\..\External\Detours\disolarm.cpp" />
+    <ClCompile Include="..\..\External\Detours\disolarm64.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

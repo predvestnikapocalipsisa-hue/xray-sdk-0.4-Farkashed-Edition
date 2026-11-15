@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="BuildInGameHooks" BeforeTargets="PackageInGame">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\SDKRuntime\InGame\EngineHook.vcxproj"
+             Properties="Configuration=Release;Platform=Win32;PlatformToolset=$(PlatformToolset);OutDir=$(OutDir)InGame\bin\;IntDir=$(IntDir)EngineHook32\" />
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\SDKRuntime\InGame\EngineHook.vcxproj"
+             Properties="Configuration=Release;Platform=x64;PlatformToolset=$(PlatformToolset);OutDir=$(OutDir)InGame\bin\;IntDir=$(IntDir)EngineHook64\" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\External\Detours\LICENSE.md"
+          DestinationFiles="$(OutDir)InGame\Detours-LICENSE.md" SkipUnchangedFiles="true" />
+  </Target>
   <!-- Ship a self-contained runtime beside Launcher.exe. User resources/configs
        are created by native setup; builds only refresh the defaults directory. -->
   <Target Name="PackageInGame" AfterTargets="Build">

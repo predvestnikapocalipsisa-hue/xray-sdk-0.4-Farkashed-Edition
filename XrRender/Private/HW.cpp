@@ -8,6 +8,9 @@
 #include "d3dx9.h"
 #pragma warning(default : 4995)
 #include "HW.h"
+#ifdef _EDITOR
+#include "../../SDKRuntime/HighPerformanceGpu.h"
+#endif
 
 #ifndef _EDITOR
 #include "../../xrEngine/XR_IOConsole.h"
@@ -273,6 +276,10 @@ void CHW::CreateDevice(HWND m_hWnd, bool move_window)
 
 	DevAdapter = D3DADAPTER_DEFAULT;
 	DevT = Caps.bForceGPU_REF ? D3DDEVTYPE_REF : D3DDEVTYPE_HAL;
+#ifdef _EDITOR
+	if (DevT == D3DDEVTYPE_HAL)
+		DevAdapter = SDKRuntime::SelectHighPerformanceGpu(pD3D);
+#endif
 
 #ifndef MASTER_GOLD
 	// Look for 'NVIDIA NVPerfHUD' adapter

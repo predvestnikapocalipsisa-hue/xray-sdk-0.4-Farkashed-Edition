@@ -46,9 +46,13 @@ function InstallFiles([string]$packageRoot, [int]$sdkMachine) {
         }
         $runtimeFiles = @(Get-ChildItem -LiteralPath "$runtime\bin" -File | Where-Object { $_.Extension -in '.dll','.exe' })
         foreach ($file in $runtimeFiles) {
-            if ((MachineOf $file.FullName) -ne 0x8664) { throw "InGame requires x64 binaries: $($file.Name)" }
+            $expectedMachine = if ($file.Name -eq 'SDKInGameHook32.dll') { 0x14c } else { 0x8664 }
+            if ((MachineOf $file.FullName) -ne $expectedMachine) { throw "InGame binary architecture mismatch: $($file.Name)" }
         }
         $runtimeFiles += @(Get-ChildItem -LiteralPath "$runtime\defaults" -File -Recurse)
+        if (Test-Path -LiteralPath "$runtime\Detours-LICENSE.md" -PathType Leaf) {
+            $runtimeFiles += Get-Item -LiteralPath "$runtime\Detours-LICENSE.md"
+        }
     }
     # Never install gamedata, appdata or runtime configs over the user's files.
     foreach ($file in @($rootFiles) + @($runtimeFiles)) {

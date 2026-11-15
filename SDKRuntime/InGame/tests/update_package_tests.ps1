@@ -40,6 +40,18 @@ Assert ($files.Count -eq 9) 'Wrong package file count'
 Assert ($files.Name -contains 'InGame\bin\SDKSceneHost.exe') 'Runtime binary omitted'
 Assert ($files.Name -contains 'InGame\defaults\gamedata\config\external.ltx') 'Nested defaults omitted'
 Assert (!($files.Name -match 'custom|user|runtime\.ltx')) 'User files included in update'
+FakePE "$root\InGame\bin\SDKInGameHook32.dll" 0x14c
+FakePE "$root\InGame\bin\SDKInGameHook64.dll" 0x8664
+Put "$root\InGame\Detours-LICENSE.md" ([byte[]]@(1))
+$files = @(InstallFiles $root 0x8664)
+Assert ($files.Name -contains 'InGame\bin\SDKInGameHook32.dll') 'x86 hook DLL omitted'
+Assert ($files.Name -contains 'InGame\bin\SDKInGameHook64.dll') 'x64 hook DLL omitted'
+Assert ($files.Name -contains 'InGame\Detours-LICENSE.md') 'Detours license omitted'
+$rejected = $false
+FakePE "$root\InGame\bin\SDKInGameHook32.dll" 0x8664
+try { $null = @(InstallFiles $root 0x8664) } catch { $rejected = $true }
+Assert $rejected 'Wrong hook architecture accepted'
+FakePE "$root\InGame\bin\SDKInGameHook32.dll" 0x14c
 $rejected = $false
 FakePE "$root\InGame\bin\xrEngine.exe" 0x14c
 try { $null = @(InstallFiles $root 0x8664) } catch { $rejected = $true }
