@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "../../Recovery/LevelRecovery.h"
 
 // chunks
 #define AIMAP_VERSION 0x0002
@@ -193,6 +194,31 @@ void ESceneAIMapTool::Clear(bool bOnlyNodes)
     }
 }
 //----------------------------------------------------
+
+void ESceneAIMapTool::ImportCompiledNavigation(const LevelRecovery::NavigationMap& navigation)
+{
+    Clear();
+    m_Params.fPatchSize = navigation.cell;
+    m_Nodes.reserve(navigation.nodes.size());
+    for (const auto& source : navigation.nodes)
+    {
+        auto* node = new SAINode();
+        m_Nodes.push_back(node);
+        node->Pos.set(source.position[0], source.position[1], source.position[2]);
+        Fvector normal;
+        pvDecompress(normal, source.plane);
+        node->Plane.build(node->Pos, normal);
+    }
+    for (size_t index = 0; index < navigation.nodes.size(); ++index)
+        for (unsigned side = 0; side < 4; ++side)
+        {
+            const auto link = navigation.nodes[index].links[side];
+            if (link != UINT32_MAX) m_Nodes[index]->n[side] = m_Nodes[link];
+        }
+    CalculateNodesBBox(m_AIBBox);
+    m_AIBBox.grow(navigation.cell * .5f);
+    hash_FillFromNodes();
+}
 
 void ESceneAIMapTool::CalculateNodesBBox(Fbox &bb)
 {

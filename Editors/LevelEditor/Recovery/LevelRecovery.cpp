@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace LevelRecovery
 {
@@ -429,11 +430,369 @@ Level Read(const std::string& directory)
     return l;
 }
 
-Gameplay ReadGameplay(const std::string& directory)
+namespace
+{
+Vec3 ReadPosition(Reader& reader)
+{
+    return {{reader.Float(), reader.Float(), reader.Float()}};
+}
+
+SpawnRecord ReadSpawnPacket(Reader record, Reader* state = nullptr)
+{
+    SpawnRecord object;
+    Require(record.size < 16384 && record.Get<uint16_t>() == 1, "Invalid spawn packet");
+    object.section = record.String();
+    object.name = record.String();
+    Require(!object.section.empty() && object.section.size() < 64, "Invalid spawn section");
+    Require(object.name.size() < 256, "Spawn object name exceeds the editor limit");
+    record.Take(2);
+    object.position = ReadPosition(record);
+    object.rotation = ReadPosition(record);
+    record.Take(8);
+    Require(record.Get<uint16_t>() & (1 << 5), "Unversioned spawn packet");
+    const auto version = record.Get<uint16_t>();
+    Require(version == 118 || version == 128, "Unsupported spawn version " + std::to_string(version));
+    if (version == 128) record.Take(2);
+    record.Take(2);
+    record.Take(record.Get<uint16_t>());
+    record.Take(2);
+    const auto size = record.Get<uint16_t>();
+    Require(size >= 2 && size_t(size - 2) == record.Remaining(), "Invalid spawn state length");
+    if (state) *state = Reader(record.data + record.offset, record.Remaining());
+    object.packet.assign(record.data, record.data + record.size);
+    return object;
+}
+
+std::string LowerAscii(std::string text)
+{
+    for (auto& ch : text)
+        if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+    return text;
+}
+
+Bytes DecodeArchiveDirectory(Bytes& encoded, ArchiveIndexDecoder decode)
+{
+    // Legacy worldwide and Russian SoC archive directory variants.
+    const uint32_t keys[][3] = {{1024, 6011979, 24031979}, {2048, 20091958, 20031955}};
+    const auto nextByte = [](uint32_t& seed)
+    {
+        seed = 0x08088405u * seed + 1;
+        return uint8_t(seed >> 24);
+    };
+    for (const auto& key : keys)
+    {
+        std::array<uint8_t, 256> alphabet{}, inverse{};
+        std::iota(alphabet.begin(), alphabet.end(), 0);
+        uint32_t seed = key[1];
+        for (uint32_t i = 0; i < key[0]; ++i)
+        {
+            const auto first = nextByte(seed);
+            auto second = nextByte(seed);
+            while (first == second) second = nextByte(seed);
+            std::swap(alphabet[first], alphabet[second]);
+        }
+        for (size_t i = 0; i < alphabet.size(); ++i) inverse[alphabet[i]] = uint8_t(i);
+        seed = key[2];
+        Bytes plain;
+        plain.reserve(encoded.size());
+        for (auto byte : encoded) plain.push_back(inverse[byte ^ nextByte(seed)]);
+        if (auto index = decode(plain); !index.empty()) return index;
+    }
+    return decode(encoded);
+}
+
+// SoC .db chunk 1 contains a sequence of length-prefixed file entries.
+Bytes ReadArchiveFile(const fs::path& archive, const char* name, ArchiveIndexDecoder decode)
+{
+    std::ifstream file(archive, std::ios::binary | std::ios::ate);
+    Require(bool(file), "Cannot open archive");
+    const auto length = file.tellg();
+    file.seekg(0);
+    uint64_t offset = 0;
+    while (length >= 0 && offset + 8 <= uint64_t(length))
+    {
+        file.seekg(offset);
+        std::array<uint32_t, 2> chunk{};
+        file.read(reinterpret_cast<char*>(chunk.data()), 8);
+        offset += 8;
+        Require(bool(file) && chunk[1] <= uint64_t(length) - offset, "Invalid archive chunk extent");
+        if ((chunk[0] & 0x7fffffffu) != 1)
+        {
+            offset += chunk[1];
+            continue;
+        }
+        constexpr uint32_t maxIndexSize = 32 * 1024 * 1024;
+        Require(chunk[1] <= maxIndexSize, "Archive index is too large");
+        Bytes index(chunk[1]);
+        file.read(reinterpret_cast<char*>(index.data()), index.size());
+        Require(bool(file), "Cannot read archive index");
+        if (chunk[0] & 0x80000000u)
+        {
+            if (!decode) return {};
+            index = DecodeArchiveDirectory(index, decode);
+        }
+        Reader entries(index);
+        while (entries.Remaining())
+        {
+            const auto entrySize = entries.Get<uint16_t>();
+            Reader entry(entries.Take(entrySize), entrySize);
+            const auto size = entry.U32(), packedSize = entry.U32();
+            entry.U32(); // checksum
+            Require(entry.Remaining() >= 4, "Invalid archive directory entry");
+            const size_t nameLength = entry.Remaining() - 4;
+            std::string entryName(reinterpret_cast<const char*>(entry.Take(nameLength)), nameLength);
+            const auto start = entry.U32();
+            if (LowerAscii(std::move(entryName)) != name) continue;
+            Require(size == packedSize, std::string(name) + " is compressed inside " + archive.filename().u8string());
+            Require(uint64_t(start) + size <= uint64_t(length) && size <= 256 * 1024 * 1024,
+                "Invalid archive file extent");
+            Bytes bytes(size);
+            file.seekg(start);
+            file.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
+            Require(bool(file), "Cannot read archive file");
+            return bytes;
+        }
+        break;
+    }
+    return {};
+}
+
+using GraphGuid = std::array<uint8_t, 16>;
+struct SpawnGraphLevels
+{
+    uint8_t target;
+    std::vector<uint8_t> vertices;
+    bool Contains(uint16_t vertex) const { return vertex < vertices.size() && vertices[vertex] == target; }
+};
+
+SpawnGraphLevels ReadGraphLevels(Reader graph, const GraphGuid& guid, const std::string& levelName)
+{
+    const auto version = graph.Get<uint8_t>();
+    Require(version == 8 || version == 10, "Unsupported game.graph version " + std::to_string(version));
+    const auto count = graph.Get<uint16_t>();
+    const auto edges = graph.U32(), points = graph.U32();
+    Require(graph.Get<GraphGuid>() == guid, "game.graph GUID differs from all.spawn");
+    const auto levels = graph.Get<uint8_t>();
+    std::array<bool, 256> ids{};
+    int target = -1;
+    for (uint32_t i = 0; i < levels; ++i)
+    {
+        const auto name = LowerAscii(graph.String());
+        graph.Take(12); // world map offset
+        const auto id = graph.Get<uint8_t>();
+        graph.String(); // section
+        graph.Take(16); // level GUID
+        Require(!ids[id], "Duplicate game.graph level ID");
+        ids[id] = true;
+        if (name == levelName) target = id;
+    }
+    Require(target >= 0, "Selected level is absent from game.graph");
+    Require(uint64_t(count) * 42 + uint64_t(edges) * 6 + uint64_t(points) * 20 <= graph.Remaining(),
+        "Truncated game.graph");
+    SpawnGraphLevels result{static_cast<uint8_t>(target), {}};
+    result.vertices.reserve(count);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        graph.Take(24); // local and global positions
+        const auto id = graph.Get<uint8_t>(); // low byte of packed level/node ID
+        Require(ids[id], "Unknown game.graph vertex level");
+        result.vertices.push_back(id);
+        graph.Take(17);
+    }
+    return result;
+}
+
+void ReadGlobalPatrols(Reader chunk, const SpawnGraphLevels& graph, Gameplay& result)
+{
+    const auto paths = Split(Chunk(Split(chunk), 1));
+    std::unordered_set<std::string> names;
+    for (const auto& path : result.ways) names.insert(LowerAscii(path.name));
+    size_t added = 0, unreadable = 0;
+    for (const auto& path : paths)
+    {
+        try
+        {
+            const auto entry = Split(path.second);
+            auto name = Chunk(entry, 0);
+            WayPath way;
+            way.name = name.String();
+            name.End();
+            const auto key = LowerAscii(way.name);
+            if (key.empty() || names.count(key)) continue;
+            Require(way.name.size() < 256, "Patrol path name exceeds the editor limit");
+            const auto pathGraph = Split(Chunk(entry, 1));
+            const auto vertices = Split(Chunk(pathGraph, 1));
+            Require(!vertices.empty() && vertices.size() <= UINT16_MAX, "Invalid patrol point count");
+            std::unordered_map<uint32_t, uint16_t> indices;
+            for (const auto& vertex : vertices)
+            {
+                const auto data = Split(vertex.second);
+                auto vertexId = Chunk(data, 0);
+                const auto id = vertexId.U32();
+                vertexId.End();
+                auto point = Chunk(data, 1);
+                WayNode node;
+                node.name = point.String();
+                node.position = ReadPosition(point);
+                node.flags = point.U32();
+                point.U32(); // level vertex ID
+                const auto gameVertex = point.Get<uint16_t>();
+                point.End();
+                if (!graph.Contains(gameVertex)) break;
+                Require(indices.emplace(id, uint16_t(way.nodes.size())).second, "Duplicate patrol point ID");
+                way.nodes.push_back(std::move(node));
+            }
+            if (way.nodes.size() != vertices.size()) continue;
+            if (pathGraph.count(2))
+            {
+                auto edges = Chunk(pathGraph, 2);
+                while (edges.Remaining())
+                {
+                    const auto from = indices.find(edges.U32());
+                    const auto count = edges.U32();
+                    Require(from != indices.end() && count <= edges.Remaining() / 8, "Invalid patrol edge list");
+                    for (uint32_t i = 0; i < count; ++i)
+                    {
+                        const auto to = indices.find(edges.U32());
+                        const float probability = edges.Float();
+                        Require(to != indices.end() && from != to && probability >= 0.f, "Invalid patrol edge");
+                        way.links.push_back({from->second, to->second, probability});
+                    }
+                }
+            }
+            names.insert(key);
+            result.ways.push_back(std::move(way));
+            ++added;
+        }
+        catch (const std::runtime_error&) { ++unreadable; }
+    }
+    result.warnings.push_back("all.spawn: added " + std::to_string(added) + " patrol paths, " +
+        std::to_string(unreadable) + " unreadable paths in the global registry.");
+}
+
+void ReadGlobalGameplay(const fs::path& dir, Gameplay& result, ArchiveIndexDecoder decode)
+{
+    const auto levelsDir = dir.parent_path();
+    if (LowerAscii(levelsDir.filename().u8string()) != "levels") return;
+    const auto dataDir = levelsDir.parent_path();
+    const auto gameDir = dataDir.parent_path();
+    std::vector<fs::path> roots{dataDir};
+    std::vector<fs::path> archives;
+    for (const auto& entry : fs::directory_iterator(gameDir))
+    {
+        const auto name = LowerAscii(entry.path().filename().u8string());
+        if (entry.is_directory() && entry.path() != dataDir && fs::is_regular_file(entry.path() / "spawns" / "all.spawn"))
+            roots.push_back(entry.path());
+        else if (decode && name.size() == 12 && name.compare(0, 11, "gamedata.db") == 0 && entry.is_regular_file())
+            archives.push_back(entry.path());
+    }
+    std::sort(roots.begin() + 1, roots.end());
+    std::sort(archives.rbegin(), archives.rend());
+
+    Bytes spawn;
+    fs::path spawnRoot;
+    for (const auto& root : roots)
+    {
+        const auto path = root / "spawns" / "all.spawn";
+        if (!fs::is_regular_file(path)) continue;
+        spawn = Load(path);
+        spawnRoot = root;
+        break;
+    }
+    if (spawn.empty())
+        for (const auto& archive : archives)
+        {
+            try
+            {
+                spawn = ReadArchiveFile(archive, "spawns\\all.spawn", decode);
+                if (!spawn.empty()) break;
+            }
+            catch (const std::runtime_error& e)
+            {
+                result.warnings.push_back(archive.filename().u8string() + ": " + e.what());
+            }
+        }
+    if (spawn.empty()) return;
+
+    const auto chunks = Split(Reader(spawn));
+    auto header = Chunk(chunks, 0);
+    const auto version = header.U32();
+    Require(version == 8 || version == 10, "Unsupported all.spawn version " + std::to_string(version));
+    header.Take(16); // spawn GUID
+    const auto graphGuid = header.Get<GraphGuid>();
+    const auto count = header.U32();
+    header.U32(); // number of spawned levels
+    header.End();
+
+    const auto levelName = LowerAscii(dir.filename().u8string());
+    const auto graph = [&]() -> SpawnGraphLevels
+    {
+        if (chunks.count(4)) return ReadGraphLevels(Chunk(chunks, 4), graphGuid, levelName);
+        std::string problem;
+        const auto matches = [&](const Bytes& bytes)
+        {
+            if (bytes.size() < 27) return false;
+            Reader candidate(bytes);
+            candidate.Take(11);
+            if (candidate.Get<GraphGuid>() == graphGuid) return true;
+            problem = "the available game.graph has a different GUID";
+            return false;
+        };
+        for (const auto& root : {spawnRoot, dataDir, gameDir})
+        {
+            if (root.empty()) continue;
+            const auto file = root / "game.graph";
+            if (!fs::is_regular_file(file)) continue;
+            if (const auto bytes = Load(file); matches(bytes))
+                return ReadGraphLevels(Reader(bytes), graphGuid, levelName);
+        }
+        for (const auto& archive : archives)
+        {
+            try
+            {
+                if (const auto bytes = ReadArchiveFile(archive, "game.graph", decode); matches(bytes))
+                    return ReadGraphLevels(Reader(bytes), graphGuid, levelName);
+            }
+            catch (const std::runtime_error& e) { problem = e.what(); }
+        }
+        throw std::runtime_error("Matching game.graph not found" + (problem.empty() ? std::string() : ": " + problem));
+    }();
+
+    const auto vertices = Split(Chunk(Split(Chunk(chunks, 1)), 1));
+    Require(vertices.size() == count, "all.spawn entity count mismatch");
+    const size_t localCount = result.spawns.size();
+    size_t imported = 0, skipped = 0;
+    for (const auto& vertex : vertices)
+    {
+        try
+        {
+            const auto data = Split(Chunk(Split(vertex.second), 1));
+            auto packet = Chunk(data, 0);
+            const auto length = packet.Get<uint16_t>();
+            Reader state;
+            auto object = ReadSpawnPacket(Reader(packet.Take(length), length), &state);
+            packet.End();
+            if (!graph.Contains(state.Get<uint16_t>())) continue;
+            object.global = true;
+            result.spawns.push_back(std::move(object));
+            ++imported;
+        }
+        catch (const std::runtime_error&) { ++skipped; }
+    }
+    // Prefer global placements. Keep local records available when the factory
+    // cannot instantiate the global version of the same object.
+    std::rotate(result.spawns.begin(), result.spawns.begin() + localCount, result.spawns.end());
+    result.warnings.push_back("all.spawn: " + std::to_string(imported) + " entities matched to " + levelName +
+        ", " + std::to_string(skipped) + " unreadable packets in the global registry.");
+    if (chunks.count(3)) ReadGlobalPatrols(Chunk(chunks, 3), graph, result);
+}
+}
+
+Gameplay ReadGameplay(const std::string& directory, ArchiveIndexDecoder decodeArchiveIndex)
 {
     const auto dir = fs::u8path(directory);
     Gameplay result;
-    const auto vector = [](Reader& reader) -> Vec3 { return {{reader.Float(), reader.Float(), reader.Float()}}; };
+    const auto vector = ReadPosition;
     const auto readFile = [&](const char* name, const auto& read)
     {
         try
@@ -505,27 +864,13 @@ Gameplay ReadGameplay(const std::string& directory)
         {
             readRecords(file, spawn, [&](Reader record)
             {
-                SpawnRecord object;
-                Require(record.size < 16384 && record.Get<uint16_t>() == 1, "Invalid spawn packet");
-                object.section = record.String(); object.name = record.String();
-                Require(!object.section.empty() && object.section.size() < 64, "Invalid spawn section");
-                record.Take(2);
-                object.position = vector(record); object.rotation = vector(record);
-                record.Take(8);
-                Require(record.Get<uint16_t>() & (1 << 5), "Unversioned spawn packet");
-                const auto version = record.Get<uint16_t>();
-                Require(version == 118 || version == 128, "Unsupported spawn version " + std::to_string(version));
-                if (version == 128) record.Take(2);
-                record.Take(2);
-                record.Take(record.Get<uint16_t>());
-                record.Take(2);
-                const auto bodySize = record.Get<uint16_t>();
-                Require(bodySize >= 2 && bodySize - 2 == record.Remaining(), "Invalid spawn state length");
-                object.packet.assign(record.data, record.data + record.size);
+                auto object = ReadSpawnPacket(record);
                 object.respawn = std::string(file) == "level_rs.spawn";
                 result.spawns.push_back(std::move(object));
             });
         });
+    try { ReadGlobalGameplay(fs::canonical(dir), result, decodeArchiveIndex); }
+    catch (const std::runtime_error& e) { result.warnings.push_back(std::string("all.spawn: ") + e.what()); }
     readFile("level.snd_static", [&](const Chunks& sounds)
     {
         readRecords("Static sound", sounds, [&](Reader record)
@@ -541,7 +886,58 @@ Gameplay ReadGameplay(const std::string& directory)
             result.sounds.push_back(std::move(data));
         });
     });
-    for (const char* file : {"level.ai", "level.graph", "level.env_mod", "level.ps_static", "level.fog_vol"})
+    try
+    {
+        const auto path = dir / "level.ai";
+        if (fs::exists(path))
+        {
+            const auto bytes = Load(path);
+            Reader reader(bytes);
+            Require(reader.U32() == 10, "Unsupported navigation version (expected 10)");
+            const auto count = reader.U32();
+            const auto cell = reader.Float(), height = reader.Float();
+            const auto low = vector(reader), high = vector(reader);
+            reader.Take(16); // level GUID
+            Require(count < 0x007fffff && reader.Remaining() == uint64_t(count) * 23,
+                "Unsupported navigation node layout");
+            Require(cell >= .1f && cell <= 10.f && height >= 0 && high[0] >= low[0] && high[2] >= low[2],
+                "Invalid navigation bounds");
+            const double rows = std::floor((double(high[2]) - low[2]) / cell + 1.5001);
+            const double columns = std::floor((double(high[0]) - low[0]) / cell + 1.5001);
+            Require(rows >= 1 && rows <= 0x01000000 && columns <= 0x01000000, "Invalid navigation grid size");
+            const auto rowLength = static_cast<uint32_t>(rows);
+            NavigationMap navigation;
+            navigation.cell = cell;
+            navigation.nodes.reserve(count);
+            for (uint32_t id = 0; id < count; ++id)
+            {
+                NavigationNode node;
+                const auto* packed = reader.Take(12);
+                const unsigned offsets[] = {0, 2, 5, 8}, shifts[] = {0, 7, 6, 5};
+                for (unsigned side = 0; side < 4; ++side)
+                {
+                    uint32_t field;
+                    std::memcpy(&field, packed + offsets[side], sizeof(field));
+                    const auto link = (field >> shifts[side]) & 0x007fffff;
+                    Require(link == 0x007fffff || (link < count && link != id), "Invalid navigation link");
+                    node.links[side] = link == 0x007fffff ? UINT32_MAX : link;
+                }
+                reader.Take(4); // high and low cover values are recomputed by the compiler
+                node.plane = reader.Get<uint16_t>();
+                const auto* xzBytes = reader.Take(3);
+                const uint32_t xz = xzBytes[0] | (uint32_t(xzBytes[1]) << 8) | (uint32_t(xzBytes[2]) << 16);
+                const auto y = reader.Get<uint16_t>();
+                Require(xz / rowLength < columns, "Navigation node outside grid");
+                node.position = {{low[0] + float(xz / rowLength) * cell, low[1] + (y / 65535.f) * height,
+                    low[2] + float(xz % rowLength) * cell}};
+                for (auto value : node.position) Require(std::isfinite(value), "Invalid navigation position");
+                navigation.nodes.push_back(node);
+            }
+            result.navigation = std::move(navigation);
+        }
+    }
+    catch (const std::runtime_error& e) { result.warnings.push_back(std::string("level.ai: ") + e.what()); }
+    for (const char* file : {"level.graph", "level.env_mod", "level.ps_static", "level.fog_vol"})
         if (fs::exists(dir / file)) result.warnings.push_back(std::string(file) + " is outside the editable gameplay import.");
     return result;
 }

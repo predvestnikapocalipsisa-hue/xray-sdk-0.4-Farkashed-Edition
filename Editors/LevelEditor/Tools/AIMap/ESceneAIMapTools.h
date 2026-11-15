@@ -2,6 +2,7 @@
 
 // refs
 class ESceneAIMapTool;
+namespace LevelRecovery { struct NavigationMap; }
 struct SAINode;
 
 const DWORD InvalidNode = (1 << 24) - 1;
@@ -201,6 +202,7 @@ public:
 	virtual bool LoadSelection(IReader &);
 	virtual void SaveSelection(IWriter &);
 	virtual bool Export(LPCSTR path);
+	void ImportCompiledNavigation(const LevelRecovery::NavigationMap& navigation);
 
 	// device dependent funcs
 	virtual void OnDeviceCreate();
