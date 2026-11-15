@@ -2,11 +2,13 @@
 #include "UILevelRecovery.h"
 #include "LevelRecovery.h"
 #include "NativeRecoveryIO.h"
+#include "../../../XrCore/lzhuf.h"
 #include "../UI/UISceneTabBar.h"
 #include <atomic>
 #include <chrono>
 #include <future>
 #include <memory>
+#include <set>
 #include <shobjidl.h>
 #pragma comment(lib, "ole32.lib")
 
@@ -40,6 +42,17 @@ struct CompiledScene
     LevelRecovery::Gameplay gameplay;
 };
 bool Busy() { return job.valid(); }
+
+std::vector<uint8_t> DecodeArchiveIndex(std::vector<uint8_t>& encoded)
+{
+    u8* bytes = nullptr;
+    unsigned size = 0;
+    if (!_decompressLZBounded(&bytes, &size, encoded.data(), static_cast<unsigned>(encoded.size()), 32 * 1024 * 1024))
+        return {};
+    const auto freeBytes = [](u8* pointer) { xr_free(pointer); };
+    std::unique_ptr<u8, decltype(freeBytes)> buffer(bytes, freeBytes);
+    return {bytes, bytes + size};
+}
 
 struct CompiledLoadProgress
 {
@@ -165,7 +178,7 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
         ELog.Msg(mtInformation, "Recovery: enable the %s tool to import its objects.", result ? result->ClassDesc() : "required");
         return nullptr;
     };
-    size_t wayCount = 0, spawnCount = 0, soundCount = 0;
+    size_t wayCount = 0, spawnCount = 0, globalSpawnCount = 0, soundCount = 0;
     if (!prepared.gameplay.ways.empty()) if (auto* wayTool = getTool(OBJCLASS_WAY))
         for (const auto& way : prepared.gameplay.ways)
         {
@@ -176,8 +189,22 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
         }
     if (!prepared.gameplay.spawns.empty() || !prepared.gameplay.respawns.empty()) if (auto* spawnTool = getTool(OBJCLASS_SPAWNPOINT))
     {
+        const auto less = [](const std::string& a, const std::string& b) { return _stricmp(a.c_str(), b.c_str()) < 0; };
+        std::set<std::string, decltype(less)> importedGlobal(less);
+        size_t visited = 0;
+        nextUpdate = GetTickCount64() + 33;
         for (const auto& record : prepared.gameplay.spawns)
         {
+            const auto now = GetTickCount64();
+            if (now >= nextUpdate)
+            {
+                nextUpdate = now + 33;
+                progress.item->Update(5.f + float(visited) / float(prepared.gameplay.spawns.size()));
+            }
+            ++visited;
+            const bool actor = _stricmp(record.section.c_str(), "actor") == 0;
+            const std::string key = record.section + '\n' + (actor ? std::string() : record.name);
+            if (!record.global && !record.respawn && (actor || !record.name.empty()) && importedGlobal.count(key)) continue;
             const auto name = record.name.empty() ? record.section + "_" + std::to_string(spawnCount) : record.name;
             try
             {
@@ -188,6 +215,11 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
                     throw std::runtime_error("missing SDK section or incompatible entity state");
                 objects.push_back(std::move(object));
                 ++spawnCount;
+                if (record.global)
+                {
+                    ++globalSpawnCount;
+                    importedGlobal.insert(key);
+                }
             }
             catch (const xrEditorOperationError& e) { ELog.Msg(mtInformation, "Recovery: skipped spawn %s: %s", name.c_str(), e.details); }
             catch (const std::runtime_error& e) { ELog.Msg(mtInformation, "Recovery: skipped spawn %s: %s", name.c_str(), e.what()); }
@@ -213,7 +245,19 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
         }
     progress.Stage(6.f, "Opening the recovered scene");
     if (!ExecCommand(COMMAND_CLEAR)) throw std::runtime_error("Could not clear the current scene");
+    if (globalSpawnCount) CLE_Visual::g_NoToAll_MissingVisual = true;
     for (auto& object : objects) Scene->AppendObject(object.release(), false);
+    size_t navigationCount = 0;
+    if (!prepared.gameplay.navigation.nodes.empty())
+    {
+        auto* aiMap = static_cast<ESceneAIMapTool*>(Scene->GetTool(OBJCLASS_AIMAP));
+        if (aiMap && aiMap->IsEnabled() && aiMap->IsEditable())
+        {
+            aiMap->ImportCompiledNavigation(prepared.gameplay.navigation);
+            navigationCount = prepared.gameplay.navigation.nodes.size();
+        }
+        else ELog.Msg(mtInformation, "Recovery: enable the AI Map tool to import navigation nodes.");
+    }
     Scene->SynchronizeObjects();
     UISceneTabBar::ReplaceActiveScene("", prepared.name.c_str());
     Scene->UndoSave();
@@ -227,7 +271,8 @@ void OpenRecoveredScene(const CompiledScene& prepared, CompiledLoadProgress& pro
     camera.ZoomExtents(view);
     ExecCommand(COMMAND_UPDATE_PROPERTIES);
     UI->RedrawScene();
-    ELog.Msg(mtInformation, "Recovered gameplay: %zu patrol paths, %zu spawn/respawn points, %zu static sounds.", wayCount, spawnCount, soundCount);
+    ELog.Msg(mtInformation, "Recovered gameplay: %zu patrol paths, %zu spawn/respawn points (%zu from all.spawn), %zu static sounds, %zu AI nodes.",
+        wayCount, spawnCount, globalSpawnCount, soundCount, navigationCount);
     progress.item->Update(progress.item->max);
 }
 void ImportTrees()
@@ -355,7 +400,7 @@ void OpenCompiledLevel()
             const auto missing = LevelRecovery::NativeIO::PreparePreviewTextures(data, texturesRoot);
             currentStage.store(3);
             return CompiledScene{std::move(name), LevelRecovery::NativeIO::PrepareSceneImport(data, objectsRoot), target,
-                missing, LevelRecovery::ReadGameplay(path)};
+                missing, LevelRecovery::ReadGameplay(path, DecodeArchiveIndex)};
         });
         int displayedStage = 0;
         while (preparation.wait_for(std::chrono::milliseconds(33)) != std::future_status::ready)

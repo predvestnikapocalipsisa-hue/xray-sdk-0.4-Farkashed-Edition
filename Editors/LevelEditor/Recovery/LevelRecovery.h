@@ -95,6 +95,7 @@ struct SpawnRecord
     std::array<float, 3> position, rotation;
     std::vector<uint8_t> packet;
     bool respawn = false;
+    bool global = false;
 };
 struct RespawnRecord
 {
@@ -110,15 +111,29 @@ struct SoundRecord
     float volume, frequency;
     std::array<uint32_t, 6> timings;
 };
+struct NavigationNode
+{
+    std::array<float, 3> position;
+    std::array<uint32_t, 4> links;
+    uint16_t plane;
+};
+struct NavigationMap
+{
+    float cell = 0;
+    std::vector<NavigationNode> nodes;
+};
 struct Gameplay
 {
     std::vector<WayPath> ways;
     std::vector<SpawnRecord> spawns;
     std::vector<RespawnRecord> respawns;
     std::vector<SoundRecord> sounds;
+    NavigationMap navigation;
     std::vector<std::string> warnings;
 };
-Gameplay ReadGameplay(const std::string& directory);
+// The editor supplies the decoder for compressed legacy .db directories.
+using ArchiveIndexDecoder = std::vector<uint8_t> (*)(std::vector<uint8_t>&);
+Gameplay ReadGameplay(const std::string& directory, ArchiveIndexDecoder decodeArchiveIndex = nullptr);
 std::array<float, 3> PreviewCameraTarget(const Level& level);
 void GroupConnectedSurfaces(Level& level);
 std::string Describe(const Level& level);

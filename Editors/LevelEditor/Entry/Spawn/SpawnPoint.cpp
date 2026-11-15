@@ -749,10 +749,28 @@ bool CSpawnPoint::ImportCompiledSpawn(const LevelRecovery::SpawnRecord& record)
 
     NET_Packet packet{};
     if (record.packet.size() >= sizeof(packet.B.data)) return false;
+    packet.timeReceive = 0;
     packet.B.count = static_cast<u32>(record.packet.size());
     std::memset(packet.B.data, 0, sizeof(packet.B.data));
     std::memcpy(packet.B.data, record.packet.data(), packet.B.count);
-    if (!m_SpawnData.m_Data->Spawn_Read(packet) || packet.r_tell() != packet.B.count) return false;
+    if (!m_SpawnData.m_Data->Spawn_Read(packet)) return false;
+    if (packet.r_tell() != packet.B.count)
+    {
+        // These Lua classes deliberately stop after their editable state in the
+        // SDK. An initial SoC spawn may also carry an empty gameplay state.
+        static const CLASS_ID smartTerrain = TEXT2CLSID("SMRTTRRN");
+        static const CLASS_ID respawn = TEXT2CLSID("RE_SPAWN");
+        static const CLASS_ID mosquitoBald = TEXT2CLSID("ZS_MBALD");
+        static const CLASS_ID mincer = TEXT2CLSID("ZS_MINCE");
+        const auto type = m_SpawnData.m_ClassID;
+        const u32 emptyStateSize = type == smartTerrain ? 3 :
+            (type == respawn || type == mosquitoBald || type == mincer ? 1 : 0);
+        if (!record.global || !emptyStateSize || packet.r_tell() > packet.B.count ||
+            packet.B.count - packet.r_tell() != emptyStateSize ||
+            std::any_of(packet.B.data + packet.r_tell(), packet.B.data + packet.B.count,
+                [](u8 value) { return value != 0; }))
+            return false;
+    }
     m_SpawnData.m_flags.set(SSpawnData::eSDTypeRespawn, record.respawn);
     SetValid(true);
 

@@ -2292,6 +2292,7 @@ void CSE_ALifeInventoryBox::STATE_Read(NET_Packet &tNetPacket, u16 size)
 void CSE_ALifeInventoryBox::STATE_Write(NET_Packet &tNetPacket)
 {
 	inherited::STATE_Write(tNetPacket);
+	if (Core.SocSdk) return; // The inventory box extension was introduced after spawn version 118.
 	tNetPacket.w_u8((m_can_take) ? 1 : 0);
 	tNetPacket.w_u8((m_closed) ? 1 : 0);
 	tNetPacket.w_stringZ(m_tip_text);

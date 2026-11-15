@@ -378,7 +378,7 @@ void NET_Packet::r_stringZ_s(LPSTR string, u32 const size)
 		return;
 	}
 
-	LPCSTR data = LPCSTR(B.data + r_pos);
+	LPCSTR data = PacketString(B, r_pos);
 	u32 length = xr_strlen(data);
 	R_ASSERT2((length + 1) <= size, "buffer overrun");
 	r(string, length + 1);

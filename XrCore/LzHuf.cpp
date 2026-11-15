@@ -2,10 +2,14 @@
 //
 
 #include "stdafx.h"
+#include "lzhuf.h"
 #pragma hdrstop
 
 #include <io.h>
 #include <fcntl.h>
+#include <mutex>
+
+static std::mutex lzhufMutex;
 
 #define MODULE
 
@@ -48,6 +52,7 @@ class LZfs
 private:
 	unsigned getbuf;
 	unsigned getlen;
+	unsigned padding;
 
 	unsigned putbuf;
 	unsigned putlen;
@@ -93,8 +98,9 @@ public:
 		in_iterator = in_start;
 
 		// bitwise input/output
-		getbuf = getlen = putbuf = putlen = 0;
+		getbuf = getlen = padding = putbuf = putlen = 0;
 	}
+	IC bool UsedPadding() const { return padding > getlen; }
 	IC void Init_Output(int _rsize)
 	{
 		// output
@@ -128,7 +134,10 @@ public:
 		while (getlen <= 8)
 		{
 			if ((int)(i = _getb()) < 0)
+			{
 				i = 0;
+				padding += 8;
+			}
 			getbuf |= i << (8 - getlen);
 			getlen += 8;
 		}
@@ -145,7 +154,10 @@ public:
 		while (getlen <= 8)
 		{
 			if ((int)(i = _getb()) < 0)
+			{
 				i = 0;
+				padding += 8;
+			}
 			getbuf |= i << (8 - getlen);
 			getlen += 8;
 		}
@@ -1104,23 +1116,24 @@ void Encode(void) /* compression */
 	tim_size = textsize;
 }
 
-void Decode(void) /* recover */
+bool Decode(unsigned limit = 0) /* recover */
 {
 	int i, j, k, r, c;
 	unsigned int count;
 
-	textsize = (fs._getb());
-	textsize |= (fs._getb() << 8);
-	textsize |= (fs._getb() << 16);
-	textsize |= (fs._getb() << 24);
-	if (textsize == 0)
-		return;
+	textsize = unsigned(fs._getb());
+	textsize |= unsigned(fs._getb()) << 8;
+	textsize |= unsigned(fs._getb()) << 16;
+	textsize |= unsigned(fs._getb()) << 24;
+	if (textsize == 0 || (limit && textsize > limit))
+		return false;
 
 	fs.Init_Output(textsize);
 
 	StartHuff();
 	for (i = 0; i < N - F; i++)
 		text_buf[i] = 0x20;
+	if (limit) std::memset(text_buf + N - F, 0, F);
 	r = N - F;
 	for (count = 0; count < textsize;)
 	{
@@ -1136,6 +1149,11 @@ void Decode(void) /* recover */
 		{
 			i = (r - DecodePosition() - 1) & (N - 1);
 			j = c - 255 + THRESHOLD;
+			if (limit && unsigned(j) > textsize - count)
+			{
+				fs.OutRelease();
+				return false;
+			}
 			for (k = 0; k < j; k++)
 			{
 				c = text_buf[(i + k) & (N - 1)];
@@ -1145,12 +1163,19 @@ void Decode(void) /* recover */
 				count++;
 			}
 		}
+		if (limit && fs.UsedPadding())
+		{
+			fs.OutRelease();
+			return false;
+		}
 	}
 	tim_size = count;
+	return true;
 }
 
 unsigned _writeLZ(int hf, void *d, unsigned size)
 {
+	std::lock_guard<std::mutex> lock(lzhufMutex);
 	u8 *start = (u8 *)d;
 	fs.Init_Input(start, start + size);
 
@@ -1166,6 +1191,7 @@ unsigned _writeLZ(int hf, void *d, unsigned size)
 
 void _compressLZ(u8 **dest, unsigned *dest_sz, void *src, unsigned src_sz)
 {
+	std::lock_guard<std::mutex> lock(lzhufMutex);
 	u8 *start = (u8 *)src;
 	fs.Init_Input(start, start + src_sz);
 	Encode();
@@ -1175,15 +1201,31 @@ void _compressLZ(u8 **dest, unsigned *dest_sz, void *src, unsigned src_sz)
 
 void _decompressLZ(u8 **dest, unsigned *dest_sz, void *src, unsigned src_sz)
 {
+	std::lock_guard<std::mutex> lock(lzhufMutex);
 	u8 *start = (u8 *)src;
 	fs.Init_Input(start, start + src_sz);
-	Decode();
+	const bool decoded = Decode();
+	*dest = decoded ? fs.OutPointer() : nullptr;
+	*dest_sz = decoded ? fs.OutSize() : 0;
+}
+
+bool _decompressLZBounded(u8 **dest, unsigned *dest_sz, void *src, unsigned src_sz, unsigned limit)
+{
+	*dest = nullptr;
+	*dest_sz = 0;
+	if (src_sz < 5 || limit == 0 || limit > INT_MAX) return false;
+	std::lock_guard<std::mutex> lock(lzhufMutex);
+	u8 *start = (u8 *)src;
+	fs.Init_Input(start, start + src_sz);
+	if (!Decode(limit)) return false;
 	*dest = fs.OutPointer();
 	*dest_sz = fs.OutSize();
+	return true;
 }
 
 unsigned _readLZ(int hf, void *&d, unsigned size)
 {
+	std::lock_guard<std::mutex> lock(lzhufMutex);
 	// Read file in memory
 	u8 *data = (u8 *)xr_malloc(size);
 	_read(hf, data, size);
@@ -1191,10 +1233,10 @@ unsigned _readLZ(int hf, void *&d, unsigned size)
 	fs.Init_Input(data, data + size);
 
 	// Actual compression
-	Decode();
+	const bool decoded = Decode();
 
 	// Flush cache
 	xr_free(data);
-	d = fs.OutPointer();
-	return fs.OutSize();
+	d = decoded ? fs.OutPointer() : nullptr;
+	return decoded ? fs.OutSize() : 0;
 }
