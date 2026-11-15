@@ -24,6 +24,9 @@ private:
 	xr_vector<xr_string> m_IgnoreMaterialsList;
 	int m_IgnoreMaterialsListSelected;
 	bool m_ChooseIgnoreMaterials;
+	xr_vector<xr_string> m_ForbiddenMaterialsList;
+	int m_ForbiddenMaterialsListSelected;
+	bool m_ChooseForbiddenMaterials;
 
 private:
 	void SideClick(int tag);
