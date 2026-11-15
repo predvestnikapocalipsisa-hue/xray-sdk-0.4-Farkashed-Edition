@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <commdlg.h>
 
 // chunks
 #define WM_VERSION 0x0004
@@ -905,7 +906,124 @@ void ESceneWallmarkTool::FillProp(LPCSTR pref, PropItemVec &items)
     PHelper().CreateFloat(items, PrepareKey(pref, "Common\\Height"), &m_MarkHeight, 0.01f, 10.f);
     PHelper().CreateAngle(items, PrepareKey(pref, "Common\\Rotate"), &m_MarkRotate);
     PHelper().CreateChoose(items, PrepareKey(pref, "Common\\Shader"), &m_ShName, smEShader);
-    PHelper().CreateChoose(items, PrepareKey(pref, "Common\\Texture"), &m_TxName, smTexture);
+    const shared_str texture_button_text = m_TxName.size() ? m_TxName : "Browse...";
+    ButtonValue *texture = PHelper().CreateButton(items, PrepareKey(pref, "Common\\Texture"), texture_button_text, 0);
+    texture->OnBtnClickEvent.bind(this, &ESceneWallmarkTool::OnTextureExplorerClick);
+    ButtonValue *apply = PHelper().CreateButton(items, PrepareKey(pref, "Common\\Apply to selected"), "Apply shader and texture", ButtonValue::flFirstOnly);
+    apply->OnBtnClickEvent.bind(this, &ESceneWallmarkTool::OnApplyMaterialToSelected);
+}
+
+void ESceneWallmarkTool::OnApplyMaterialToSelected(ButtonValue *, bool &data_modified, bool &safe)
+{
+    safe = true;
+    data_modified = false;
+
+    xr_vector<wallmark *> selected;
+    for (WMSVecIt slot_it = marks.begin(); slot_it != marks.end(); ++slot_it)
+        for (WMVecIt mark_it = (*slot_it)->items.begin(); mark_it != (*slot_it)->items.end(); ++mark_it)
+            if ((*mark_it)->flags.is(wallmark::flSelected))
+                selected.push_back(*mark_it);
+
+    if (selected.empty())
+    {
+        ELog.DlgMsg(mtInformation, "Select at least one wallmark first.");
+        return;
+    }
+    if (!m_ShName.size() || !m_TxName.size())
+    {
+        ELog.DlgMsg(mtError, "Choose both a shader and a texture first.");
+        return;
+    }
+
+    Scene->UndoSave();
+    wm_slot *destination = FindSlot(m_ShName, m_TxName);
+    if (!destination)
+    {
+        destination = AppendSlot(m_ShName, m_TxName);
+        if (!destination)
+        {
+            ELog.DlgMsg(mtError, "Failed to create a wallmark shader and texture slot.");
+            return;
+        }
+    }
+
+    bool changed = false;
+    for (wallmark *mark : selected)
+    {
+        wm_slot *source = mark->parent;
+        if (source == destination)
+            continue;
+
+        WMVecIt mark_it = std::find(source->items.begin(), source->items.end(), mark);
+        if (mark_it == source->items.end())
+            continue;
+
+        *mark_it = source->items.back();
+        source->items.pop_back();
+        mark->parent = destination;
+        destination->items.push_back(mark);
+        changed = true;
+    }
+
+    if (changed)
+    {
+        RefiningSlots();
+        data_modified = true;
+        UI->RedrawScene();
+    }
+}
+
+void ESceneWallmarkTool::OnTextureExplorerClick(ButtonValue *, bool &data_modified, bool &safe)
+{
+    OPENFILENAMEA dialog = {};
+    char file_name[MAX_PATH] = {};
+    string_path textures_path;
+    FS.update_path(textures_path, "$game_textures$", "");
+
+    dialog.lStructSize = sizeof(dialog);
+    dialog.hwndOwner = nullptr;
+    dialog.lpstrFile = file_name;
+    dialog.nMaxFile = sizeof(file_name);
+    // Match the old smTexture chooser: it only exposes compiled game textures.
+    dialog.lpstrFilter = "Game textures (*.dds)\0*.dds\0";
+    dialog.nFilterIndex = 1;
+    dialog.lpstrInitialDir = textures_path;
+    dialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if (GetOpenFileNameA(&dialog))
+    {
+        size_t root_length = strlen(textures_path);
+        while (root_length && (textures_path[root_length - 1] == '\\' || textures_path[root_length - 1] == '/'))
+            --root_length;
+
+        if (_strnicmp(file_name, textures_path, root_length) != 0 ||
+            (file_name[root_length] != '\\' && file_name[root_length] != '/'))
+        {
+            ELog.DlgMsg(mtError, "Select a texture inside the SDK game textures folder.");
+        }
+        else
+        {
+            string_path relative_path;
+            xr_strcpy(relative_path, file_name + root_length + 1);
+            for (char *c = relative_path; *c; ++c)
+                if (*c == '/')
+                    *c = '\\';
+            if (char *extension = strrchr(relative_path, '.'))
+                *extension = '\0';
+
+            xr_string compiled_texture = xr_string(relative_path) + ".dds";
+            if (!FS.exist(_game_textures_, compiled_texture.c_str()))
+            {
+                ELog.DlgMsg(mtError, "The selected DDS texture is not available through the SDK game textures alias.");
+            }
+            else
+            {
+                m_TxName = relative_path;
+                data_modified = true;
+            }
+        }
+    }
+    safe = true;
 }
 //----------------------------------------------------
 

@@ -71,6 +71,11 @@ BOOL ESceneAIMapTool::CreateNode(Fvector &vAt, SAINode &N, bool bIC)
     {
         SPickQuery::SResult *R = PQ.r_begin() + i;
 
+        // Forbidden game materials must never contribute support geometry to
+        // generated AI nodes, even when the material is otherwise collidable.
+        if (std::find(m_forbidden_materials.begin(), m_forbidden_materials.end(), R->material) != m_forbidden_materials.end())
+            continue;
+
         if (R->e_obj && R->e_mesh)
         {
             CSurface *surf = R->e_mesh->GetSurfaceByFaceID(R->tag);
@@ -622,6 +627,22 @@ void ESceneAIMapTool::BuildNodes(bool bFromSelectedOnly)
         }
     }
     UI->ProgressEnd(pb);
+
+    // A neighbor can be accepted from one side but rejected when its own
+    // generation pass checks travel in the opposite direction (common on
+    // stairs). Keep the generated adjacency reciprocal when the opposite slot
+    // is still free.
+    static const int opposite[4] = {2, 3, 0, 1};
+    for (AINodeIt it = m_Nodes.begin(); it != m_Nodes.end(); ++it)
+    {
+        SAINode *node = *it;
+        for (int side = 0; side < 4; ++side)
+        {
+            SAINode *neighbor = node->n[side];
+            if (neighbor && !neighbor->n[opposite[side]])
+                neighbor->n[opposite[side]] = node;
+        }
+    }
 }
 
 SAINode *ESceneAIMapTool::GetNode(Fvector vAt, bool bIC) // return node's index

@@ -151,6 +151,7 @@ public:
 	float m_SmoothHeight;
 	u32 m_BrushSize;
 	xr_vector<u16> m_ignored_materials;
+	xr_vector<u16> m_forbidden_materials;
 
 	bool PickObjects(Fvector &dest, const Fvector &start, const Fvector &dir, float dist);
 

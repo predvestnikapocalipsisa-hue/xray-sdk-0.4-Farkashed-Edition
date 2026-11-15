@@ -7,6 +7,8 @@ UIAIMapTool::UIAIMapTool()
 	m_IgnoreConstraints = false;
 	m_IgnoreMaterialsListSelected = 0;
 	m_ChooseIgnoreMaterials = false;
+	m_ForbiddenMaterialsListSelected = 0;
+	m_ChooseForbiddenMaterials = false;
 }
 
 UIAIMapTool::~UIAIMapTool()
@@ -20,6 +22,11 @@ void UIAIMapTool::Draw()
 	{
 		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
 		{
+			if (ImGui::Button("Select 0-Link Nodes", ImVec2(-1, 0)))
+			{
+				tool->SelectNodesByLink(0);
+				UI->RedrawScene();
+			}
 			if (ImGui::Button("Generate Full", ImVec2(-1, 0)))
 			{
 				tool->GenerateMap(false);
@@ -82,6 +89,33 @@ void UIAIMapTool::Draw()
 				"##mat_list_box", &m_IgnoreMaterialsListSelected, [](void *data, int ind, const char **out) -> bool
 				{*out = reinterpret_cast<xr_vector<xr_string>*>(data)->at(ind).c_str();  return true; },
 				reinterpret_cast<void *>(&this->m_IgnoreMaterialsList), m_IgnoreMaterialsList.size(), 7);
+		}
+		ImGui::Separator();
+		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
+		ImGui::TreePop();
+	}
+	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+	if (ImGui::TreeNode("Forbidden materials"))
+	{
+		ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
+		{
+			if (ImGui::Button("Add##forbidden_material"))
+			{
+				UIChooseForm::SelectItem(smGameMaterial, 1, 0, 0, 0, 0, 0, 0);
+				m_ChooseForbiddenMaterials = true;
+			}
+			ImGui::SameLine(0, -1);
+			if (ImGui::Button("Clear##forbidden_material"))
+			{
+				m_ForbiddenMaterialsListSelected = 0;
+				m_ForbiddenMaterialsList.clear();
+				tool->m_forbidden_materials.clear();
+			}
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ListBox(
+				"##forbidden_mat_list_box", &m_ForbiddenMaterialsListSelected, [](void *data, int ind, const char **out) -> bool
+				{*out = reinterpret_cast<xr_vector<xr_string>*>(data)->at(ind).c_str();  return true; },
+				reinterpret_cast<void *>(&this->m_ForbiddenMaterialsList), m_ForbiddenMaterialsList.size(), 7);
 		}
 		ImGui::Separator();
 		ImGui::Indent(ImGui::GetStyle().IndentSpacing);
@@ -251,6 +285,25 @@ void UIAIMapTool::OnDrawUI()
 				tool->m_ignored_materials.push_back(mtl->GetID());
 			}
 			m_ChooseIgnoreMaterials = false;
+		}
+		UIChooseForm::Update();
+	}
+	if (m_ChooseForbiddenMaterials)
+	{
+		bool result = false;
+		xr_string name;
+		if (UIChooseForm::GetResult(result, name))
+		{
+			if (result)
+			{
+				SGameMtl *mtl = GMLib.GetMaterial(name.c_str());
+				if (mtl && std::find(tool->m_forbidden_materials.begin(), tool->m_forbidden_materials.end(), mtl->GetID()) == tool->m_forbidden_materials.end())
+				{
+					m_ForbiddenMaterialsList.push_back(name);
+					tool->m_forbidden_materials.push_back(mtl->GetID());
+				}
+			}
+			m_ChooseForbiddenMaterials = false;
 		}
 		UIChooseForm::Update();
 	}

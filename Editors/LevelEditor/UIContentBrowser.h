@@ -12,6 +12,8 @@ enum EContentBrowserMode
     CBM_GROUP,
 };
 
+enum EContentBrowserView { CBV_ALL, CBV_RECENT, CBV_FAVORITES };
+
 class UIContentBrowser
 {
 public:
@@ -37,6 +39,11 @@ private:
     void DrawTileGridCustom();
     void LoadUserState();
     void SaveUserState();
+    void RememberItem(const char* key);
+    bool IsFavorite(const char* key) const;
+    void ToggleFavorite(const char* key);
+    void ApplyView();
+    void AddCachedItem(const char* key, int flags, LPVOID data);
     static const char* UserCfgPath() { return "content_browser.ltx"; }
 
 
@@ -58,4 +65,11 @@ private:
     float m_TileScale;
     bool  m_bVisible;
     bool  m_bShowPreview;
+    struct CachedItem { xr_string key; int flags; LPVOID data; };
+    EContentBrowserView m_View;
+    xr_vector<CachedItem> m_CachedItems;
+    bool m_ViewDirty;
+    bool m_CacheNeedsAssign;
+    xr_vector<xr_string> m_RecentItems;
+    xr_vector<xr_string> m_FavoriteItems;
 };

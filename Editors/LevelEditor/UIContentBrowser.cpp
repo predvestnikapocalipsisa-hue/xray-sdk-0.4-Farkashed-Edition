@@ -5,7 +5,7 @@ static const float kBaseTile = 72.f;
 static const float kBasePad = 5.f;
 static const float kBaseLabel = 26.f;
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 UIContentBrowser::UIContentBrowser()
     : m_RealTexture(nullptr)
     , m_RemoveTexture(nullptr)
@@ -15,6 +15,9 @@ UIContentBrowser::UIContentBrowser()
     , m_Mode(CBM_OBJECTS)
     , m_ObjectToolRef(nullptr)
     , m_SpawnToolRef(nullptr)
+    , m_View(CBV_ALL)
+    , m_ViewDirty(false)
+    , m_CacheNeedsAssign(false)
 {
     m_SearchBuf[0] = 0;
     m_ObjectList = xr_new<UIItemListForm>();
@@ -42,7 +45,7 @@ UIContentBrowser::~UIContentBrowser()
     xr_delete(m_ObjectList);
 }
 
-// â”€â”€ mode switch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ mode switch â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 void UIContentBrowser::SetMode(EContentBrowserMode mode)
 {
     if (m_Mode == mode) return;
@@ -84,7 +87,7 @@ static xr_string UTF8ToLower(const char* str)
     return XrUIManager::ConvertCP1251ToUTF8(cp1251.c_str());
 }
 
-// â”€â”€ Refresh â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ Refresh â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 void UIContentBrowser::Refresh()
 {
     if (m_RealTexture) m_RemoveTexture = m_RealTexture;
@@ -93,8 +96,10 @@ void UIContentBrowser::Refresh()
     m_CurrentItem = "";
     m_SearchBuf[0] = 0;
     m_FolderHelper.m_CurrentPath = "";
+    m_FolderHelper.ReleaseThumbnails();
 
-    ListItemsVec items;
+    m_CachedItems.clear();
+    m_CacheNeedsAssign = true;
 
     if (m_Mode == CBM_OBJECTS)
     {
@@ -106,13 +111,13 @@ void UIContentBrowser::Refresh()
             xr_string name = it.name;
             size_t dot = name.rfind('.');
             if (dot != xr_string::npos) name.resize(dot);
-            LHelper().CreateItem(items, name.c_str(), 0, ListItem::flDrawThumbnail, 0);
+            AddCachedItem(name.c_str(), ListItem::flDrawThumbnail, 0);
         }
     }
     else if (m_Mode == CBM_SPAWN)
     {
-        LHelper().CreateItem(items, RPOINT_CHOOSE_NAME, 0, 0, RPOINT_CHOOSE_NAME);
-        LHelper().CreateItem(items, ENVMOD_CHOOSE_NAME, 0, 0, ENVMOD_CHOOSE_NAME);
+        AddCachedItem(RPOINT_CHOOSE_NAME, 0, RPOINT_CHOOSE_NAME);
+        AddCachedItem(ENVMOD_CHOOSE_NAME, 0, ENVMOD_CHOOSE_NAME);
         CInifile::Root& data = ((CInifile*)pSettings)->sections();
         for (CInifile::RootIt it = data.begin(); it != data.end(); it++)
         {
@@ -121,12 +126,9 @@ void UIContentBrowser::Refresh()
             {
                 shared_str caption = pSettings->r_string_wb((*it)->Name, "$spawn");
                 if (caption.size())
-                    LHelper().CreateItem(items, caption.c_str(), 0,
-                        ListItem::flDrawThumbnail,
-                        (LPVOID) * (*it)->Name);
+                    AddCachedItem(caption.c_str(), ListItem::flDrawThumbnail, (LPVOID)*(*it)->Name);
             }
         }
-        m_FolderHelper.ReleaseThumbnails();
     }
     else
     {
@@ -137,16 +139,46 @@ void UIContentBrowser::Refresh()
             xr_string name = it.name;
             size_t dot = name.rfind('.');
             if (dot != xr_string::npos) name.resize(dot);
-            LHelper().CreateItem(items, name.c_str(), 0, ListItem::flDrawThumbnail, (LPVOID)0);
+            AddCachedItem(name.c_str(), ListItem::flDrawThumbnail, 0);
         }
-        m_FolderHelper.ReleaseThumbnails();
     }
 
-    m_ObjectList->AssignItems(items);
-    m_FolderHelper.RebuildFolders(items);
+    ApplyView();
 }
 
-// â”€â”€ OnItemFocused â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ OnItemFocused â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+void UIContentBrowser::AddCachedItem(const char* key, int flags, LPVOID data)
+{
+    if (!key) return;
+    CachedItem entry; entry.key = key; entry.flags = flags; entry.data = data;
+    m_CachedItems.push_back(entry);
+}
+
+void UIContentBrowser::ApplyView()
+{
+    if (m_CacheNeedsAssign)
+    {
+        ListItemsVec items;
+        for (const CachedItem& entry : m_CachedItems)
+            LHelper().CreateItem(items, entry.key.c_str(), 0, entry.flags, entry.data);
+        m_ObjectList->AssignItems(items);
+        m_FolderHelper.RebuildFolders(items);
+        m_CacheNeedsAssign = false;
+    }
+
+    const ListItemsVec& allItems = m_ObjectList->GetItems();
+    for (ListItem* item : allItems)
+    {
+        bool visible = m_View == CBV_ALL;
+        if (m_View != CBV_ALL)
+        {
+            const xr_vector<xr_string>& source = m_View == CBV_RECENT ? m_RecentItems : m_FavoriteItems;
+            visible = std::find(source.begin(), source.end(), xr_string(item->Key())) != source.end();
+        }
+        item->Visible(visible);
+    }
+    m_ViewDirty = false;
+}
 void UIContentBrowser::OnItemFocused(ListItem* item)
 {
     if (m_RealTexture) m_RemoveTexture = m_RealTexture;
@@ -156,6 +188,7 @@ void UIContentBrowser::OnItemFocused(ListItem* item)
 
     if (!item) return;
     m_CurrentItem = item->Key();
+    RememberItem(*m_CurrentItem);
 
     if (m_Mode == CBM_OBJECTS)
     {
@@ -209,7 +242,7 @@ void UIContentBrowser::OnItemFocused(ListItem* item)
     }
 }
 
-// â”€â”€ breadcrumb â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ breadcrumb â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 void UIContentBrowser::DrawBreadcrumb()
 {
     if (ImGui::SmallButton("root"))
@@ -249,7 +282,7 @@ void UIContentBrowser::DrawBreadcrumb()
     ImGui::NewLine();
 }
 
-// â”€â”€ tile grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ tile grid â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 void UIContentBrowser::DrawTileGridCustom()
 {
     const float tileSize = kBaseTile * m_TileScale;
@@ -282,7 +315,7 @@ void UIContentBrowser::DrawTileGridCustom()
             if (strchr(name + plen + 1, '\\') != nullptr) continue;
         }
 
-        // â”€â”€ ÐšÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ñ‹Ð¹ Ð¿Ð¾Ð¸ÑÐº Ñ Ð¿Ð¾Ð´Ð´ÐµÑ€Ð¶ÐºÐ¾Ð¹ ÐºÐ¸Ñ€Ð¸Ð»Ð»Ð¸Ñ†Ñ‹ UTF-8 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // â"€â"€ ÐšÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ñ‹Ð¹ Ð¿Ð¾Ð¸ÑÐº Ñ Ð¿Ð¾Ð´Ð´ÐµÑ€Ð¶ÐºÐ¾Ð¹ ÐºÐ¸Ñ€Ð¸Ð»Ð»Ð¸Ñ†Ñ‹ UTF-8 â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         if (doSearch)
         {
             const char* lbl = strrchr(name, '\\');
@@ -388,15 +421,60 @@ void UIContentBrowser::DrawTileGridCustom()
 
         if (hovered && key) { const xr_string utf8Key = XrUIManager::ConvertCP1251ToUTF8(key); ImGui::SetTooltip("%s", utf8Key.c_str()); }
 
-        if (clicked)
+        bool starClicked = false;
+        if (key)
+        {
+            const ImVec2 starMin(cursor.x + cellW - 23.f, cursor.y + 2.f);
+            const ImVec2 starMax(starMin.x + 20.f, starMin.y + 20.f);
+            const bool starHovered = ImGui::IsMouseHoveringRect(starMin, starMax);
+            if (isVisible)
+            {
+                const ImU32 starColor = IsFavorite(key) ? IM_COL32(255, 205, 65, 255) : IM_COL32(175, 180, 190, 210);
+                dl->AddText(ImGui::GetFont(), 16.f, starMin, starColor, "\xE2\x98\x85");
+            }
+            if (starHovered) ImGui::SetTooltip(IsFavorite(key) ? "Remove from Favorite" : "Add to Favorite");
+            starClicked = starHovered && ImGui::IsMouseClicked(0);
+            if (starClicked) ToggleFavorite(key);
+        }
+
+        if (clicked && !starClicked)
+        {
             m_ObjectList->SelectItem(key);
+            RememberItem(key);
+        }
+
 
         col++;
         if (col < cols) ImGui::SameLine();
         else            col = 0;
     }
+    if (m_ViewDirty) ApplyView();
     ImGui::PopStyleVar();
 }
+
+void UIContentBrowser::RememberItem(const char* key)
+{
+    if (!key || !key[0]) return;
+    m_RecentItems.erase(std::remove(m_RecentItems.begin(), m_RecentItems.end(), xr_string(key)), m_RecentItems.end());
+    m_RecentItems.insert(m_RecentItems.begin(), key);
+    if (m_RecentItems.size() > 25) m_RecentItems.resize(25);
+    SaveUserState();
+}
+
+bool UIContentBrowser::IsFavorite(const char* key) const
+{
+    return key && std::find(m_FavoriteItems.begin(), m_FavoriteItems.end(), xr_string(key)) != m_FavoriteItems.end();
+}
+
+void UIContentBrowser::ToggleFavorite(const char* key)
+{
+    if (!key || !key[0]) return;
+    if (IsFavorite(key)) m_FavoriteItems.erase(std::remove(m_FavoriteItems.begin(), m_FavoriteItems.end(), xr_string(key)), m_FavoriteItems.end());
+    else m_FavoriteItems.push_back(key);
+    SaveUserState();
+    m_ViewDirty = true;
+}
+
 
 void UIContentBrowser::LoadUserState()
 {
@@ -406,6 +484,10 @@ void UIContentBrowser::LoadUserState()
         return;
 
     CInifile ini(fn, true);
+    if (ini.section_exist("recent"))
+        for (int i = 0; i < 25; ++i) { char k[32]; sprintf_s(k, "item%d", i); if (ini.line_exist("recent", k)) m_RecentItems.push_back(ini.r_string("recent", k)); }
+    if (ini.section_exist("favorites"))
+        for (int i = 0; i < 500; ++i) { char k[32]; sprintf_s(k, "item%d", i); if (ini.line_exist("favorites", k)) m_FavoriteItems.push_back(ini.r_string("favorites", k)); }
     if (!ini.section_exist("state"))
         return;
 
@@ -423,10 +505,12 @@ void UIContentBrowser::SaveUserState()
     CInifile ini(fn, false, false, true);
     ini.w_bool("state", "visible", m_bVisible);
     ini.w_bool("state", "show_preview", m_bShowPreview);
+    for (int i = 0; i < (int)m_RecentItems.size(); ++i) { char k[32]; sprintf_s(k, "item%d", i); ini.w_string("recent", k, m_RecentItems[i].c_str()); }
+    for (int i = 0; i < (int)m_FavoriteItems.size(); ++i) { char k[32]; sprintf_s(k, "item%d", i); ini.w_string("favorites", k, m_FavoriteItems[i].c_str()); }
     ini.save_as(fn);
 }
 
-// â”€â”€ main Draw â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€ main Draw â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 void UIContentBrowser::Draw()
 {
     if (m_RemoveTexture) { m_RemoveTexture->Release(); m_RemoveTexture = nullptr; }
@@ -476,7 +560,12 @@ void UIContentBrowser::Draw()
     const float bodyH = ImGui::GetContentRegionAvail().y;
 
     ImGui::BeginChild("##cb_tree", ImVec2(160, bodyH), true);
-    m_FolderHelper.DrawFolderTreePanel(m_ObjectList);
+    if (ImGui::Selectable("Recent", m_View == CBV_RECENT)) { m_View = CBV_RECENT; m_FolderHelper.m_CurrentPath = ""; ApplyView(); }
+    if (ImGui::Selectable("Favorite", m_View == CBV_FAVORITES)) { m_View = CBV_FAVORITES; m_FolderHelper.m_CurrentPath = ""; ApplyView(); }
+    ImGui::Separator();
+    bool rootClicked = false;
+    m_FolderHelper.DrawFolderTreePanel(m_ObjectList, &rootClicked, m_View == CBV_ALL);
+    if (rootClicked && m_View != CBV_ALL) { m_View = CBV_ALL; ApplyView(); }
     ImGui::EndChild();
 
     ImGui::SameLine(0, 3);

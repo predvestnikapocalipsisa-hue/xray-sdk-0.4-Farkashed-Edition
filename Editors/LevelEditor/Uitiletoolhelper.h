@@ -44,16 +44,19 @@ public:
         return (p && p[0]) ? p : nullptr;
     }
 
-    void DrawFolderTreePanel(UIItemListForm* /*list*/)
+    void DrawFolderTreePanel(UIItemListForm* /*list*/, bool* rootClicked = nullptr, bool selectRoot = true)
     {
         ImGuiTreeNodeFlags rootFlags = ImGuiTreeNodeFlags_SpanFullWidth |
             ImGuiTreeNodeFlags_DefaultOpen;
-        if (!*m_CurrentPath) rootFlags |= ImGuiTreeNodeFlags_Selected;
+        if (selectRoot && !*m_CurrentPath) rootFlags |= ImGuiTreeNodeFlags_Selected;
 
         if (m_IconFolder) { ImGui::Image(m_IconFolder, ImVec2(14, 14)); ImGui::SameLine(0, 4); }
         bool rootOpen = ImGui::TreeNodeEx("##root", rootFlags, "All");
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+        {
             m_CurrentPath = "";
+            if (rootClicked) *rootClicked = true;
+        }
         if (rootOpen)
         {
             DrawFolderNode("", 0);

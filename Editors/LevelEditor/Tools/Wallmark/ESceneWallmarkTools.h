@@ -60,6 +60,8 @@ private:
 
 	wm_slot *FindSlot(shared_str sh_name, shared_str tx_name);
 	wm_slot *AppendSlot(shared_str sh_name, shared_str tx_name);
+	void OnTextureExplorerClick(ButtonValue *value, bool &data_modified, bool &safe);
+	void OnApplyMaterialToSelected(ButtonValue *value, bool &data_modified, bool &safe);
 
 	void RecurseTri(u32 t, Fmatrix &mView, wallmark &W);
 	void BuildMatrix(Fmatrix &mView, float inv_w, float inv_h, float angle, const Fvector &from);
