@@ -3,14 +3,6 @@
 
 #include <process.h>
 
-// mmsystem.h
-#define MMNOSOUND
-#define MMNOMIDI
-#define MMNOAUX
-#define MMNOMIXER
-#define MMNOJOY
-#include <mmsystem.h>
-
 // Initialized on startup
 XRCORE_API Fmatrix Fidentity;
 XRCORE_API Dmatrix Didentity;
@@ -97,47 +89,38 @@ namespace CPU
 		GetSystemInfo(&siSysInfo);
 		ID.n_threads = siSysInfo.dwNumberOfProcessors;
 
-		// Timers & frequency
-		u64 start, end;
-		u32 dwStart, dwTest;
-
-		SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-
-		// Detect Freq
-		dwTest = timeGetTime();
+		// Keep the TSC conversion factors for SDK callers. QPC gives enough
+		// resolution to calibrate them in 2 ms at normal process priority.
+		QueryPerformanceFrequency((PLARGE_INTEGER)&qpc_freq);
+		const u64 qpc_start = QPC();
+		const u64 clk_start = GetCLK();
+		const u64 interval = (qpc_freq + 499) / 500;
+		u64 qpc_elapsed;
 		do
 		{
-			dwStart = timeGetTime();
-		} while (dwTest == dwStart);
-		start = GetCLK();
-		while (timeGetTime() - dwStart < 1000)
-			;
-		end = GetCLK();
-		clk_per_second = end - start;
+			qpc_elapsed = QPC() - qpc_start;
+		} while (qpc_elapsed < interval);
+		const u64 clk_elapsed = GetCLK() - clk_start;
+		clk_per_second = u64(double(clk_elapsed) * double(qpc_freq) / double(qpc_elapsed));
 
 		// Detect RDTSC Overhead
 		clk_overhead = 0;
-		u64 dummy = 0;
 		for (int i = 0; i < 256; i++)
 		{
-			start = GetCLK();
-			clk_overhead += GetCLK() - start - dummy;
+			const u64 start = GetCLK();
+			clk_overhead += GetCLK() - start;
 		}
 		clk_overhead /= 256;
 
 		// Detect QPC Overhead
-		QueryPerformanceFrequency((PLARGE_INTEGER)&qpc_freq);
 		qpc_overhead = 0;
 		for (int i = 0; i < 256; i++)
 		{
-			start = QPC();
-			qpc_overhead += QPC() - start - dummy;
+			const u64 start = QPC();
+			qpc_overhead += QPC() - start;
 		}
 		qpc_overhead /= 256;
 
-		SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
-
-		clk_per_second -= clk_overhead;
 		clk_per_milisec = clk_per_second / 1000;
 		clk_per_microsec = clk_per_milisec / 1000;
 

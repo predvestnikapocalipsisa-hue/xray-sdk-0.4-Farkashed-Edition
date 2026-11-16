@@ -1,4 +1,51 @@
 #include "stdafx.h"
+#include <unordered_map>
+
+namespace
+{
+	using ItemTree = FolderHelper<ListItem, true>;
+
+	void BuildItemTree(ItemTree::Node& root, const ListItemsVec& items)
+	{
+		// Index full paths by their position under the parent. Indices stay
+		// valid when a sibling vector grows.
+		std::unordered_map<std::string, size_t> childIndices;
+		childIndices.reserve(items.size());
+		for (ListItem* item : items)
+		{
+			const char* path = item->Key();
+			auto* parent = &root;
+			const char* name = path;
+			for (;;)
+			{
+				const char* separator = strchr(name, '\\');
+				const char* end = separator ? separator : name + strlen(name);
+				const auto inserted = childIndices.emplace(std::string(path, end), parent->Nodes.size());
+				if (inserted.second)
+				{
+					parent->Nodes.emplace_back();
+					auto& node = parent->Nodes.back();
+					const std::string nodeName(name, end);
+					const std::string parentPath(path, name == path ? path : name - 1);
+					node.Name = nodeName.c_str();
+					node.Path = parentPath.c_str();
+					node.Type = ItemTree::FNT_Object;
+				}
+
+				auto& node = parent->Nodes[inserted.first->second];
+				if (!separator)
+				{
+					node.Object = item;
+					break;
+				}
+
+				node.Type = ItemTree::FNT_Folder;
+				parent = &node;
+				name = separator + 1;
+			}
+		}
+	}
+}
 
 UIItemListForm::UIItemListForm()
 {
@@ -56,12 +103,7 @@ void UIItemListForm::RemoveSelectItem()
 		}
 	}
 	m_GeneralNode = Node();
-	for (ListItem *item : m_Items)
-	{
-		Node *N = AppendObject(&m_GeneralNode, item->Key());
-		VERIFY(N);
-		N->Object = item;
-	}
+	BuildItemTree(m_GeneralNode, m_Items);
 }
 
 void UIItemListForm::ClearSelected()
@@ -149,12 +191,8 @@ void UIItemListForm::AssignItems(ListItemsVec &items, const char *name_selection
 	}
 
 	for (ListItem *item : m_Items)
-	{
 		item->Parent = this;
-		Node *N = AppendObject(&m_GeneralNode, item->Key());
-		VERIFY(N);
-		N->Object = item;
-	}
+	BuildItemTree(m_GeneralNode, m_Items);
 	if (name_selection)
 	{
 		Node *N = SelectObject(&m_GeneralNode, name_selection);
