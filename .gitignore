@@ -1,6 +1,10 @@
 /.vs
 /output
 /BuildedSDK/
+/x64/
+/LauncherAssets/output/
+/LauncherAssets/BuildedSDK/
+/External/LuaJIT/src/x64/
 /OGSR/3rd_party
 /OGSR/3rd_party
 /OGSR/ogsr_engine
@@ -9,6 +13,10 @@
 
 # Мусор от компилятора
 *.pch*
+*.obj
+*.ilk
+*.tlog
+*.lastbuildstate
 
 # Прекомпилы
 *.ipch
